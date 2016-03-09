@@ -1,0 +1,53 @@
+FROM debian:jessie
+
+MAINTAINER Stefan.Alfredsson@kau.se
+
+RUN mkdir -p /opt/monroe
+COPY files/* /opt/monroe/
+
+RUN echo 'deb http://download.opensuse.org/repositories/home:/tohojo:/flent/Debian_8.0/ /' > /etc/apt/sources.list.d/flent.list
+
+# apt-key for flent from wget http://download.opensuse.org/repositories/home:tohojo:flent/Debian_8.0/Release.key
+RUN apt-key add - < /opt/monroe/flent-repo.key
+
+# Support OML (per Turin F2F workshop 2016-01-28
+# https://software.opensuse.org/download.html?project=devel:tools:mytestbed:stable&package=oml2
+
+RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:/stable/Debian_7.0/ /' >> /etc/apt/sources.list.d/oml2.list
+
+#  http://download.opensuse.org/repositories/devel:tools:mytestbed:stable/Debian_7.0/Release.key
+RUN apt-key add - < /opt/monroe/oml2-repo.key
+
+
+# (mention dependencies explicitly (e.g. netperf)
+
+RUN apt-get update && apt-get install -y --force-yes \
+    python \
+    python-zmq \
+    traceroute \
+    paris-traceroute \
+    fping \
+    smokeping \
+    httping \
+    nmap \
+    flent \
+    netperf \
+    iperf \
+    iperf3 \
+    mgen \
+    d-itg \
+    oml2 \
+    oml2-apps \
+    tcpdump \
+    net-tools \
+    rsync \
+    openssh-client \
+    iptables \
+    curl \
+    supervisor
+
+RUN apt-get clean
+RUN apt-get autoremove
+
+# Default cmd to run
+#ENTRYPOINT ["/bin/sh", "/run.sh"]
