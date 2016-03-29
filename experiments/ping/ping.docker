@@ -1,0 +1,14 @@
+FROM monroe/base
+
+MAINTAINER Stefan.Alfredsson@kau.se
+
+#RUN apt-get update && apt-get install -y \
+#    fping \
+#    python-pip
+
+COPY files/* /opt/monroe/
+
+# Default cmd to run
+# CMD ["flent", "ping", "8.8.8.8", "-l", "10", "-D/output"]
+
+ENTRYPOINT ["/bin/sh", "/opt/monroe/run.sh"]
