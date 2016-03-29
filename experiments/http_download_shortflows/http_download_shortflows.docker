@@ -1,0 +1,7 @@
+FROM monroe1.cs.kau.se:5000/monroe/monroe_base
+
+MAINTAINER Jonas.Karlsson@kau.se
+
+COPY files/* /opt/monroe/
+
+ENTRYPOINT ["/bin/sh", "/opt/monroe/run.sh"]
