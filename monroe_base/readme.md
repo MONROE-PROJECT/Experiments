@@ -2,11 +2,11 @@
 
 ## Network setup
 
-Please take a look at the file MONROE-Scheduler / files / usr / bin / container-start.sh 
-([recent version](https://bitbucket.org/ozgualay/monroe-scheduler/src/363dfa8729ee2488f12786524e05851549185971/files/usr/bin/container-start.sh))
+Please take a look at the file MONROE-Scheduler / files / usr / bin / container-start.sh
+([recent version](https://github.com/MONROE-PROJECT/Scheduler/blob/master/files/usr/bin/container-start.sh))
 to get an idea of the setup the container will run in. Please test this setup extensively.
 
-Most notably 
+Most notably
 
   * the container runs with --net=none by default (no host interfaces are visible in the container network namespace)
   * any interface that is booked via the scheduler will be mapped into the container network namespace via macvlan
@@ -18,4 +18,3 @@ Most notably
 These directories must exist and be writable by the user/process running fping_json_formatter.py:    
 /output/    
 /tmp/?
-
