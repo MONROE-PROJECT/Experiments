@@ -1,0 +1,8 @@
+FROM monroe1.cs.kau.se:5000/monroe/monroe_base
+
+MAINTAINER jonas.karlsson@kau.se
+
+COPY files/* /opt/monroe/
+
+# Default cmd to run
+ENTRYPOINT ["/bin/sh", "/opt/monroe/run.sh"]
