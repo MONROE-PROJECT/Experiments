@@ -81,7 +81,7 @@ def _timed_move_to_output_(dataid, dataversion, outdir, interval=-1):
                         msg['DataId'] = dataid
                         msg['DataVersion'] = dataversion
                         print >> tmp_dest, json.dumps(obj=msg)
-                        print json.dumps(obj=msg)
+                        # print json.dumps(obj=msg)
 
                 # atomic rename of /outdir/tmpXXXX -> /outdir/yyy.json
                 os.rename(tmp_dest_name, dest_name)

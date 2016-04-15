@@ -9,10 +9,10 @@ fi
 
 IF=$1
 
-# FIXME : REvert after tech demo 20151009
-
-#IFID=$(python ./interface_to_id.py $IF 65)
-
+if [ ! "$(ifconfig $IF | grep UP)" ]; then 
+  echo "No $IF is configured exits"
+  exit 1
+fi
 
 # FIXME: Need to check that $IF exists, otherwise
 # fping will default to the default route.

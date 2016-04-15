@@ -4,7 +4,7 @@ Evaluate http download speed.
 
 The experiment will with a configurable interval download a .zip file over http using curl.
 
-The required parameters to run the container are 
+The required parameters to run the container are
  * interface -- The local interface to bind to
  * max_size -- The maximum size in Kbytes to download (for now this is capped at 1000MB)
  * max_time -- The maximum time in seconds a single download are allowed to take
@@ -16,7 +16,7 @@ More information, e.g. url and options used can be found in files/run.sh and fil
 
 ## Requirements
 
-These directories must exist and be writable by the user/process running the container 
+These directories must exist and be writable by the user/process running the container
 /output/    
 /etc/nodeid
 
@@ -31,20 +31,21 @@ docker ps  # list running images
 docker exec -it [container id] bash   # attach to running container
 
 ## Sample output
+NodeId, DataId, DataVersion will be appended to the sample output before transmission to the db (by the monroe_exporter function). 
 Single line printed on multiple lines for readability
 ```
 DataId = "MONROE.EXP.HTTP.DOWNLOAD"
 DataVersion = 1
 
  {
- u'TotalTime': 0.06, 
- 'InterfaceName': 'eth0', 
- 'TimeStamp': 1460720460.979675, 
- u'Bytes': 102400, 
- u'SetupTime': 0.027, 
- 'DownloadTime': 0.033, 
- u'Host': u'213.80.98.3', 
- u'Speed': 1695251.0, 
- u'Port': u'80'
+   "TotalTime": 0.06,
+   "InterfaceName": 'eth0',
+   "TimeStamp": 1460720460.979675,
+   "Bytes": 102400,
+   "SetupTime": 0.027,
+   "DownloadTime": 0.033,
+   "Host": "213.80.98.3",
+   "Speed": 1695251.0,
+   "Port": "80"
  }
 ```

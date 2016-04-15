@@ -11,7 +11,8 @@ IF=$1
 MAX_SIZE=$2
 MAX_TIME=$3
 INTERVAL=$4
-URL="http://speedtest.bahnhof.net/1000M.zip"
+#URL="http://speedtest.bahnhof.net/1000M.zip"
+URL="http://monroe1.cs.kau.se/test/1000M.zip"
 
 python curl_wrapper.py --interface=${IF} --time=${MAX_TIME} --size=${MAX_SIZE} --url=${URL} --interval=${INTERVAL}
 
