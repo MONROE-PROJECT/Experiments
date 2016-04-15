@@ -33,9 +33,10 @@ docker exec -it [container id] bash   # attach to running container
 
 ## Sample output 
 Single line printed on multiple lines for readability
+```
 DataId = "MONROE.EXP.HTTP2.DOWNLOAD"
 DataVersion = 1
-```
+
 {u'TotalTime': 0.06, 
 'InterfaceName': 'eth0', 
 'TimeStamp': 1460720763.088174, 
