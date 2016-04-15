@@ -13,7 +13,7 @@ import sys
 import re
 
 # Set some variables for saving data
-monroe_exporter.initalize('MONROE.EXP.PING', 1, 3600.0)
+monroe_exporter.initalize('MONROE.EXP.PING', 1, 5.0)
 
 if (len(sys.argv) != 2):
     print "Usage: {} interface[interfaceName]".format(sys.argv[0])

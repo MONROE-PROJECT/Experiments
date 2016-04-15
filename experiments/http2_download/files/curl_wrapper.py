@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser = create_arg_parser()
     args = parser.parse_args()
 
-    data_id = 'MONROE.EXP.HTTP.DOWNLOAD'
+    data_id = 'MONROE.EXP.HTTP2.DOWNLOAD'
     data_version = 1
     interval = args.interval
     export_interval = interval*5  # 4 experiment runs in each json file

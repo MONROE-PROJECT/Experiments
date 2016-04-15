@@ -27,5 +27,24 @@ curl -o /dev/null --raw --silent --write-out "{ remote: %{remote_ip}:%{remote_po
 
 ## Docker misc usage
 
-docker ps  # list running images
+docker ps  # list running images    
 docker exec -it [container id] bash   # attach to running container
+
+## Sample output
+Single line printed on multiple lines for readability
+```
+DataId = "MONROE.EXP.HTTP.DOWNLOAD"
+DataVersion = 1
+
+ {
+ u'TotalTime': 0.06, 
+ 'InterfaceName': 'eth0', 
+ 'TimeStamp': 1460720460.979675, 
+ u'Bytes': 102400, 
+ u'SetupTime': 0.027, 
+ 'DownloadTime': 0.033, 
+ u'Host': u'213.80.98.3', 
+ u'Speed': 1695251.0, 
+ u'Port': u'80'
+ }
+```
