@@ -30,7 +30,8 @@ curl -o /dev/null --raw --silent --write-out "{ remote: %{remote_ip}:%{remote_po
 docker ps  # list running images    
 docker exec -it [container id] bash   # attach to running container
 
-## Sample output (pretty-printed on multiple lines for readability)
+## Sample output
+Single line printed on multiple lines for readability
 ```
  {
  u'TotalTime': 0.06, 
