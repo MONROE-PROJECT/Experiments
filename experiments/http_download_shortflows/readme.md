@@ -31,6 +31,7 @@ docker ps  # list running images
 docker exec -it [container id] bash   # attach to running container    
 
 ## Sample output 
+Single line printed on multiple lines for readability
 ```
 {
 u'TotalTime': 0.06, 
