@@ -5,7 +5,7 @@ The experiments measure IP RTT by continuously send ping
 packets to host 8.8.8.8 (google public dns).
 
 The experiment will send 1 Echo Request (ICMP type 8) packet per second to
-hots 8.8.8.8 over the specified interface until aborted.
+host 8.8.8.8 over the specified interface until aborted.
 RTT is measured as the time between the Echo request and the Echo reply
 (ICMP type 0) is received from the server.
 
@@ -14,7 +14,7 @@ The experiment require Interface Name as a mandatory parameter.
 The experiment is designed to run as a docker container and will not attempt to
 do any active network configuration.
 If the Interface does not exist (ie is not UP) when the experiment starts it
-will immediately exit
+will immediately exit.
 
 ## Requirements
 
