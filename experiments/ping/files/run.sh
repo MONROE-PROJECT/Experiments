@@ -9,7 +9,7 @@ fi
 
 IF=$1
 
-if [ ! "$(ifconfig $IF | grep UP)" ]; then 
+if [ ! "$(ip a |grep $IF | grep LOWER_UP)" ]; then
   echo "No $IF is configured exits"
   exit 1
 fi
