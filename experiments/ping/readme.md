@@ -31,7 +31,7 @@ fping -I eth0 -D -p 1000 -l 8.8.8.8 | python ./fping_json_formatter.py eth0
 
 ## Docker misc usage
 
-docker ps  # list running images
+docker ps  # list running images    
 docker exec -it [container id] bash   # attach to running container
 
 ## Sample output
