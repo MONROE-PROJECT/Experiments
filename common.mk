@@ -36,7 +36,7 @@ push:
 
 image:
 	docker build -f $(DOCKERFILE) -t $(CONTAINERTAG) .  
-	docker tag -f $(CONTAINERTAG) $(REPO)/$(CONTAINERTAG)
+	docker tag $(CONTAINERTAG) $(REPO)/$(CONTAINERTAG)
 
 run-local: stop
 	@echo "Starting container."
