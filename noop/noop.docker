@@ -1,0 +1,9 @@
+FROM monroe/base 
+
+MAINTAINER thomas.hirsch@celerway.com 
+
+RUN mkdir -p /opt/monroe
+COPY files/* /opt/monroe/
+
+# Default cmd to run
+ENTRYPOINT ["/bin/sh", "/opt/monroe/run.sh"]
