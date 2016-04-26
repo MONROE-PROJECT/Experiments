@@ -1,4 +1,4 @@
-FROM monroe1.cs.kau.se:5000/monroe/monroe_base
+FROM monroe1.cs.kau.se:5000/monroe/monroe_base_internal
 
 MAINTAINER jonas.karlsson@kau.se
 

@@ -1,4 +1,4 @@
-FROM monroe/base
+FROM monroe1.cs.kau.se:5000/monroe/monroe_base_internal
 
 MAINTAINER Stefan.Alfredsson@kau.se
 

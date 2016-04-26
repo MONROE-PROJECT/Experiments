@@ -1,4 +1,4 @@
-# Monroe base container
+# Monroe base container for internal experiments
 
 ## Network setup
 
@@ -15,12 +15,5 @@ Most notably
 
 ## Requirements
 
-These directories must exist and be writable by the user/process :    
+These directories must exist and be writable by the user/process running :    
 /output/
-
-# How to update
-  1. Login docker hub ```docker login```
-  2. Build the image ```docker build -f monroe_base.docker -t base .```
-  3. Tag the image ```docker tag base monroe/base```
-  4. Push it to the repo ```docker push monroe/base```
-  5. Rebuild all images that are built on monroe/base
