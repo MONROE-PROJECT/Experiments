@@ -104,7 +104,7 @@ def _timed_move_to_output_(dataid, dataversion, outdir, interval=-1):
                     print log_str
             else:
                 # We have too little space left on outdir
-                log_str = "Out of disk space : {} ".format(tmp_dest_name)
+                log_str = "Out of disk space : {} ".format(dest_name)
                 syslog.syslog(syslog.LOG_ERR, log_str)
                 print log_str
 
