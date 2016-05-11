@@ -15,15 +15,15 @@ import re
 # Set some variables for saving data
 monroe_exporter.initalize('MONROE.EXP.PING', 1, 5.0)
 
-if (len(sys.argv) != 2):
-    print "Usage: {} interface[interfaceName]".format(sys.argv[0])
+if (len(sys.argv) != 3):
+    print "Usage: {} InterfaceName InterfaceId".format(sys.argv[0])
     print "Exiting."
     sys.exit()
 
 interface = sys.argv[1]
+iccid     = sys.argv[2]
 
-print "Using {} ".format(interface)
-
+print "Using {} {}".format(interface, iccid)
 
 # regexp to parse fping output.
 # command: fping -D -p 1000 -l 8.8.8.8
@@ -45,6 +45,7 @@ while line:
     exp_result = m.groupdict()
     msg = {
         'InterfaceName': interface,
+        'ICCID': iccid,
         'Bytes': int(exp_result['bytes']),
         'Host': exp_result['host'],
         'Rtt': float(exp_result['rtt']),
