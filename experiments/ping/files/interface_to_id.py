@@ -12,37 +12,37 @@ import zmq
 import json
 import sys
 
-if (len(sys.argv) != 3):
-    print "Usage: {} interface timeout(integer)".format(sys.argv[0])
+if (len(sys.argv) != 2):
+    print "Usage: {} interface".format(sys.argv[0])
     print "Exiting."
     sys.exit()
 
 interfacename=sys.argv[1]
-timeout=int(sys.argv[2])
 
-print "Using interface ", interfacename
-print "Waiting max ", timeout
+#print "Using interface ", interfacename
 
 # TODO: do a sanity check so we really ahev this interfae up in the system
 
 #Listen to events only on this intrface
-TOPIC = "MONROE.META.DEVICE.MODEM.{}".format(interfacename)
+TOPIC = "MONROE.META.DEVICE.MODEM"
 
 # Attach to the ZeroMQ socket as a subscriber and start listen to MONROE messages
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
-socket.connect('tcp://localhost:5557')
+socket.connect('tcp://172.17.0.1:5556')
 socket.setsockopt(zmq.SUBSCRIBE, TOPIC)
 # End Attach
 
-# Wait for the first message 
-if (([socket], [], []) != zmq.select([socket], [], [], timeout)):
-    quit()
+while True:
+    data = socket.recv()
+    
+    try:
+      msg = json.loads(data.split(" ", 1)[1])
+      ifname = msg.get('InterfaceName')
+      iccid = msg.get('ICCID')
 
-(topic, msgdata) = socket.recv_multipart()
-
-# The msg should conatin the intrface_id field in teh body (pre requist)    
-msg = json.loads(msgdata)
-body = msg['Data']
-
-print body['interface_id']
+      if ifname == interfacename and iccid is not None: 
+          print iccid
+          sys.exit(0)
+    except Exception, ex:
+      pass

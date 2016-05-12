@@ -14,9 +14,8 @@ if [ ! "$(ip a |grep $IF | grep LOWER_UP)" ]; then
   exit 1
 fi
 
-# FIXME: Need to check that $IF exists, otherwise
-# fping will default to the default route.
-# Add this check after interface_to_id check is enabled, wrap fping in conditional wrapper.
+ICCID=$(python ./interface_to_id.py $IF)
 
-fping -I $IF -D -p 1000 -l 8.8.8.8 | python ./fping_json_formatter.py $IF
-#fping -I $IF -D -p 1000 -l 8.8.8.8 | python ./fping_json_formatter.py $IFID
+echo ICCID
+
+fping -I $IF -D -p 1000 -l 8.8.8.8 | python ./fping_json_formatter.py $IF $ICCID
