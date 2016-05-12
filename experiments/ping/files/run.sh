@@ -14,8 +14,8 @@ if [ ! "$(ip a |grep $IF | grep LOWER_UP)" ]; then
   exit 1
 fi
 
-ICCID=$(python ./interface_to_id.py $IF)
+IFINFO=$(python ./interface_information.py $IF)
 
-echo ICCID
+echo ${IFINFO}
 
-fping -I $IF -D -p 1000 -l 8.8.8.8 | python ./fping_json_formatter.py $IF $ICCID
+fping -I $IF -D -p 1000 -l 8.8.8.8 | python ./fping_json_formatter.py "${IFINFO}"

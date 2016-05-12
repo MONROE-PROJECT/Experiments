@@ -35,18 +35,23 @@ docker ps  # list running images
 docker exec -it [container id] bash   # attach to running container
 
 ## Sample output
-NodeId, DataId, DataVersion will be appended to the sample output before transmission to the db (by the monroe_exporter function).
 Single line printed on multiple lines for readability
 ```
-DataId = "MONROE.EXP.PING"
-DataVersion = 1
-
 {
-  "InterfaceName": "eth0",
-  "SequenceNumber": 6,
-  "TimeStamp": 1460723683.108559,
-  "Bytes": 84,
-  "Rtt": 6.7,
-  "Host": "8.8.8.8"
+ "DataId": "MONROE.EXP.PING",
+ "InterfaceName": "eth0", 
+ "SequenceNumber": 70,
+ "Rtt": 6.47,
+ "IMSIMCCMNC": 24214,
+ "DataVersion": 1,
+ "NWMCCMNC": 24214,
+ "NodeId": "48",
+ "Bytes": 84,
+ "Operator": "Telenor",
+ "Host": "8.8.8.8",
+ "TimeStamp": 1463048694.806557,
+ "IMEI": "990004610244323",
+ "ICCID": "89470715000000631700",
+ "IMSI": "242140000163170"
 }
 ```
