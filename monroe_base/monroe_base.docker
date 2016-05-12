@@ -26,6 +26,7 @@ RUN apt-key add - < /opt/monroe/oml2-repo.key
 
 # (mention dependencies explicitly (e.g. netperf)
 
+
 RUN apt-get update && apt-get install -y --force-yes \
     python \
     python-zmq \
@@ -53,6 +54,9 @@ RUN apt-get update && apt-get install -y --force-yes \
 #    oracle-java8-installer \
 #    oracle-java8-set-default
     default-jre-headless
+
+# Enable to force updates of packages 
+RUN apt-get upgrade -y --force-yes
 
 RUN apt-get clean
 RUN apt-get autoremove
