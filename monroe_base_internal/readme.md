@@ -11,9 +11,9 @@ Most notably
   * the container runs with --net=none by default (no host interfaces are visible in the container network namespace)
   * any interface that is booked via the scheduler will be mapped into the container network namespace via macvlan
   * quotas (as booked via the scheduler) are applied to the ingoing and outgoing traffic on all interfaces
-  * a storage directory is mapped to /output inside the container. This will have a restricted size (~1GB?).
+  * a storage directory is mapped to /monroe/results/ inside the container. This will have a restricted size (~1GB?).
 
 ## Requirements
 
 These directories must exist and be writable by the user/process running :    
-/output/
+/monroe/results/

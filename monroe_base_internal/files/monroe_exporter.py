@@ -33,7 +33,7 @@ except Exception as e:
     raise e
 
 
-def initalize(dataid, dataversion, interval, outdir="/outdir/"):
+def initalize(dataid, dataversion, interval, outdir="/monroe/results/"):
     """Bootstrapping timed saves."""
     _timed_move_to_output_(dataid, dataversion, outdir, interval)
 
@@ -41,7 +41,7 @@ def initalize(dataid, dataversion, interval, outdir="/outdir/"):
 def save_output(msg,
                 dataid=None,
                 dataversion=None,
-                outdir="/outdir/"):
+                outdir="/monroe/results/"):
     """Save the msg."""
     with FILE_SEMA:
         JSON_STORE.append(msg)
@@ -89,7 +89,8 @@ def _timed_move_to_output_(dataid, dataversion, outdir, interval=-1):
                         tmp_dest.flush()
                         os.fsync(tmp_dest.fileno())
 
-                    # atomic rename of /outdir/tmpXXXX -> /outdir/yyy.json
+                    # atomic rename of /monroe/results/tmpXXXX ->
+                    # /monroe/results/yyy.json
                     os.rename(tmp_dest_name, dest_name)
                     os.chmod(dest_name, 0644)
                     JSON_STORE = []
@@ -138,9 +139,9 @@ def create_arg_parser():
                         help="Experiment/Metadata msg (in JSON format)")
     parser.add_argument('--outdir',
                         metavar='DIR',
-                        default="/outdir/",
+                        default="/monroe/results/",
                         help=("Directory to save the results to"
-                              "(default /outdir/)"))
+                              "(default /monroe/results/)"))
     parser.add_argument('--debug',
                         action="store_true",
                         help="Do not save files")
