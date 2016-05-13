@@ -137,7 +137,13 @@ if __name__ == '__main__':
             print(log_str) if (debug) else syslog.syslog(log_str)
             try:
                 msg = run_exp(cmd)
+                # Should be replaced with real value from "scheduler"/initscript
+                GUID = "{}.{}.{}.{}".format("experiment_id",
+                                            "scheduling_id",
+                                            "node_id",
+                                            "repetition")
                 msg.update({
+                    "Guid": GUID,
                     "TimeStamp": time.time(),
                     "InterfaceName": interface,
                     "DownloadTime": msg["TotalTime"] - msg["SetupTime"]

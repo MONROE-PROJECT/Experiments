@@ -13,14 +13,10 @@ import sys
 import re
 import json
 
-# Set some variables for saving data
-monroe_exporter.initalize('MONROE.EXP.PING', 1, 5.0)
-
 if (len(sys.argv) != 2):
     print "Usage: {} InterfaceInformation [JSON]".format(sys.argv[0])
     print "Exiting."
     sys.exit()
-
 
 ifinfo = json.loads(sys.argv[1])
 # Remove some stuff we do not need
@@ -46,6 +42,16 @@ interface = ifinfo['InterfaceName']
 
 print "Using {} {}".format(interface, ifinfo)
 
+# Should be replaced with real value from "scheduler"/initscript
+GUID = "{}.{}.{}.{}".format("experiment_id",
+                            "scheduling_id",
+                            "node_id",
+                            "repetition")
+
+# Set some variables for saving data
+monroe_exporter.initalize('MONROE.EXP.PING', 1, 5.0)
+
+
 # regexp to parse fping output.
 # command: fping -D -p 1000 -l 8.8.8.8
 # output:
@@ -68,6 +74,7 @@ while line:
     exp_result = m.groupdict()
     msg = ifinfo.copy()
     msg.update({
+                    'Guid': GUID,
                     'Bytes': int(exp_result['bytes']),
                     'Host': exp_result['host'],
                     'Rtt': float(exp_result['rtt']),

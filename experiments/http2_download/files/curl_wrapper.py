@@ -32,7 +32,13 @@ def run_exp(curl_cmd, interface, debug):
         output = output.strip(' \t\r\n\0')
         # Convert to JSON
         msg = json.loads(output)
+        # Should be replaced with real value from "scheduler"/initscript
+        GUID = "{}.{}.{}.{}".format("experiment_id",
+                                    "scheduling_id",
+                                    "node_id",
+                                    "repetition")
         msg.update({
+            "Guid": GUID,
             "TimeStamp": time.time(),
             "InterfaceName": interface,
             "DownloadTime": msg["TotalTime"] - msg["SetupTime"]

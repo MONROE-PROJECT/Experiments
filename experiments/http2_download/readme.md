@@ -32,13 +32,14 @@ docker ps  # list running images
 docker exec -it [container id] bash   # attach to running container
 
 ## Sample output
-NodeId, DataId, DataVersion will be appended to the sample output before transmission to the db (by the monroe_exporter function). 
+NodeId, DataId, DataVersion will be appended to the sample output before transmission to the db (by the monroe_exporter function).
 Single line printed on multiple lines for readability
 ```
 DataId = "MONROE.EXP.HTTP2.DOWNLOAD"
 DataVersion = 1
 
 {
+  "Guid": "experiment_id.scheduling_id.node_id.repetition",
   "TotalTime": 0.06,
   "InterfaceName": "eth0",
   "TimeStamp": 1460720763.088174,

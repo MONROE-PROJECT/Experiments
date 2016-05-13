@@ -38,8 +38,9 @@ docker exec -it [container id] bash   # attach to running container
 Single line printed on multiple lines for readability
 ```
 {
+ "Guid": "experiment_id.scheduling_id.node_id.repetition",
  "DataId": "MONROE.EXP.PING",
- "InterfaceName": "eth0", 
+ "InterfaceName": "eth0",
  "SequenceNumber": 70,
  "Rtt": 6.47,
  "IMSIMCCMNC": 24214,
