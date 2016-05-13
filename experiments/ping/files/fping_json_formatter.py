@@ -19,24 +19,6 @@ if (len(sys.argv) != 2):
     sys.exit()
 
 ifinfo = json.loads(sys.argv[1])
-# Remove some stuff we do not need
-ifinfo.pop("DataId", None)
-ifinfo.pop("SequenceNumber", None)
-ifinfo.pop("DataVersion", None)
-ifinfo.pop("Timestamp", None)
-
-# These I remove since they will be obsolete very quickly
-ifinfo.pop("RSSI", None)
-ifinfo.pop("CID", None)
-ifinfo.pop("DeviceState", None)
-ifinfo.pop("RSRQ", None)
-ifinfo.pop("RSRP", None)
-ifinfo.pop("IPAddress", None)
-ifinfo.pop("Band", None)
-ifinfo.pop("DeviceMode", None)
-ifinfo.pop("Frequency", None)
-ifinfo.pop("LAC", None)
-
 
 interface = ifinfo['InterfaceName']
 
@@ -72,15 +54,21 @@ while line:
 
     # keys are defined in regexp compilation. Nice!
     exp_result = m.groupdict()
-    msg = ifinfo.copy()
-    msg.update({
+    msg = {
                     'Guid': GUID,
                     'Bytes': int(exp_result['bytes']),
                     'Host': exp_result['host'],
                     'Rtt': float(exp_result['rtt']),
                     'SequenceNumber': int(exp_result['seq']),
                     'TimeStamp': float(exp_result['ts'])
-                })
+                    "InterfaceName": ifinfo["InterfaceName"],
+                    "IMSIMCCMNC": ifinfo["IMSIMCCMNC"],
+                    "NWMCCMNC": ifinfo["NWMCCMNC"],
+                    "Operator": ifinfo["Operator"],
+                    "IMEI": ifinfo["IMEI"],
+                    "ICCID": ifinfo["ICCID"],
+                    "IMSI": ifinfo["IMSI"]
+           }
 
     monroe_exporter.save_output(msg)
     line = sys.stdin.readline()
