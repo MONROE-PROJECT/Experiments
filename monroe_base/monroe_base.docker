@@ -27,7 +27,7 @@ RUN apt-key add - < /opt/monroe/oml2-repo.key
 # (mention dependencies explicitly (e.g. netperf)
 
 
-RUN apt-get update && apt-get install -y --force-yes \
+RUN apt-get update && apt-get upgrade -y --force-yes && apt-get install -y --force-yes \
     python \
     python-zmq \
     traceroute \
@@ -51,15 +51,16 @@ RUN apt-get update && apt-get install -y --force-yes \
     iptables \
     curl \
     supervisor \
+    python-netifaces \
+    nano \
 #    oracle-java8-installer \
 #    oracle-java8-set-default
     default-jre-headless
 
-# Enable to force updates of packages 
-RUN apt-get upgrade -y --force-yes
+RUN apt-get update --fix-missing
 
-RUN apt-get clean
-RUN apt-get autoremove
+# Cleanup
+ RUN apt-get clean ; apt-get autoremove; rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
 
 
 # Default cmd to run

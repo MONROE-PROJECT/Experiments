@@ -50,3 +50,25 @@ DataVersion = 1
    "Port": "80"
  }
 ```
+
+CREATE TABLE monroe_exp_http (
+    NodeId         text,
+ Guid           text,
+    Timestamp      decimal,
+ SequenceNumber bigint,
+    DataId         text,
+    DataVersion    int,
+
+ Operator       text,
+ Iccid          text,
+
+ TotalTime      double,
+    Bytes          int,
+ SetupTime      double,
+ DownloadTime   double,
+    Host           text,
+ Speed          double,
+    Port           text,
+
+    PRIMARY KEY (NodeId, Iccid)
+);

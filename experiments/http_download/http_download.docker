@@ -4,4 +4,4 @@ MAINTAINER Jonas.Karlsson@kau.se
 
 COPY files/* /opt/monroe/
 
-ENTRYPOINT ["/bin/sh", "/opt/monroe/run.sh"]
+ENTRYPOINT ["/usr/bin/python", "/opt/monroe/curl_wrapper.py"]
