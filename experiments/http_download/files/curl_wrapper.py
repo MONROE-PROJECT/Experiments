@@ -75,7 +75,8 @@ def run_exp(meta_info, exp_config):
             "TimeStamp": time.time(),
             "Iccid": meta_info["ICCID"],
             "Operator": meta_info["Operator"],
-            "DownloadTime": msg["TotalTime"] - msg["SetupTime"]
+            "DownloadTime": msg["TotalTime"] - msg["SetupTime"],
+            "SequenceNumber": 1
         })
         if DEBUG:
             print (msg)
@@ -160,7 +161,11 @@ if __name__ == '__main__':
                         'url': "http://193.10.227.25/test/1000M.zip",
                         'size': 1*1024 - 1,
                         'time': 3600,
-                        'allowed_interfaces': ['usb0', 'usb1', 'usb2', 'wlan0']
+                        'allowed_interfaces': ['usb0',
+                                               'usb1',
+                                               'usb2',
+                                               'wlan0',
+                                               'wwan2']
                         })
         except Exception as e:
             log_str = "Cannot retrive expconfig {}".format(e)
@@ -194,6 +199,14 @@ if __name__ == '__main__':
 
         log_str = "Starting Experiment Run on if : {}".format(ifname)
         print log_str
+
+        # On these we do net get modem information fugly hack to make it work
+        if (check_if(ifname) and
+                (ifname is 'wlan0' or
+                 ifname is 'eth0')):
+            meta_info["InterfaceName"] = ifname
+            meta_info["Operator"] = "local"
+            meta_info["Timestamp"] = time.time()
 
         # Get metdata if the process dies we restart it
         start_time = time.time()
@@ -232,10 +245,20 @@ if __name__ == '__main__':
             # Here we could add code to handle interfces going up or down
             # Similar to what exist in the ping experiment
             # For now we just abort if we loose the interface
+
+            # No modem information fugly hack to make it work
+            if (check_if(ifname) and
+                    (ifname is 'wlan0' or
+                     ifname is 'eth0')):
+                meta_info["InterfaceName"] = ifname
+                meta_info["Operator"] = "wifi"
+                meta_info["Timestamp"] = time.time()
+
             if not (check_if(ifname) and check_meta(meta_info, IF_META_GRACE)):
                 print "Interface went down during a experiment"
                 break
-            print "Running Experiment for {} s".format(time.time() - start_time_exp)
+            elapsed_exp = time.time() - start_time_exp
+            print "Running Experiment for {} s".format(elapsed_exp)
             time.sleep(IFUP_INTERVAL_CHECK)
 
         if exp_process.is_alive():
