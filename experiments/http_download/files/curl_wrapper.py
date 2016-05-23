@@ -159,7 +159,7 @@ if __name__ == '__main__':
                 # expconfig['url']
                 expconfig.update({
                         'url': "http://193.10.227.25/test/1000M.zip",
-                        'size': 1*1024 - 1,
+                        'size': 3*1024 - 1,
                         'time': 3600,
                         'allowed_interfaces': ['usb0',
                                                'usb1',
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         expconfig = {
                 'guid': "Fake.guid.fake",
                 'url': "http://193.10.227.25/test/1000M.zip",
-                'size': 1*1024 - 1,
+                'size': 3*1024 - 1,
                 'time': 3600,
                 'allowed_interfaces': ['usb0', 'usb1', 'usb2', 'wlan0']
                 }
