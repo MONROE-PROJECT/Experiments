@@ -143,42 +143,37 @@ def create_exp_process(meta_info, guid):
 
 if __name__ == '__main__':
 
-    expconfig = {}
+    # Default values
+    expconfig = {
+            'url': "http://193.10.227.25/test/1000M.zip",
+            'size': 3*1024 - 1,
+            'time': 3600,
+            'allowed_interfaces': ['usb0',
+                                   'usb1',
+                                   'usb2',
+                                   'wlan0',
+                                   'wwan2']
+            }
+
     if not DEBUG:
         import monroe_exporter
         # Try to get the experiment config as provided by the scheduler
         try:
             with open(CONFIGFILE) as configfd:
-                expconfig = json.load(configfd)
+                expconfig.update(json.load(configfd))
                 # Stupid way to check so all variables are in place
                 expconfig['guid']
-                # This should come from the scheduler in the final version
-                # expconfig['size']
-                # expconfig['time']
-                # expconfig['allowed_interfaces']
-                # expconfig['url']
-                expconfig.update({
-                        'url': "http://193.10.227.25/test/1000M.zip",
-                        'size': 3*1024 - 1,
-                        'time': 3600,
-                        'allowed_interfaces': ['usb0',
-                                               'usb1',
-                                               'usb2',
-                                               'wlan0',
-                                               'wwan2']
-                        })
+                expconfig['size']
+                expconfig['time']
+                expconfig['allowed_interfaces']
+                expconfig['url']
         except Exception as e:
             log_str = "Cannot retrive expconfig {}".format(e)
             print log_str
             raise e
     else:
-        expconfig = {
-                'guid': "Fake.guid.fake",
-                'url': "http://193.10.227.25/test/1000M.zip",
-                'size': 3*1024 - 1,
-                'time': 3600,
-                'allowed_interfaces': ['usb0', 'usb1', 'usb2', 'wlan0']
-                }
+        expconfig.update({'guid': "Fake.guid.fake"})
+
     guid = expconfig['guid']
     for ifname in expconfig['allowed_interfaces']:
         # Interface is not up we just skip that one
