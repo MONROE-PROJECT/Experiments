@@ -15,6 +15,7 @@ import subprocess
 import netifaces
 import re
 import time
+import signal
 import monroe_exporter
 
 # Configuration
@@ -27,10 +28,22 @@ DATAVERSION = 1
 DATATYPE = 'MONROE.EXP.PING'
 EXPORT_INTERVAL = 5.0
 
+FPING_PROCESS = None  # We are only running one process at a time
+
+def handle_signal(signum, frame):
+    # send signal recieved to subprocesses
+    print "Recived signal {}".format(signum)
+    if FPING_PROCESS is not None and FPING_PROCESS.poll() is None:
+        print "Killing fping"
+        FPING_PROCESS.send_signal(signum)
 
 def run_exp(meta_info, guid):
     # Set some variables for saving data
     monroe_exporter.initalize(DATATYPE, DATAVERSION, EXPORT_INTERVAL)
+
+    # Register signla handlers
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
 
     ifname = meta_info['InterfaceName']
     cmd = ["fping",
@@ -44,6 +57,8 @@ def run_exp(meta_info, guid):
     popen = subprocess.Popen(cmd,
                              stdout=subprocess.PIPE,
                              bufsize=1)
+    global FPING_PROCESS
+    FPING_PROCESS = popen
     stdout_lines = iter(popen.stdout.readline, "")
     # This is the inner loop where we wait for output from fping
     # This will run until we get a interface hickup
@@ -70,10 +85,10 @@ def run_exp(meta_info, guid):
         # print msg
 
     # Cleanup
+    print "Cleaning up"
     popen.stdout.close()
-    returncode = popen.wait()
-    if returncode != 0:
-        raise subprocess.CalledProcessError(returncode, command)
+    popen.terminate()
+    popen.kill()
 
 
 def metadata(meta_ifinfo, ifname, guid, topic, port):
@@ -161,7 +176,7 @@ if __name__ == '__main__':
         if not meta_process.is_alive():
             # This is serious as we will not receive uptodate information
             if exp_process.is_alive():  # Clean up the exp_thread
-                exp.terminate()
+                exp_process.terminate()
 
             # The dict may have been corrupt so recreate that one
             meta_info, meta_process = create_meta_process(ifname,
