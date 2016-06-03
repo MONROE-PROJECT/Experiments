@@ -15,54 +15,51 @@ import os
 import tempfile
 import argparse
 import textwrap
-import syslog
 import sys
 
 CMD_NAME = os.path.basename(__file__)
 TEMP_FILE_NAME = None
 TEMP_FILE = None
 FILE_SEMA = Semaphore()
-NODEID = None
 JSON_STORE = []
-
-try:
-    with open("/nodeid") as nid:
-        NODEID = nid.readline().strip()
-except Exception as e:
-    syslog.syslog(syslog.LOG_ERR, "Cannot retrive Nodeid {}".format(e))
-    raise e
+INITIALIZED = False
+DEBUG = False
 
 
-def initalize(dataid, dataversion, interval, outdir="/monroe/results/"):
+def initalize(interval, outdir="/monroe/results/"):
     """Bootstrapping timed saves."""
-    _timed_move_to_output_(dataid, dataversion, outdir, interval)
+    global INITIALIZED
+    if not INITIALIZED:
+        _timed_move_to_output_(outdir, interval)
+        INITIALIZED = True
 
 
-def save_output(msg,
-                dataid=None,
-                dataversion=None,
-                outdir="/monroe/results/"):
+def save_output(msg, outdir="/monroe/results/"):
     """Save the msg."""
+    global FILE_SEMA, JSON_STORE
     with FILE_SEMA:
         JSON_STORE.append(msg)
-    if (dataid and dataversion):
-        _timed_move_to_output_(dataid, dataversion, outdir, -1)
+        if not INITIALIZED:
+            _timed_move_to_output_(outdir, -1)
 
 
-def _timed_move_to_output_(dataid, dataversion, outdir, interval=-1):
+def _timed_move_to_output_(outdir, interval):
     """Called every interval seconds and move the file to the output directory.
 
     For later transfer to the remote repository.
     """
-    global JSON_STORE
-    # Grab the file semaphore
-    # so we do not move the file while the other thread is writing
+    global JSON_STORE, FILE_SEMA
+
+    # Grab the file semaphore so we do not read the CACHE while the other
+    # thread is updating it
     with FILE_SEMA:
-        if len(JSON_STORE) == 0:
-            syslog.syslog(syslog.LOG_INFO, "No JSONS, not moving")
-        else:
-            # Create a name for the file
-            dest_name = outdir + "{}_{}_{}_{}.json".format(NODEID,
+        if len(JSON_STORE) > 0:
+            # Create a name for the file from the first msg in the list
+            # and check for obligatory variables
+            nodeid = JSON_STORE[0]['NodeId']
+            dataid = JSON_STORE[0]['DataId']
+            dataversion = JSON_STORE[0]['DataVersion']
+            dest_name = outdir + "{}_{}_{}_{}.json".format(nodeid,
                                                            dataid,
                                                            dataversion,
                                                            time.time())
@@ -80,11 +77,24 @@ def _timed_move_to_output_(dataid, dataversion, outdir, interval=-1):
                         tmp_dest_name = tmp_dest.name
 
                         for msg in JSON_STORE:
-                            msg['NodeId'] = NODEID
-                            msg['DataId'] = dataid
-                            msg['DataVersion'] = dataversion
-                            print >> tmp_dest, json.dumps(obj=msg)
-                            # print json.dumps(obj=msg)
+                            try:
+                                msg['NodeId']
+                                msg['DataId']
+                                msg['DataVersion']
+                                msg['TimeStamp']
+                                msg['SequenceNumber']
+                            except Exception as e:
+                                errormsg = ("Error: Missing obligatory keys in"
+                                            " {}, skipping htis message "
+                                            "in {}({})").format(msg,
+                                                                tmp_dest_name,
+                                                                dest_name)
+                                print errormsg
+                                continue
+                            if DEBUG:
+                                print json.dumps(msg)
+                            else:
+                                print >> tmp_dest, json.dumps(msg)
 
                         tmp_dest.flush()
                         os.fsync(tmp_dest.fileno())
@@ -93,27 +103,21 @@ def _timed_move_to_output_(dataid, dataversion, outdir, interval=-1):
                     os.rename(tmp_dest_name, dest_name)
                     os.chmod(dest_name, 0644)
                     JSON_STORE = []
-                    syslog.syslog(syslog.LOG_INFO,
-                                  "Moved {} -> {}".format(tmp_dest_name,
-                                                          dest_name))
+                    print "Info: Moved {} -> {}".format(tmp_dest_name,
+                                                        dest_name)
                 except Exception as e:
-                    log_str = "Error {} {} : {}".format(dest_name,
-                                                        tmp_dest_name,
-                                                        e)
-                    syslog.syslog(syslog.LOG_ERR, log_str)
+                    log_str = "Error: {} {} : {}".format(dest_name,
+                                                         tmp_dest_name,
+                                                         e)
                     print log_str
             else:
                 # We have too little space left on outdir
-                log_str = "Out of disk space : {} ".format(tmp_dest_name)
-                syslog.syslog(syslog.LOG_ERR, log_str)
+                log_str = "Error: Out of disk space: {} ".format(tmp_dest_name)
                 print log_str
 
     if interval > 1:
         # ..Reschedule me in interval seconds
-        t = Timer(interval, lambda: _timed_move_to_output_(dataid,
-                                                           dataversion,
-                                                           outdir,
-                                                           interval))
+        t = Timer(interval, lambda: _timed_move_to_output_(outdir, interval))
         t.daemon = True  # Will stop with the main program
         t.start()
 
@@ -126,16 +130,11 @@ def create_arg_parser():
         description=textwrap.dedent('''
             Save experiment/metadata output for later transport
             to repository'''))
-    parser.add_argument('--dataid',
-                        required=True,
-                        help="DataId of the experiment/metdata")
-    parser.add_argument('--dataversion',
-                        default=1,
-                        help=("DataVersion of the experiment/metdata"
-                              "(default 1)"))
     parser.add_argument('--msg',
                         required=True,
-                        help="Experiment/Metadata msg (in JSON format)")
+                        help=("Experiment/Metadata msg(in JSON format)
+                              "Obligatory keys: NodeId, DataId, DataVersion, "
+                              "TimeStamp, SequenceNumber"))
     parser.add_argument('--outdir',
                         metavar='DIR',
                         default="/monroe/results/",
@@ -153,40 +152,31 @@ def create_arg_parser():
 if __name__ == '__main__':
     parser = create_arg_parser()
     args = parser.parse_args()
-
+    DEBUG = args.debug
     try:
         jsonmsg = json.loads(args.msg)
+        jsonmsg['NodeId']
+        jsonmsg['DataId']
+        jsonmsg['DataVersion']
+        jsonmsg['TimeStamp']
+        jsonmsg['SequenceNumber']
     except Exception as e:
-        errormsg = ("Error called from commandline with"
+        errormsg = ("Error: called from commandline with"
                     " invalid JSON got {} : {}").format(args.msg, e)
-        syslog.syslog(syslog.LOG_ERR, errormsg)
         print errormsg
         sys.exit(1)
 
     outdir = str(args.outdir)
     if not outdir.endswith('/'):
-        infomsg = ("Corrected missing last / in outdir={}, "
-                   "data={}, dataversion={}").format(outdir,
-                                                     args.dataid,
-                                                     args.dataversion)
-        syslog.syslog(syslog.LOG_INFO, infomsg)
-        print infomsg
+        print "Info: Corrected missing last / in outdir={}".format(outdir)
         outdir += '/'
 
-    if not args.debug:
-        save_output(jsonmsg,
-                    args.dataid,
-                    args.dataversion,
-                    outdir)
-    else:
+    if DEBUG:
         print("Debug mode: will not insert any posts or create any files\n"
               "Info and Statements are printed to stdout\n"
-              "{} called on node {} with variables \ndataid={}"
-              "\ndataversion={} \noutdir={}"
+              "{} called with variables \noutdir={}"
               " \nmsg={} \njson={}").format(CMD_NAME,
-                                            NODEID,
-                                            args.dataid,
-                                            args.dataversion,
                                             outdir,
                                             args.msg,
                                             jsonmsg)
+    save_output(jsonmsg, outdir)

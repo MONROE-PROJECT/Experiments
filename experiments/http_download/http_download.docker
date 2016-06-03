@@ -4,4 +4,4 @@ MAINTAINER Jonas.Karlsson@kau.se
 
 COPY files/* /opt/monroe/
 
-ENTRYPOINT ["/usr/bin/python", "/opt/monroe/curl_wrapper.py"]
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/curl_experiment.py"]
