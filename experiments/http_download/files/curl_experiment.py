@@ -37,6 +37,7 @@ EXPCONFIG = {
         'modem_metadata_topic': 'MONROE.META.DEVICE.MODEM',
         'dataversion': 1,
         'dataid': 'MONROE.EXP.HTTP.DOWNLOAD',
+        'nodeid': 'fake.nodeid',
         'meta_grace': 120,  # Grace period to wait for interface metadata
         'exp_grace': 120,  # Grace period before killing experiment
         'ifup_interval_check': 5,  # Interval to check if interface is up
@@ -242,7 +243,7 @@ if __name__ == '__main__':
         # we give up on that interface
         if not check_meta(meta_info, meta_grace):
             if EXPCONFIG['verbosity'] > 1:
-                print "No Metadata continuing"
+                print "No Metada'nodeid': 'fake.nodeid',ta continuing"
             continue
 
         # Ok we have some information lets start the experiment script
