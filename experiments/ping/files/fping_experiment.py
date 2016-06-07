@@ -29,6 +29,7 @@ CONFIGFILE = '/monroe/config'
 EXPCONFIG = {
         'guid': "no.guid.in.config.file",  # Should be overridden by scheduler
         'zmqport': 'tcp://172.17.0.1:5556',
+        'nodeid': 'fake.nodeid',
         'modem_metadata_topic': 'MONROE.META.DEVICE.MODEM',
         'dataversion': 1,
         'dataid': 'MONROE.EXP.PING',
@@ -91,28 +92,25 @@ def run_exp(meta_info, expconfig):
         # keys are defined in regexp compilation. Nice!
         exp_result = m.groupdict()
 
-        # Experiment output
+        # Experiment outputinfo["ICCID"] = "local"
         msg = {
                         'Bytes': int(exp_result['bytes']),
                         'Host': exp_result['host'],
                         'Rtt': float(exp_result['rtt']),
                         'SequenceNumber': int(exp_result['seq']),
                         'TimeStamp': float(exp_result['ts']),
+                        "Guid": expconfig['guid'],
+                        "DataId": expconfig['dataid'],
+                        "DataVersion": expconfig['dataversion'],
+                        "NodeId": expconfig['nodeid'],
+                        "Iccid": meta_info["ICCID"],
+                        "Operator": meta_info["Operator"]
                }
-        # Common fields and metadata
-        msg.update({
-            "Guid": expconfig['guid'],
-            "DataId": expconfig['dataid'],
-            "DataVersion": expconfig['dataversion'],
-            "NodeId": expconfig['nodeid'],
-            "Iccid": meta_info["ICCID"],
-            "Operator": meta_info["Operator"],
-        })
 
         if expconfig['verbosity'] > 2:
             print msg
         if not DEBUG:
-            monroe_exporter.save_output(msg, expconfig['resultdir'])
+            monroe_exporter.save_output(msg)
 
     # Cleanup
     if expconfig['verbosity'] > 1:
@@ -169,7 +167,8 @@ def add_manual_metadata_information(info, ifname):
        Normally eth0 and wlan0.
     """
     info["InterfaceName"] = ifname
-    info["Operator"] = "local"
+    info["ICCID"] = ifname
+    info["Operator"] = ifname
     info["Timestamp"] = time.time()
 
 
@@ -214,6 +213,7 @@ if __name__ == '__main__':
         EXPCONFIG['guid']
         EXPCONFIG['modem_metadata_topic']
         EXPCONFIG['zmqport']
+        EXPCONFIG['nodeid']
         EXPCONFIG['verbosity']
         EXPCONFIG['resultdir']
         EXPCONFIG['export_interval']
