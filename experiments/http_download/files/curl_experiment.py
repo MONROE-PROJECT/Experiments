@@ -282,5 +282,5 @@ if __name__ == '__main__':
             print "Finished {} after {}".format(ifname, elapsed)
         time.sleep(time_between_experiments)
     if EXPCONFIG['verbosity'] > 1:
-        print ("All interfaces {} "
-               "done existing").format(allowed_interfaces)
+        print ("Interfaces {} "
+               "done, existing").format(allowed_interfaces)
