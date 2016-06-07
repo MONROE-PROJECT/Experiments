@@ -26,7 +26,6 @@ RUN apt-key add - < /opt/monroe/oml2-repo.key
 
 # (mention dependencies explicitly (e.g. netperf)
 
-
 RUN apt-get update && apt-get upgrade -y --force-yes && apt-get install -y --force-yes \
     python \
     python-zmq \
@@ -50,6 +49,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes && apt-get install -y --for
     openssh-client \
     iptables \
     curl \
+    wget \
     supervisor \
     python-netifaces \
     nano \
@@ -59,9 +59,8 @@ RUN apt-get update && apt-get upgrade -y --force-yes && apt-get install -y --for
 
 RUN apt-get update --fix-missing
 
+# Dumb init
+RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.0.2/dumb-init_1.0.2_amd64.deb && dpkg -i dumb-init_*.deb
+
 # Cleanup
- RUN apt-get clean ; apt-get autoremove; rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 
-
-
-# Default cmd to run
-#ENTRYPOINT ["/bin/sh", "/run.sh"]
+RUN apt-get clean ; apt-get autoremove; rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* dumb-init_*.deb

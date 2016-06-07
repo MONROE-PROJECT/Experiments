@@ -4,4 +4,4 @@ MAINTAINER Jonas.Karlsson@kau.se
 
 COPY files/* /opt/monroe/
 
-ENTRYPOINT ["/usr/bin/python", "/opt/monroe/fping_runner.py"]
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/fping_experiment.py"]
