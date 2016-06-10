@@ -56,17 +56,17 @@ The responsibility for this process is to:
 
 ### The experiment (sub)process
 The responsibility for this process is to:
-1. Get information from (read) the shared datastructures
-2. run the experiment
-3. save the result when finished
+ 1. Get information from (read) the shared datastructures
+ 2. run the experiment
+ 3. save the result when finished
 
 
 ## Requirements
 
 These directories and files must exist and be read/writable by the user/process
-running the container.
-/opt/monroe/config
-"resultdir" (from /monroe/config see defaults above)    
+running the container:
+ * /opt/monroe/config
+ * "resultdir" (from /monroe/config see defaults above)    
 
 
 ## The experiment will execute a statement similar to running curl like this
