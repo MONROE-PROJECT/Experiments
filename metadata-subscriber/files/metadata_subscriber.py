@@ -15,6 +15,8 @@ import monroe_exporter
 
 CONFIGFILE = '/monroe/config'
 
+UPDATECACHE = set()
+
 # Default values (overwritable from the CONFIGFILE)
 CONFIG = {
         "zmqport": "tcp://172.17.0.1:5556",
@@ -52,7 +54,10 @@ while True:
     # According to specification all messages that ends with .UPDATE in the
     # topic are rebrodcasts so we skip these.
     if topic.endswith(".UPDATE"):
-        continue
+        if topic in UPDATECACHE:
+            continue
+        else:
+            UPDATECACHE.add(topic)
 
     # If not correct JSON, skip and wait for next message
     try:
