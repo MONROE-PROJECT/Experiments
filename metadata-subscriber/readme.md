@@ -1,17 +1,42 @@
 
 # Metadata subscriber
-Attaches as a subscriber to the ZeroMQ socket on tcp://localhost:5556 and save the metadata in a json format suitable for later import in monroe db
-All json files are saved in /outdir inside the container.
+The subscriber is designed to listen to zmq messages send out by the
+metadata-multicaster.
+
+The subscriber attaches to a configurable ZeroMQ socket
+(default port 'tcp://172.17.0.1:5556') and save all messages that begins with
+topic "MONROE.META" except the ones where the topic ends with ".UPDATE"
+(rebroadcasts).
+
+All messages are updated with NodeId but are otherwise saved verbatim
+as a json formatted file suitable for later import in monroe db.
+
+The default values are (can be overridden by a /monroe/config):
+```
+# Default values (overwritable from the CONFIGFILE)
+{
+        "zmqport": "tcp://172.17.0.1:5556",
+        "nodeid": "fake.nodeid",  # Need to overriden
+        "metadata_topic": "MONROE.META",
+        "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
+        "resultdir": "/monroe/results/",
+}
+```
+
+All debug/error information will be printed on stdout
+depending on the "verbosity" variable.
 
 ## Requirements
-The /outdir directory in the container must be mapped to a directory on the host to access the json files.
-This mapped directory ("outdir") must be emptied on regular intervals by an external process to avoid filling the disk.
+
+These directories and files must exist and be read/writable by the user/process
+running the container.
+/monroe/config
+"resultdir" (from /monroe/config see defaults above)
 
 ## Example usage of file
 ```bash
 python metadata_subscriber.py
 ```
-
 
 ## Docker misc usage
 docker ps  # list running images

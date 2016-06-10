@@ -1,5 +1,4 @@
-FROM monroe1.cs.kau.se:5000/monroe/monroe_base_internal
-
+FROM monroe/base
 MAINTAINER Jonas.Karlsson@kau.se
 
 COPY files/* /opt/monroe/

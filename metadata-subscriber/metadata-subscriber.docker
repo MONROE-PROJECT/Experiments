@@ -1,8 +1,8 @@
-FROM monroe1.cs.kau.se:5000/monroe/monroe_base_internal
+FROM monroe/base
 
 MAINTAINER jonas.karlsson@kau.se
 
 COPY files/* /opt/monroe/
 
 # Default cmd to run
-ENTRYPOINT ["/usr/bin/python", "/opt/monroe/metadata_subscriber.py"]
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/metadata_subscriber.py"]

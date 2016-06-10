@@ -1,6 +1,6 @@
 #/bin/sh
 
-CONTAINER=ping
+CONTAINER=noop
 
 REPO=monroe1.cs.kau.se:5000
 DOCKERFILE=${CONTAINER}.docker

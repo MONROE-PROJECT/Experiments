@@ -9,7 +9,6 @@
 import zmq
 import json
 import sys
-import syslog
 from multiprocessing import Process, Manager
 import subprocess
 import netifaces
@@ -27,20 +26,22 @@ CONFIGFILE = '/monroe/config'
 # Can only be updated from the main thread and ONLY before any
 # other processes are started
 EXPCONFIG = {
-        'guid': "no.guid.in.config.file",  # Should be overridden by scheduler
-        'zmqport': 'tcp://172.17.0.1:5556',
-        'nodeid': 'fake.nodeid',
-        'modem_metadata_topic': 'MONROE.META.DEVICE.MODEM',
-        'dataversion': 1,
-        'dataid': 'MONROE.EXP.PING',
-        'meta_grace': 120,  # Grace period to wait for interface metadata
-        'ifup_interval_check': 5,  # Interval to check if interface is up
-        'export_interval': 5.0,
-        'verbosity': 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
-        'resultdir': "/monroe/results/",
-        'interfacename': "eth0",  # Interface to run the experiment on
-        'interfaces_without_metadata': ['eth0',
-                                        'wlan0']  # Manual metadata on these IF
+        "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
+        "zmqport": "tcp://172.17.0.1:5556",
+        "nodeid": "fake.nodeid",
+        "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
+        "server": "8.8.8.8",  # ping target
+        "interval": 1000,  # time in milliseconds between successive packets
+        "dataversion": 1,
+        "dataid": "MONROE.EXP.PING",
+        "meta_grace": 120,  # Grace period to wait for interface metadata
+        "ifup_interval_check": 5,  # Interval to check if interface is up
+        "export_interval": 5.0,
+        "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
+        "resultdir": "/monroe/results/",
+        "interfacename": "eth0",  # Interface to run the experiment on
+        "interfaces_without_metadata": ["eth0",
+                                        "wlan0"]  # Manual metadata on these IF
         }
 
 # We are only running one process (popen) at a time (in each subprocess)
@@ -67,11 +68,13 @@ def run_exp(meta_info, expconfig):
     signal.signal(signal.SIGINT, handle_signal)
 
     ifname = meta_info['InterfaceName']
+    interval = str(expconfig['interval'])
+    server = expconfig['server']
     cmd = ["fping",
            "-I", ifname,
            "-D",
-           "-p", "1000",
-           "-l", "8.8.8.8"]
+           "-p", interval,
+           "-l", server]
     # Regexp to parse fping ouput from command
     r = re.compile(r'^\[(?P<ts>[0-9]+\.[0-9]+)\] (?P<host>[^ ]+) : \[(?P<seq>[0-9]+)\], (?P<bytes>\d+) bytes, (?P<rtt>[0-9]+(?:\.[0-9]+)?) ms \(.*\)$')
 
@@ -110,6 +113,7 @@ def run_exp(meta_info, expconfig):
         if expconfig['verbosity'] > 2:
             print msg
         if not DEBUG:
+            # We have already initalized the exporter with the export dir
             monroe_exporter.save_output(msg)
 
     # Cleanup

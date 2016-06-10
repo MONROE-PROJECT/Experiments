@@ -1,10 +1,10 @@
 
 # Experiment
 The experiments measure IP RTT by continuously send ping
-packets to host 8.8.8.8 (google public dns).
+packets to a configurable server (default 8.8.8.8, google public dns).
 
-The experiment will send 1 Echo Request (ICMP type 8) packet per second to
-host 8.8.8.8 over the specified interface until aborted.
+The experiment will send 1 Echo Request (ICMP type 8) packet per second to a
+server over the specified interface until aborted.
 RTT is measured as the time between the Echo request and the Echo reply
 (ICMP type 0) is received from the server.
 
@@ -12,28 +12,27 @@ The experiment is designed to run as a docker container and will not attempt to
 do any active network configuration.
 If the Interface does not exist (ie is not UP) when the experiment starts it
 will immediately exit.
-Evaluate http download speed.
 
 The default values are (can be overridden by a /monroe/config):
 ```
 {
-    "dataid": "MONROE.EXP.PING",
-    "dataversion": 1,
-    "export_interval": 5.0,
-    "guid": "no.guid.in.config.file",
-    "ifup_interval_check": 5,
-    "interfacename": "eth0",
-    "interfaces_without_metadata": [
-        "eth0",
-        "wlan0"
-    ],
-    "meta_grace": 120,
-    "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
-    "resultdir": "/monroe/results/",
-    "verbosity": 2,
-    "zmqport": "tcp://172.17.0.1:5556"
+        "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
+        "zmqport": "tcp://172.17.0.1:5556",
+        "nodeid": "fake.nodeid",
+        "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
+        "server": "8.8.8.8",  # ping target
+        "interval": 1000,  # time in milliseconds between successive packets
+        "dataversion": 1,
+        "dataid": "MONROE.EXP.PING",
+        "meta_grace": 120,  # Grace period to wait for interface metadata
+        "ifup_interval_check": 5,  # Interval to check if interface is up
+        "export_interval": 5.0,
+        "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
+        "resultdir": "/monroe/results/",
+        "interfacename": "eth0",  # Interface to run the experiment on
+        "interfaces_without_metadata": ["eth0",
+                                        "wlan0"]  # Manual metadata on these IF
 }
-
 ```
 Description of the variables in fping_experimenturl_wrapper.py (line 29).
 
@@ -44,8 +43,8 @@ depending on the "verbosity" variable.
 
 These directories and files must exist and be read/writable by the user/process
 running the container.
-/opt/monroe/config
-"resultdir" (from /opt/monroe/config see defaults above)    
+/monroe/config
+"resultdir" (from /monroe/config see defaults above)    
 
 
 ## The experiment will execute a statement similar to running fping like this
