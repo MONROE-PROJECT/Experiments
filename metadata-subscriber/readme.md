@@ -4,7 +4,7 @@ The subscriber is designed to listen to zmq messages send out by the
 metadata-multicaster.
 
 The subscriber attaches to a configurable ZeroMQ socket
-(default port 'tcp://172.17.0.1:5556') and save all messages that begins with
+(default 'tcp://172.17.0.1:5556') and listen to all messages that begins with
 topic "MONROE.META" except the ones where the topic ends with ".UPDATE"
 (rebroadcasts).
 
@@ -29,9 +29,9 @@ depending on the "verbosity" variable.
 ## Requirements
 
 These directories and files must exist and be read/writable by the user/process
-running the container.
-/monroe/config
-"resultdir" (from /monroe/config see defaults above)
+running the container:
+ * /monroe/config
+ * "resultdir" (from /monroe/config see defaults above)
 
 ## Example usage of file
 ```bash
@@ -39,5 +39,5 @@ python metadata_subscriber.py
 ```
 
 ## Docker misc usage
-docker ps  # list running images
-docker exec -it [container id] bash   # attach to running container
+ * docker ps  # list running images
+ * docker exec -it [container id] bash   # attach to running container
