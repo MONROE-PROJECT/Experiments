@@ -39,8 +39,9 @@ def save_output(msg, outdir="/monroe/results/"):
     global FILE_SEMA, JSON_STORE
     with FILE_SEMA:
         JSON_STORE.append(msg)
-        if not INITIALIZED:
-            _timed_move_to_output_(outdir, -1)
+
+    if not INITIALIZED:
+        _timed_move_to_output_(outdir, -1)
 
 
 def _timed_move_to_output_(outdir, interval):
@@ -132,7 +133,7 @@ def create_arg_parser():
             to repository'''))
     parser.add_argument('--msg',
                         required=True,
-                        help=("Experiment/Metadata msg(in JSON format)
+                        help=("Experiment/Metadata msg(in JSON format)"
                               "Obligatory keys: NodeId, DataId, DataVersion, "
                               "TimeStamp, SequenceNumber"))
     parser.add_argument('--outdir',
