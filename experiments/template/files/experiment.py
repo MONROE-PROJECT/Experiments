@@ -43,7 +43,7 @@ EXPCONFIG = {
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
         "meta_interval_check": 5,  # Interval to check if interface is up
-        "verbosity": 1,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
+        "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         # These values are specic for this experiment
         "operator": "Telia",
@@ -172,21 +172,32 @@ def metadata(meta_info, expconfig):
 
 # Helper functions
 def check_if(ifname):
-    """Check if interface is up and have got an IP address."""
+    """Checks if "internal" interface is up and have got an IP address.
+
+       This check is to ensure that we have an interface in the experiment
+       container and that we have a IP address.
+    """
     return (ifname in netifaces.interfaces() and
             netifaces.AF_INET in netifaces.ifaddresses(ifname))
 
 
 def check_modem_meta(info, graceperiod):
-    """Check if we have recieved required information within graceperiod."""
+    """Checks if we "external" interface is up.
+
+       This check ensures that we have a current (graceperiod) connection
+       to the Mobile network and an IP adress.
+       For more fine grained information DeviceState or DeviceMode can be used.
+    """
     return ("InterfaceName" in info and
             "Operator" in info and
             "ICCID" in info and
             "Timestamp" in info and
+            "IPAddress" in info and
             time.time() - info["Timestamp"] < graceperiod)
 
 
 def create_and_run_meta_process(expconfig):
+    """Creates the shared datastructures and the metaprocess."""
     m = Manager()
     meta_info = {}
     meta_info['modem'] = m.dict()
@@ -199,6 +210,7 @@ def create_and_run_meta_process(expconfig):
 
 
 def create_and_run_exp_process(meta_info, expconfig):
+    """Creates the experiment process."""
     process = Process(target=run_exp, args=(meta_info, expconfig, ))
     process.daemon = True
     process.start()
@@ -264,7 +276,7 @@ if __name__ == '__main__':
     # Ok we did not get any information within the grace period we give up
     if not (check_modem_meta(meta_info['modem'], meta_grace) or
             len(meta_info['gps']) < 1):
-        print "No Metadata: aborting"
+        print "No Metadata or no ip adress on interface: aborting"
         sys.exit(1)
 
     ifname = meta_info['modem']['InterfaceName']
