@@ -82,30 +82,33 @@ def _timed_move_to_output_(outdir, interval):
                                 msg['NodeId']
                                 msg['DataId']
                                 msg['DataVersion']
-                                msg['TimeStamp']
+                                msg['Timestamp']
                                 msg['SequenceNumber']
+                                if DEBUG:
+                                    print json.dumps(msg)
+                                else:
+                                    print >> tmp_dest, json.dumps(msg)
                             except Exception as e:
                                 errormsg = ("Error: Missing obligatory keys in"
-                                            " {}, skipping htis message "
+                                            " {}, skipping this message "
                                             "in {}({})").format(msg,
                                                                 tmp_dest_name,
                                                                 dest_name)
                                 print errormsg
                                 continue
-                            if DEBUG:
-                                print json.dumps(msg)
-                            else:
-                                print >> tmp_dest, json.dumps(msg)
 
                         tmp_dest.flush()
                         os.fsync(tmp_dest.fileno())
 
-                    # atomic rename of /outdir/tmpXXXX -> /outdir/yyy.json
-                    os.rename(tmp_dest_name, dest_name)
-                    os.chmod(dest_name, 0644)
-                    JSON_STORE = []
-                    print "Info: Moved {} -> {}".format(tmp_dest_name,
-                                                        dest_name)
+                    if (os.stat(tmp_dest_name).st_size > 0):
+                        # atomic rename of /outdir/tmpXXXX -> /outdir/yyy.json
+                        os.rename(tmp_dest_name, dest_name)
+                        os.chmod(dest_name, 0644)
+                        JSON_STORE = []
+                        print "Info: Moved {} -> {}".format(tmp_dest_name,
+                                                            dest_name)
+                    else:
+                        os.unlink(tmp_dest_name)
                 except Exception as e:
                     log_str = "Error: {} {} : {}".format(dest_name,
                                                          tmp_dest_name,
@@ -113,7 +116,7 @@ def _timed_move_to_output_(outdir, interval):
                     print log_str
             else:
                 # We have too little space left on outdir
-                log_str = "Error: Out of disk space: {} ".format(tmp_dest_name)
+                log_str = "Error: Out of disk space: {} ".format(dest_name)
                 print log_str
 
     if interval > 1:

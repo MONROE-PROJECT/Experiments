@@ -101,7 +101,7 @@ def run_exp(meta_info, expconfig):
                         'Host': exp_result['host'],
                         'Rtt': float(exp_result['rtt']),
                         'SequenceNumber': int(exp_result['seq']),
-                        'TimeStamp': float(exp_result['ts']),
+                        'Timestamp': float(exp_result['ts']),
                         "Guid": expconfig['guid'],
                         "DataId": expconfig['dataid'],
                         "DataVersion": expconfig['dataversion'],

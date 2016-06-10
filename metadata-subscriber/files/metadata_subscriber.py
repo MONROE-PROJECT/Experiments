@@ -10,6 +10,7 @@
 
 import zmq
 import json
+import sys
 import monroe_exporter
 
 CONFIGFILE = '/monroe/config'
@@ -22,6 +23,14 @@ CONFIG = {
         "verbosity": 1,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         }
+
+try:
+    with open(CONFIGFILE) as configfd:
+        CONFIG.update(json.load(configfd))
+except Exception as e:
+    print "Cannot retrive config {}".format(e)
+    sys.exit(1)
+
 # Attach to the ZeroMQ socket as a subscriber and start listen to
 # MONROE messages
 context = zmq.Context()
@@ -40,9 +49,9 @@ while True:
             print ("Error: Invalid zmq msg")
         continue
 
-    # According to specification all messages with UPDATE in the topic are
-    # rebrodcasts so we skip these.
-    if ".UPDATE" in topic:
+    # According to specification all messages that ends with .UPDATE in the
+    # topic are rebrodcasts so we skip these.
+    if topic.endswith(".UPDATE"):
         continue
 
     # If not correct JSON, skip and wait for next message

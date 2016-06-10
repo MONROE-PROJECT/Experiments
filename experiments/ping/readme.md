@@ -61,7 +61,7 @@ Single line, pretty printed and added comments here for readability
 ```
  {
    "Guid": "313.123213.123123.123123", # exp_config['guid']
-   "TimeStamp": 23123.1212, # time.time()
+   "Timestamp": 23123.1212, # time.time()
    "Iccid": 2332323, # meta_info["ICCID"]
    "Operator": "Telia", # meta_info["Operator"]
    "NodeId" : "9", # exp_config['nodeid']

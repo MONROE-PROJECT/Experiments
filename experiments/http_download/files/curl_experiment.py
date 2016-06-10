@@ -90,7 +90,7 @@ def run_exp(meta_info, expconfig):
             "DataId": expconfig['dataid'],
             "DataVersion": expconfig['dataversion'],
             "NodeId": expconfig['nodeid'],
-            "TimeStamp": time.time(),
+            "Timestamp": time.time(),
             "Iccid": meta_info["ICCID"],
             "Operator": meta_info["Operator"],
             "DownloadTime": msg["TotalTime"] - msg["SetupTime"],

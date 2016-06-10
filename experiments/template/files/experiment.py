@@ -109,7 +109,7 @@ def run_exp(meta_info, expconfig):
             "DataId": dataid,
             "DataVersion": dataversion,
             "NodeId": expconfig['nodeid'],
-            "TimeStamp": time.time(),
+            "Timestamp": time.time(),
             "Iccid": meta_info['modem']["ICCID"],
             "InterfaceName": ifname,
             "Operator": meta_info['modem']["Operator"],
@@ -175,14 +175,14 @@ def check_if(ifname):
     """Checks if "internal" interface is up and have got an IP address.
 
        This check is to ensure that we have an interface in the experiment
-       container and that we have a IP address.
+       container and that we have a internal IP address.
     """
     return (ifname in netifaces.interfaces() and
             netifaces.AF_INET in netifaces.ifaddresses(ifname))
 
 
 def check_modem_meta(info, graceperiod):
-    """Checks if we "external" interface is up.
+    """Checks if "external" interface is up and have an IP adress.
 
        This check ensures that we have a current (graceperiod) connection
        to the Mobile network and an IP adress.
@@ -255,7 +255,7 @@ if __name__ == '__main__':
     meta_info, meta_process = create_and_run_meta_process(EXPCONFIG)
 
     # Try to get metadata
-    # if the metadata process dies we retry until the IF_META_GRACE is up
+    # if the metadata process dies we retry until the meta_grace is up
     start_time = time.time()
     while (time.time() - start_time < meta_grace and
            (not check_modem_meta(meta_info['modem'], meta_grace) or
@@ -295,6 +295,10 @@ if __name__ == '__main__':
         if not (check_if(ifname) and
                 check_modem_meta(meta_info['modem'], meta_grace)):
             print "Interface went down during a experiment"
+            if exp_process.is_alive():
+                exp_process.terminate()
+            if meta_process.is_alive():
+                meta_process.terminate()
             sys.exit(1)
 
         elapsed_exp = time.time() - start_time_exp
@@ -308,7 +312,8 @@ if __name__ == '__main__':
 
     if exp_process.is_alive():
         exp_process.terminate()
-        print "Experiment took too long time to finish, please check results"
+        if EXPCONFIG['verbosity'] > 0:
+            print "Experiment took too long time to finish, please check results"
         sys.exit(1)
 
     elapsed = time.time() - start_time
