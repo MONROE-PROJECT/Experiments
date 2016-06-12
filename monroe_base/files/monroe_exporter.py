@@ -89,9 +89,10 @@ def _timed_move_to_output_(outdir, interval):
                                 else:
                                     print >> tmp_dest, json.dumps(msg)
                             except Exception as e:
-                                errormsg = ("Error: Missing obligatory keys in"
-                                            " {}, skipping this message "
-                                            "in {}({})").format(msg,
+                                errormsg = ("Error: {} {},
+                                            "skipping this message "
+                                            "in {}({})").format(e,
+                                                                msg,
                                                                 tmp_dest_name,
                                                                 dest_name)
                                 print errormsg
@@ -105,8 +106,8 @@ def _timed_move_to_output_(outdir, interval):
                         os.rename(tmp_dest_name, dest_name)
                         os.chmod(dest_name, 0644)
                         JSON_STORE = []
-                        print "Info: Moved {} -> {}".format(tmp_dest_name,
-                                                            dest_name)
+                        # print "Info: Moved {} -> {}".format(tmp_dest_name,
+                        #                                    dest_name)
                     else:
                         os.unlink(tmp_dest_name)
                 except Exception as e:
@@ -162,7 +163,7 @@ if __name__ == '__main__':
         jsonmsg['NodeId']
         jsonmsg['DataId']
         jsonmsg['DataVersion']
-        jsonmsg['TimeStamp']
+        jsonmsg['Timestamp']
         jsonmsg['SequenceNumber']
     except Exception as e:
         errormsg = ("Error: called from commandline with"
@@ -176,7 +177,7 @@ if __name__ == '__main__':
         outdir += '/'
 
     if DEBUG:
-        print("Debug mode: will not insert any posts or create any files\n"
+        print("Debug mode: will not insert any posts\n"
               "Info and Statements are printed to stdout\n"
               "{} called with variables \noutdir={}"
               " \nmsg={} \njson={}").format(CMD_NAME,

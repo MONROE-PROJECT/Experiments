@@ -75,8 +75,16 @@ curl -o /dev/null --raw --silent --write-out "{ remote: %{remote_ip}:%{remote_po
 ```
 
 ## Docker misc usage
-docker ps  # list running images    
-docker exec -it [container id] bash   # attach to running container
+ * List running containers
+     * ```docker ps```
+ * Debug shell
+     * ```docker run -i -t --entrypoint bash --net=host template```
+ * Normal execution with output to stdout
+     * ```docker run -i -t --net=host template```
+ * Attach running container (with shell)
+    * ```docker exec -i -t [container runtime name] bash```
+ * Get container logs (stderr and stdout)
+    * ```docker logs [container runtime name]```
 
 ## Sample output
 Single line, pretty printed and added comments here for readability
