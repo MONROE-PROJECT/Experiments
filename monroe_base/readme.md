@@ -2,25 +2,15 @@
 
 ## Network setup
 
-Please take a look at the file MONROE-Scheduler / files / usr / bin / container-start.sh
-([recent version](https://github.com/MONROE-PROJECT/Scheduler/blob/master/files/usr/bin/container-start.sh))
-to get an idea of the setup the container will run in. Please test this setup extensively.
+Please take a look at the files [monroe-experiments](https://github.com/MONROE-PROJECT/Utilities/blob/master/monroe-experiments/usr/bin/monroe-experiments) and [container-start.sh](https://github.com/MONROE-PROJECT/Scheduler/blob/master/files/usr/bin/container-start.sh) 
+to get an idea of the setup the container will run in. 
 
-Most notably
+The former runs every minute to establish a network namespace for all monroe experiments.
 
-  * the container runs with --net=none by default (no host interfaces are visible in the container network namespace)
-  * any interface that is booked via the scheduler will be mapped into the container network namespace via macvlan
-  * quotas (as booked via the scheduler) are applied to the ingoing and outgoing traffic on all interfaces
-  * a storage directory is mapped to /output inside the container. This will have a restricted size (~1GB?).
+  * the container runs in this separate network namespace (netns monroe). 
+  * any interface available in the host network namespace will be mapped into the container network namespace via macvlan, using the same name. Changes in the host namespace (interfaces disappearing, appearing, going down or up) will be reflected in the monroe network namespace.
+  * We currently run the [multi](https://github.com/MONROE-PROJECT/multi) DHCP client to acquire addresses and set a default route, inside the monroe network namespace. 
+  * a veth bridge interface called "metadata" is created inside the monroe network namespace. This allows to connect to the metadata broadcast using the address tcp://172.17.0.1:5556
+  * any parameters passed by the scheduler are available in the file /monroe/config in the form of a JSON dictionary.
+  * a storage directory is mapped to /monroe/results inside the container. 
 
-## Requirements
-
-These directories must exist and be writable by the user/process :    
-/output/
-
-# How to update
-  1. Login docker hub ```docker login```
-  2. Build the image ```docker build -f monroe_base.docker -t base .```
-  3. Tag the image ```docker tag base monroe/base```
-  4. Push it to the repo ```docker push monroe/base```
-  5. Rebuild all images that are built on monroe/base
