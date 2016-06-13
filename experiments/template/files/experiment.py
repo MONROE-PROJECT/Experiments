@@ -46,7 +46,7 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         # These values are specic for this experiment
-        "operator": "Telia",
+        "operator": "Telenor SE",
         "url": "http://193.10.227.25/test/1000M.zip",
         "size": 3*1024,  # The maximum size in Kbytes to download
         "time": 3600  # The maximum time in seconds for a download
