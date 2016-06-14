@@ -9,7 +9,6 @@
 """ Dumps the three first metadata events both in files and on stdout. """
 import zmq
 import json
-import sys
 import monroe_exporter
 from datetime import datetime
 
@@ -30,7 +29,6 @@ try:
         CONFIG.update(json.load(configfd))
 except Exception as e:
     print "[{}] Cannot retrive config {}".format(datetime.now(), e)
-    sys.exit(1)
 
 # Attach to the ZeroMQ socket as a subscriber and start listen to
 # MONROE messages
