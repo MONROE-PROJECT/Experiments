@@ -65,7 +65,7 @@ The responsibility for this process is to:
 
 These directories and files must exist and be read/writable by the user/process
 running the container:
- * /opt/monroe/config
+ * /monroe/config (added by the scheduler in the nodes)
  * "resultdir" (from /monroe/config see defaults above)    
 
 
