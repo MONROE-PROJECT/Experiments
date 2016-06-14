@@ -19,7 +19,7 @@ The default values are (can be overridden by a /monroe/config):
 
 These directories and files must exist and be read/writable by the user/process
 running the container:
- * /opt/monroe/config
+ * /monroe/config  (supplyed by the scheduler in the nodes)
  * "resultdir" (from /monroe/config see defaults above)    
 
 ## Sample output
