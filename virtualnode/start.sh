@@ -4,8 +4,9 @@ export PATH=/usr/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/b
 URL_NOOP=monroe/noop
 MNS="ip netns exec monroe";
 IPDOCKER=$(ip addr show docker0| awk '$1~/^inet$/{print $2}'|awk -F/ '{print $1}')
-SUBNETDOCKER=$(ip addr show docker0| awk '$1~/^inet$/{print $2}'|awk -F/ '{print $2}')
-NETDOCKER=$(echo $IP|awk -F. '{$NF=""; print $0}'|tr ' ' '.')0
+SUBNETDOCKER=$(ip addr show docker0| awk '$1~/^inet$/{print $2}'| awk -F/ '{print $2}')
+NETDOCKER=$(echo $IPDOCKER|awk -F. '{$NF=""; print $0}'|tr ' ' '.')0
+
 if [ ! -e /var/run/netns/monroe ]; then
   # stop any running containers
   CID=$(docker ps --no-trunc | grep $URL_NOOP | awk '{print $1}' | head -n 1)
@@ -62,7 +63,7 @@ for IF in $INTERFACES; do
   $MNS ip rule add dev $IF table $TABLE
   $MNS ip rule add dev lo table $TABLE
 
-  $MNS ip route add 172.17.0.0/$SUBNETDOCKER dev $IF scope link table $TABLE
+  $MNS ip route add $NETDOCKER/$SUBNETDOCKER dev $IF scope link table $TABLE
   $MNS ip route add default via $IPDOCKER table $TABLE
   ((ip++))
 
