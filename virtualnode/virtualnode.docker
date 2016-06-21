@@ -8,4 +8,4 @@ RUN mkdir -p /monroe
 COPY files/* /opt/monroe/
 
 # Default cmd to run
-ENTRYPOINT ["dumb-init", "--", "/usr/bin/bash", "/opt/monroe/run.sh"]
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/run.sh"]
