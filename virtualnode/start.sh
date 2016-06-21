@@ -60,7 +60,7 @@ for IF in $INTERFACES; do
 
   echo "Setting up routing tables for $IF (monroe)"
   #echo "$MARK $TABLE" >> /etc/iproute2/rt_tables
-  #$MNS ip rule add from $IPADRESS table $MARK
+  $MNS ip rule add from $IPADRESS table $MARK
   $MNS ip rule add dev $IF table $MARK
   $MNS ip rule add dev lo table $MARK
 
