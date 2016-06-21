@@ -6,7 +6,7 @@ MNS="ip netns exec monroe";
 IPDOCKER=$(ip addr show docker0| awk '$1~/^inet$/{print $2}'|awk -F/ '{print $1}')
 SUBNETDOCKER=$(ip addr show docker0| awk '$1~/^inet$/{print $2}'| awk -F/ '{print $2}')
 NETDOCKER=$(echo $IPDOCKER|awk -F. '{$NF=""; print $0}'|tr ' ' '.')0
-
+MACDOCKER=$(ip link show docker0| awk '$1~/^link\/ether$/{print $2}')
 if [ ! -e /var/run/netns/monroe ]; then
   # stop any running containers
   CID=$(docker ps --no-trunc | grep $URL_NOOP | awk '{print $1}' | head -n 1)
@@ -59,16 +59,25 @@ for IF in $INTERFACES; do
   $MNS ip addr add $IPADRESS/$SUBNET dev $IF
 
   echo "Setting up routing tables for $IF (monroe)"
-  echo "$MARK $TABLE" >> /etc/iproute2/rt_tables
-  $MNS ip rule add dev $IF table $TABLE
-  $MNS ip rule add dev lo table $TABLE
+  #echo "$MARK $TABLE" >> /etc/iproute2/rt_tables
+  #$MNS ip rule add from $IPADRESS table $MARK
+  $MNS ip rule add dev $IF table $MARK
+  $MNS ip rule add dev lo table $MARK
 
-  $MNS ip route add $NETDOCKER/$SUBNETDOCKER dev $IF scope link table $TABLE
-  $MNS ip route add default via $IPDOCKER table $TABLE
+  #Not working
+  #$MSN ip rule add fwmark $MARK table $TABLE
+  #$MNS iptables -A PREROUTING -j CONNMARK --restore-mark
+  #$MNS iptables -A PREROUTING --match mark --mark $MARK -j ACCEPT
+  #$MNS iptables -A PREROUTING -i $IF -j MARK --set-mark $MARK
+  #$MNS iptables -A PREROUTING -j CONNMARK --save-mark
+
+
+  $MNS ip route add $NETDOCKER/$SUBNETDOCKER dev $IF scope link table $MARK
+  $MNS ip route add default via $IPDOCKER table $MARK
   ((ip++))
 
+  # Prepopulate some arp
+  $MNS ping -q -c 1 -I $IF $IPDOCKER
 done
 
-#$MNS ip route add default via $IPDOCKER
-
-echo docker run -it --entrypoint bash --net=container:$CID virtualnode
+echo docker run -it --entrypoint bash --net=container:$CID monroe/virtualnode
