@@ -74,10 +74,10 @@ for IF in $INTERFACES; do
 
   $MNS ip route add $NETDOCKER/$SUBNETDOCKER dev $IF scope link table $MARK
   $MNS ip route add default via $IPDOCKER table $MARK
-  ((ip++))
 
   # Prepopulate some arp
-  $MNS ping -q -c 1 -I $IF $IPDOCKER
+  $MNS ip neighbor add $IPDOCKER lladdr $MACDOCKER dev $IF
+  ((ip++))
 done
 
 echo docker run -it --entrypoint bash --net=container:$CID monroe/virtualnode
