@@ -39,7 +39,7 @@ All debug/error information will be printed on stdout
 The experiment consists of one main process and two sub processes.
  1. One process listen to modem and gps information
  3. One process executes the experiment
- 4. The main thread are managing the other threads
+ 4. The main process are managing the two processes above
 
 ### Information sharing between processes
 The information are shared between the processes by two thread safe
