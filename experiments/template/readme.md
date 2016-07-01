@@ -87,7 +87,7 @@ curl -o /dev/null --raw --silent --write-out "{ remote: %{remote_ip}:%{remote_po
     * ```docker logs [container runtime name]```
 
 ## Sample output
-Single line, pretty printed and added comments here for readability
+Pretty printed and with comments for readability
 ```
 {
     "Bytes": 30720000,
