@@ -3,7 +3,7 @@
 A template to show of some of the capabilities of the Monroe platform.
 
 The experiment will download a url (file) over http using curl.
-The default values are (can be overridden by a /monroe/config):
+The default values are (can be overridden by providing /monroe/config):
 ```
 {
         # The following value are specific to the monore platform
