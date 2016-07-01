@@ -23,7 +23,7 @@ running the container:
  * "resultdir" (from /monroe/config see defaults above)    
 
 ## Sample output
-Depends on metadata received, pretty here printed for readability
+Depends on metadata received (pretty printed for readability)
 ```
  {
   "DataId": "MONROE.META.NODE.SENSOR",
