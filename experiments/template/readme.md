@@ -6,7 +6,7 @@ The experiment will download a url (file) over http using curl.
 The default values are (can be overridden by providing /monroe/config):
 ```
 {
-        # The following value are specific to the monore platform
+        # The following value are specific to the monroe platform
         "guid": "no.guid.in.config.file",  # Overridden by scheduler
         "nodeid": "no.nodeid.in.config.file",  # Overridden by scheduler
         "storage": 104857600,  # Overridden by scheduler
