@@ -3,8 +3,7 @@ import time
 import urllib
 import urllib2
 import json
-from os import chmod
-from Crypto.PublicKey import RSA
+import sys
 
 # Configuration
 DEBUG = False
@@ -36,7 +35,6 @@ if __name__ == '__main__':
             with open(CONFIGFILE) as configfd:
                 EXPCONFIG.update(json.load(configfd))
         except Exception as e:
-            print "Cannot retrive expconfig {}".format(e)
             raise e
     else:
         # We are in debug state always put out all information
@@ -54,27 +52,17 @@ if __name__ == '__main__':
         nodeid = EXPCONFIG["nodeid"]
         guid = EXPCONFIG["guid"]
     except Exception as e:
-        print "Missing expconfig variable {}".format(e)
         raise e
 
-    # Create the ssh keys
-    key = RSA.generate(2048)
-    pubkey = key.publickey()
-    if not DEBUG:
-        with open("/root/.ssh/id_rsa", 'w') as content_file:
-            chmod("/root/.ssh/id_rsa", 0600)
-            content_file.write(key.exportKey('PEM'))
-
-        with open("/root/.ssh/id_rsa.pub", 'w') as content_file:
-            content_file.write(pubkey.exportKey('OpenSSH'))
-        with open("/root/.ssh/authorized_keys", 'w') as content_file:
-            content_file.write(pubkey.exportKey('OpenSSH'))
+    # Read the ssh keys
+    with open('/root/.ssh/id_rsa.pub', 'r') as f:
+        pubkey = f.readline().strip()
 
     params = {
                 'token': token,
                 'nodeid': nodeid,
                 'guid': guid,
-                'pubkey': pubkey.exportKey('OpenSSH'),  # generated
+                'pubkey': pubkey,
                 'enddate': stop  # end date from scheduler
          }
 try:
@@ -84,12 +72,9 @@ try:
     if not DEBUG:
         with open("/root/.ssh/known_hosts", 'w') as content_file:
             content_file.write(retur['hostkey'])
-    while True:
-        print "ssh -fN -R {}:localhost:22 {}@{}".format(retur['port'],
-                                                        retur['user'],
-                                                        retur['server'])
-        print key.exportKey('PEM')
-        time.sleep(300)
+
+    print '-R *:{}:localhost:22 {}@{}'.format(retur['port'],
+                                              retur['user'],
+                                              retur['server'])
 except Exception as e:
-    print "{}".format(e)
     raise e
