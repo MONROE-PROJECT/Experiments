@@ -1,0 +1,9 @@
+FROM monroe/base
+
+MAINTAINER foivos.michelinakis@imdea.org
+
+RUN mkdir -p /opt/foivos
+COPY files/* /opt/foivos/
+
+#Default cmd to run
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/foivos/traceroute.sh"]
