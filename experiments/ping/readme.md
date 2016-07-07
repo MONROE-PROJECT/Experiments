@@ -29,6 +29,7 @@ The default values are (can be overridden by a /monroe/config):
         "export_interval": 5.0,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
+        "modeminterfacename": "InternalInterface",
         "interfacename": "eth0",  # Interface to run the experiment on
         "interfaces_without_metadata": ["eth0",
                                         "wlan0"]  # Manual metadata on these IF

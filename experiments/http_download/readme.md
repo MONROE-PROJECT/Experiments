@@ -8,7 +8,7 @@ The default values are (can be overridden by a /monroe/config):
 {
         "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
         "url": "http://193.10.227.25/test/1000M.zip",
-        "size": 3*1024 - 1,  # The maximum size in Kbytes to download
+        "size": 3*1024,  # The maximum size in Bytes to download
         "time": 3600,  # The maximum time in seconds for a download
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
@@ -21,6 +21,7 @@ The default values are (can be overridden by a /monroe/config):
         "time_between_experiments": 30,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
+        "modeminterfacename": "InternalInterface",
         "allowed_interfaces": ["usb0",
                                "usb1",
                                "usb2",
