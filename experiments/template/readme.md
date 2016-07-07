@@ -3,10 +3,10 @@
 A template to show of some of the capabilities of the Monroe platform.
 
 The experiment will download a url (file) over http using curl.
-The default values are (can be overridden by a /monroe/config):
+The default values are (can be overridden by providing /monroe/config):
 ```
 {
-        # The following value are specific to the monore platform
+        # The following value are specific to the monroe platform
         "guid": "no.guid.in.config.file",  # Overridden by scheduler
         "nodeid": "no.nodeid.in.config.file",  # Overridden by scheduler
         "storage": 104857600,  # Overridden by scheduler
@@ -39,7 +39,7 @@ All debug/error information will be printed on stdout
 The experiment consists of one main process and two sub processes.
  1. One process listen to modem and gps information
  3. One process executes the experiment
- 4. The main thread are managing the other threads
+ 4. The main process are managing the two processes above
 
 ### Information sharing between processes
 The information are shared between the processes by two thread safe
@@ -87,7 +87,7 @@ curl -o /dev/null --raw --silent --write-out "{ remote: %{remote_ip}:%{remote_po
     * ```docker logs [container runtime name]```
 
 ## Sample output
-Single line, pretty printed and added comments here for readability
+Pretty printed and with comments for readability
 ```
 {
     "Bytes": 30720000,
