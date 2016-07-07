@@ -31,7 +31,7 @@ CONFIGFILE = '/monroe/config'
 EXPCONFIG = {
         "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
         "url": "http://193.10.227.25/test/1000M.zip",
-        "size": 3*1024 - 1,  # The maximum size in Kbytes to download
+        "size": 3*1024,  # The maximum size in Kbytes to download
         "time": 3600,  # The maximum time in seconds for a download
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
@@ -44,6 +44,7 @@ EXPCONFIG = {
         "time_between_experiments": 30,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
+        "modeminterfacename": "InternalInterface",
         "allowed_interfaces": ["usb0",
                                "usb1",
                                "usb2",
@@ -69,14 +70,15 @@ def run_exp(meta_info, expconfig):
 
         Will abort if the interface goes down.
     """
-    ifname = meta_info['InterfaceName']
+    ifname = meta_info.get(expconfig["modeminterfacename"],
+                           meta_info['InterfaceName'])
     cmd = ["curl",
            "--raw",
            "--silent",
            "--write-out", "{}".format(CURL_METRICS),
            "--interface", "{}".format(ifname),
            "--max-time", "{}".format(expconfig['time']),
-           "--range", "0-{}".format(expconfig['size']),
+           "--range", "0-{}".format(expconfig['size'] - 1),
            "{}".format(expconfig['url'])]
     try:
         output = check_output(cmd)
@@ -102,7 +104,10 @@ def run_exp(meta_info, expconfig):
             monroe_exporter.save_output(msg, expconfig['resultdir'])
     except Exception as e:
         if expconfig['verbosity'] > 0:
-            print "Execution or parsing failed: {}".format(e)
+            print ("Execution or parsing failed for "
+                   "command : {}"
+                   "output : {}"
+                   "error: {}").format(cmd, output, e)
 
 
 def metadata(meta_ifinfo, ifname, expconfig):
@@ -120,7 +125,13 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            if ifinfo['InterfaceName'] == ifname:
+            if expconfig["modeminterfacename"] not in ifinfo:
+                print ("Fallback to use InterfaceName as {} "
+                       "do not exist").format(expconfig["modeminterfacename"])
+
+            ifinfo_name = ifinfo.get(expconfig["modeminterfacename"],
+                                     ifinfo['InterfaceName'])
+            if ifinfo_name == ifname:
                 # In place manipulation of the refrence variable
                 for key, value in ifinfo.iteritems():
                     meta_ifinfo[key] = value
@@ -138,20 +149,22 @@ def check_if(ifname):
             netifaces.AF_INET in netifaces.ifaddresses(ifname))
 
 
-def check_meta(info, graceperiod):
+def check_meta(info, graceperiod, expconfig):
     """Check if we have recieved required information within graceperiod."""
-    return ("InterfaceName" in info and
+    return ((expconfig["modeminterfacename"] in info or
+             "InterfaceName" in info) and
             "Operator" in info and
             "Timestamp" in info and
             time.time() - info["Timestamp"] < graceperiod)
 
 
-def add_manual_metadata_information(info, ifname):
+def add_manual_metadata_information(info, ifname, expconfig):
     """Only used for local interfaces that do not have any metadata information.
 
        Normally eth0 and wlan0.
     """
     info["InterfaceName"] = ifname
+    info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["Timestamp"] = time.time()
 
@@ -228,7 +241,7 @@ if __name__ == '__main__':
         # if the metadata process dies we retry until the IF_META_GRACE is up
         start_time = time.time()
         while (time.time() - start_time < meta_grace and
-               not check_meta(meta_info, meta_grace)):
+               not check_meta(meta_info, meta_grace, EXPCONFIG)):
             if not meta_process.is_alive():
                 # This is serious as we will not receive updates
                 # The meta_info dict may have been corrupt so recreate that one
@@ -241,7 +254,7 @@ if __name__ == '__main__':
 
         # Ok we did not get any information within the grace period
         # we give up on that interface
-        if not check_meta(meta_info, meta_grace):
+        if not check_meta(meta_info, meta_grace, EXPCONFIG):
             if EXPCONFIG['verbosity'] > 1:
                 print "No Metada'nodeid': 'fake.nodeid',ta continuing"
             continue
@@ -262,9 +275,11 @@ if __name__ == '__main__':
 
             # No modem information hack to add required information
             if (check_if(ifname) and ifname in if_without_metadata):
-                add_manual_metadata_information(meta_info, ifname)
+                add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
 
-            if not (check_if(ifname) and check_meta(meta_info, meta_grace)):
+            if not (check_if(ifname) and check_meta(meta_info,
+                                                    meta_grace,
+                                                    EXPCONFIG)):
                 if EXPCONFIG['verbosity'] > 0:
                     print "Interface went down during a experiment"
                 break
@@ -284,4 +299,4 @@ if __name__ == '__main__':
         time.sleep(time_between_experiments)
     if EXPCONFIG['verbosity'] > 1:
         print ("Interfaces {} "
-               "done, existing").format(allowed_interfaces)
+               "done, exiting").format(allowed_interfaces)

@@ -6,6 +6,14 @@
 # License: GNU General Public License v3
 # Developed for use by the EU H2020 MONROE project
 
+"""
+Simple wrapper to run fping on a given host.
+
+The script will run forever on the specified interface.
+All default values are configurable from the scheduler.
+The output will be formated into a json object suitable for storage in the
+MONROE db.
+"""
 import zmq
 import json
 import sys
@@ -39,6 +47,7 @@ EXPCONFIG = {
         "export_interval": 5.0,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
+        "modeminterfacename": "InternalInterface",
         "interfacename": "eth0",  # Interface to run the experiment on
         "interfaces_without_metadata": ["eth0",
                                         "wlan0"]  # Manual metadata on these IF
@@ -67,7 +76,8 @@ def run_exp(meta_info, expconfig):
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
 
-    ifname = meta_info['InterfaceName']
+    ifname = meta_info.get(expconfig["modeminterfacename"],
+                           meta_info['InterfaceName'])
     interval = str(expconfig['interval'])
     server = expconfig['server']
     cmd = ["fping",
@@ -139,7 +149,13 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            if ifinfo['InterfaceName'] == ifname:
+            if expconfig["modeminterfacename"] not in ifinfo:
+                print ("Fallback to use InterfaceName as {} "
+                       "do not exist").format(expconfig["modeminterfacename"])
+
+            ifinfo_name = ifinfo.get(expconfig["modeminterfacename"],
+                                     ifinfo['InterfaceName'])
+            if ifinfo_name == ifname:
                 # In place manipulation of the refrence variable
                 for key, value in ifinfo.iteritems():
                     meta_ifinfo[key] = value
@@ -157,20 +173,22 @@ def check_if(ifname):
             netifaces.AF_INET in netifaces.ifaddresses(ifname))
 
 
-def check_meta(info, graceperiod):
+def check_meta(info, graceperiod, expconfig):
     """Check if we have recieved required information within graceperiod."""
-    return ("InterfaceName" in info and
+    return ((expconfig["modeminterfacename"] in info or
+             "InterfaceName" in info) and
             "Operator" in info and
             "Timestamp" in info and
             time.time() - info["Timestamp"] < graceperiod)
 
 
-def add_manual_metadata_information(info, ifname):
+def add_manual_metadata_information(info, ifname, expconfig):
     """Only used for local interfaces that do not have any metadata information.
 
        Normally eth0 and wlan0.
     """
     info["InterfaceName"] = ifname
+    info[expconfig["modeminterfacename"]] = ifname
     info["ICCID"] = ifname
     info["Operator"] = ifname
     info["Timestamp"] = time.time()
@@ -251,10 +269,10 @@ if __name__ == '__main__':
         # in the required values by hand whcih will immeditaly terminate
         # metadata loop below
         if (check_if(ifname) and ifname in if_without_metadata):
-            add_manual_metadata_information(meta_info, ifname)
+            add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
 
         # Do we have the interfaces up ?
-        if (check_if(ifname) and check_meta(meta_info, meta_grace)):
+        if (check_if(ifname) and check_meta(meta_info, meta_grace, EXPCONFIG)):
             # We are all good
             if exp_process.is_alive() is False:
                 exp_process.start()
