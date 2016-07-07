@@ -104,7 +104,10 @@ def run_exp(meta_info, expconfig):
             monroe_exporter.save_output(msg, expconfig['resultdir'])
     except Exception as e:
         if expconfig['verbosity'] > 0:
-            print "Execution or parsing failed: {}".format(e)
+            print ("Execution or parsing failed for "
+                   "command : {}"
+                   "output : {}"
+                   "error: {}").format(cmd, output, e)
 
 
 def metadata(meta_ifinfo, ifname, expconfig):
@@ -296,4 +299,4 @@ if __name__ == '__main__':
         time.sleep(time_between_experiments)
     if EXPCONFIG['verbosity'] > 1:
         print ("Interfaces {} "
-               "done, existing").format(allowed_interfaces)
+               "done, exiting").format(allowed_interfaces)
