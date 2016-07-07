@@ -31,7 +31,7 @@ CONFIGFILE = '/monroe/config'
 EXPCONFIG = {
         "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
         "url": "http://193.10.227.25/test/1000M.zip",
-        "size": 3*1024 - 1,  # The maximum size in Kbytes to download
+        "size": 3*1024,  # The maximum size in Kbytes to download
         "time": 3600,  # The maximum time in seconds for a download
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
@@ -78,7 +78,7 @@ def run_exp(meta_info, expconfig):
            "--write-out", "{}".format(CURL_METRICS),
            "--interface", "{}".format(ifname),
            "--max-time", "{}".format(expconfig['time']),
-           "--range", "0-{}".format(expconfig['size']),
+           "--range", "0-{}".format(expconfig['size'] - 1),
            "{}".format(expconfig['url'])]
     try:
         output = check_output(cmd)
