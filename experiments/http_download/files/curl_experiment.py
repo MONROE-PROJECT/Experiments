@@ -167,6 +167,7 @@ def add_manual_metadata_information(info, ifname, expconfig):
 
        Normally eth0 and wlan0.
     """
+    info["InterfaceName"] = ifname
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["Timestamp"] = time.time()
