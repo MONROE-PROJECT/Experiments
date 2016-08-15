@@ -80,6 +80,8 @@ def run_exp(meta_info, expconfig):
            "--max-time", "{}".format(expconfig['time']),
            "--range", "0-{}".format(expconfig['size'] - 1),
            "{}".format(expconfig['url'])]
+    # Safeguard to always have a defined output variable
+    output = None
     try:
         output = check_output(cmd)
         # Clean away leading and trailing whitespace
