@@ -45,9 +45,9 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "allowed_interfaces": ["usb0",
-                               "usb1",
-                               "usb2",
+        "allowed_interfaces": ["op1",
+                               "op2",
+                               "op3",
                                "wlan0",
                                "wwan2"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0",
@@ -70,8 +70,7 @@ def run_exp(meta_info, expconfig):
 
         Will abort if the interface goes down.
     """
-    ifname = meta_info.get(expconfig["modeminterfacename"],
-                           meta_info['InterfaceName'])
+    ifname = meta_info[expconfig["modeminterfacename"]]
     cmd = ["curl",
            "--raw",
            "--silent",
@@ -127,12 +126,7 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            if expconfig["modeminterfacename"] not in ifinfo:
-                print ("Fallback to use InterfaceName as {} "
-                       "do not exist").format(expconfig["modeminterfacename"])
-
-            ifinfo_name = ifinfo.get(expconfig["modeminterfacename"],
-                                     ifinfo['InterfaceName'])
+            ifinfo_name = ifinfo[expconfig["modeminterfacename"]]
             if ifinfo_name == ifname:
                 # In place manipulation of the refrence variable
                 for key, value in ifinfo.iteritems():
@@ -153,8 +147,7 @@ def check_if(ifname):
 
 def check_meta(info, graceperiod, expconfig):
     """Check if we have recieved required information within graceperiod."""
-    return ((expconfig["modeminterfacename"] in info or
-             "InterfaceName" in info) and
+    return (expconfig["modeminterfacename"] in info and
             "Operator" in info and
             "Timestamp" in info and
             time.time() - info["Timestamp"] < graceperiod)
@@ -165,7 +158,6 @@ def add_manual_metadata_information(info, ifname, expconfig):
 
        Normally eth0 and wlan0.
     """
-    info["InterfaceName"] = ifname
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["Timestamp"] = time.time()
@@ -214,6 +206,7 @@ if __name__ == '__main__':
         EXPCONFIG['zmqport']
         EXPCONFIG['verbosity']
         EXPCONFIG['resultdir']
+        EXPCONFIG['modeminterfacename']
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
