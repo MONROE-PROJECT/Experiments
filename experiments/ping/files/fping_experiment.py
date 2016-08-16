@@ -148,15 +148,15 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            ifinfo_name = ifinfo[expconfig["modeminterfacename"]]
-            if ifinfo_name == ifname:
+            if (expconfig["modeminterfacename"] in ifinfo and
+                    ifinfo[expconfig["modeminterfacename"]] == ifname):
                 # In place manipulation of the reference variable
                 for key, value in ifinfo.iteritems():
                     meta_ifinfo[key] = value
         except Exception as e:
             if expconfig['verbosity'] > 0:
-                print ("Cannot get modem metadata in http container {}"
-                       ", {}").format(e, expconfig['guid'])
+                print ("Cannot get modem metadata in http container"
+                       "error : {} , {}").format(e, expconfig['guid'])
             pass
 
 
@@ -236,6 +236,8 @@ if __name__ == '__main__':
         print "Missing expconfig variable {}".format(e)
         raise e
 
+    if EXPCONFIG['verbosity'] > 2:
+        print EXPCONFIG
     # Create a process for getting the metadata
     # (could have used a thread as well but this is true multiprocessing)
     meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
@@ -267,9 +269,14 @@ if __name__ == '__main__':
         # Do we have the interfaces up ?
         if (check_if(ifname) and check_meta(meta_info, meta_grace, EXPCONFIG)):
             # We are all good
+            if EXPCONFIG['verbosity'] > 2:
+                print "Interface {} is up".format(ifname)
             if exp_process.is_alive() is False:
                 exp_process.start()
         elif exp_process.is_alive():
+            if EXPCONFIG['verbosity'] > 2:
+                print ("Interface {} is down and "
+                       "experiment are running").format(ifname)
             # Interfaces down and we are running
             exp_process.terminate()
             exp_process = create_exp_process(meta_info, EXPCONFIG)

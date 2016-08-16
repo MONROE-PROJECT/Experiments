@@ -126,9 +126,9 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            ifinfo_name = ifinfo[expconfig["modeminterfacename"]]
-            if ifinfo_name == ifname:
-                # In place manipulation of the refrence variable
+            if (expconfig["modeminterfacename"] in ifinfo and
+                    ifinfo[expconfig["modeminterfacename"]] == ifname):
+                # In place manipulation of the reference variable
                 for key, value in ifinfo.iteritems():
                     meta_ifinfo[key] = value
         except Exception as e:
@@ -244,14 +244,14 @@ if __name__ == '__main__':
                                                               EXPCONFIG)
                 meta_process.start()
             if EXPCONFIG['verbosity'] > 1:
-                print "Trying to get meta data"
+                print "Trying to get metadata"
             time.sleep(ifup_interval_check)
 
         # Ok we did not get any information within the grace period
         # we give up on that interface
         if not check_meta(meta_info, meta_grace, EXPCONFIG):
             if EXPCONFIG['verbosity'] > 1:
-                print "No Metada'nodeid': 'fake.nodeid',ta continuing"
+                print "No Metadata continuing"
             continue
 
         # Ok we have some information lets start the experiment script
