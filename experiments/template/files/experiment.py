@@ -68,7 +68,7 @@ def run_exp(meta_info, expconfig):
 
         Will abort if the interface goes down.
     """
-    ifname = meta_info['modem']['InterfaceName']
+    ifname = meta_info['modem']['InternalInterface']
     cmd = ["curl",
            "--raw",
            "--silent",
@@ -82,7 +82,7 @@ def run_exp(meta_info, expconfig):
         # If multiple GPS evenst have ben registered we take the last one
         start_gps_pos = len(meta_info['gps']) - 1
         output = check_output(cmd)
-        if ifname != meta_info['modem']['InterfaceName']:
+        if ifname != meta_info['modem']['InternalInterface']:
             print "Error: Interface has changed during the experiment, abort"
             return
         # We store all gps_positions during the experiment
@@ -188,7 +188,7 @@ def check_modem_meta(info, graceperiod):
        to the Mobile network and an IP adress.
        For more fine grained information DeviceState or DeviceMode can be used.
     """
-    return ("InterfaceName" in info and
+    return ("InternalInterface" in info and
             "Operator" in info and
             "ICCID" in info and
             "Timestamp" in info and
@@ -279,7 +279,7 @@ if __name__ == '__main__':
         print "No Metadata or no ip adress on interface: aborting"
         sys.exit(1)
 
-    ifname = meta_info['modem']['InterfaceName']
+    ifname = meta_info['modem']['InternalInterface']
 
     if EXPCONFIG['verbosity'] > 1:
         print "Starting experiment"
