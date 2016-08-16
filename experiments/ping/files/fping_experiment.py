@@ -76,8 +76,7 @@ def run_exp(meta_info, expconfig):
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
 
-    ifname = meta_info.get(expconfig["modeminterfacename"],
-                           meta_info['InterfaceName'])
+    ifname = meta_info[expconfig["modeminterfacename"]]
     interval = str(expconfig['interval'])
     server = expconfig['server']
     cmd = ["fping",
@@ -149,14 +148,9 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            if expconfig["modeminterfacename"] not in ifinfo:
-                print ("Fallback to use InterfaceName as {} "
-                       "do not exist").format(expconfig["modeminterfacename"])
-
-            ifinfo_name = ifinfo.get(expconfig["modeminterfacename"],
-                                     ifinfo['InterfaceName'])
+            ifinfo_name = ifinfo[expconfig["modeminterfacename"]]
             if ifinfo_name == ifname:
-                # In place manipulation of the refrence variable
+                # In place manipulation of the reference variable
                 for key, value in ifinfo.iteritems():
                     meta_ifinfo[key] = value
         except Exception as e:
@@ -175,8 +169,7 @@ def check_if(ifname):
 
 def check_meta(info, graceperiod, expconfig):
     """Check if we have recieved required information within graceperiod."""
-    return ((expconfig["modeminterfacename"] in info or
-             "InterfaceName" in info) and
+    return (expconfig["modeminterfacename"] in info and
             "Operator" in info and
             "Timestamp" in info and
             time.time() - info["Timestamp"] < graceperiod)
@@ -187,7 +180,6 @@ def add_manual_metadata_information(info, ifname, expconfig):
 
        Normally eth0 and wlan0.
     """
-    info["InterfaceName"] = ifname
     info[expconfig["modeminterfacename"]] = ifname
     info["ICCID"] = ifname
     info["Operator"] = ifname
@@ -239,6 +231,7 @@ if __name__ == '__main__':
         EXPCONFIG['verbosity']
         EXPCONFIG['resultdir']
         EXPCONFIG['export_interval']
+        EXPCONFIG['modeminterfacename']
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
