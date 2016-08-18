@@ -18,7 +18,7 @@ import json
 import zmq
 import netifaces
 import time
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 
 # Configuration
@@ -45,9 +45,9 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "allowed_interfaces": ["op1",
+        "allowed_interfaces": ["op0",
+                               "op1",
                                "op2",
-                               "op3",
                                "wlan0",
                                "wwan2"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0",
@@ -82,7 +82,16 @@ def run_exp(meta_info, expconfig):
     # Safeguard to always have a defined output variable
     output = None
     try:
-        output = check_output(cmd)
+        try:
+            output = check_output(cmd)
+        except CalledProcessError as e:
+                if e.returncode == 28:  # time-limit exceeded
+                    if expconfig['verbosity'] > 2:
+                        print ("Exceding timelimit {}, "
+                               "saving what we have").format(expconfig['time'])
+                    output = e.output
+                else:
+                    raise e
         # Clean away leading and trailing whitespace
         output = output.strip(' \t\r\n\0')
         # Convert to JSON
@@ -106,8 +115,8 @@ def run_exp(meta_info, expconfig):
     except Exception as e:
         if expconfig['verbosity'] > 0:
             print ("Execution or parsing failed for "
-                   "command : {}"
-                   "output : {}"
+                   "command : {}, "
+                   "output : {}, "
                    "error: {}").format(cmd, output, e)
 
 
