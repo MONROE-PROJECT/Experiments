@@ -114,6 +114,10 @@ def _timed_move_to_output_(outdir, interval):
                     log_str = "Error: {} {} : {}".format(dest_name,
                                                          tmp_dest_name,
                                                          e)
+                    try:
+                        os.unlink(tmp_dest_name)
+                    except Exception as e:
+                        pass
                     print log_str
             else:
                 # We have too little space left on outdir
