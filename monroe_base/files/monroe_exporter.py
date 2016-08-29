@@ -89,7 +89,7 @@ def _timed_move_to_output_(outdir, interval):
                                 else:
                                     print >> tmp_dest, json.dumps(msg)
                             except Exception as e:
-                                errormsg = ("Error: {} {},
+                                errormsg = ("Error: {} {},"
                                             "skipping this message "
                                             "in {}({})").format(e,
                                                                 msg,
