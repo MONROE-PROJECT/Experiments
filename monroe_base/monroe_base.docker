@@ -54,6 +54,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes && apt-get install -y --for
     python-netifaces \
     nano \
     default-jre-headless \
+    python-rrdtool \
     python3 \
     python3-netifaces \
     python3-zmq
