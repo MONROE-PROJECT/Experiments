@@ -5,4 +5,4 @@ CONTAINER=${DIR##*/}
 DOCKERFILE=${CONTAINER}.docker
 
 docker pull monroe/base
-docker build --rm=true -f ${DOCKERFILE} -t ${CONTAINER} . && echo "Finished building ${CONTAINER}"
+docker build --rm --no-cache -f ${DOCKERFILE} -t ${CONTAINER} . && echo "Finished building ${CONTAINER}"
