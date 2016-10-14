@@ -8,7 +8,9 @@ xvfb \
 bzip2 \
 python-pip \
 libgtk-3-dev \
-python-scapy
+python-scapy \
+libasound2
+
 
 RUN wget https://ftp.mozilla.org/pub/firefox/releases/46.0/linux-x86_64/en-US/firefox-46.0.tar.bz2
 RUN tar -xjf firefox-46.0.tar.bz2
@@ -17,6 +19,7 @@ RUN ln -s /opt/firefox46/firefox /usr/bin/firefox
 
 RUN pip install pyvirtualdisplay
 RUN pip install selenium
+RUN pip install python-dateutil
 RUN rm firefox-46.0.tar.bz2
 
 COPY files/* /opt/monroe/

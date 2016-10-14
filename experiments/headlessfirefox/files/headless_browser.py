@@ -74,9 +74,7 @@ EXPCONFIG = {
         "modeminterfacename": "InternalInterface",
         "allowed_interfaces": ["op0",
                                "op1",
-                               "op2",
-                               "wlan0",
-                               "wwan2"],  # Interfaces to run the experiment on
+                               "op2"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0",
                                         "wlan0"]  # Manual metadata on these IF
         }
@@ -152,9 +150,9 @@ def run_exp(meta_info, expconfig, url,count):
 
     with open("har/"+filename+".har") as f:
         temp=json.load(f)
-    f.close()
     num_of_objects=0
 
+    start=0
     for entry in temp["log"]["entries"]:
         obj={}
         obj["url"]=entry["request"]["url"]
@@ -164,23 +162,22 @@ def run_exp(meta_info, expconfig, url,count):
         obj["timings"]=entry["timings"]
         objs.append(obj)
         num_of_objects=num_of_objects+1
-
-    har_stats["Objects"]=objs
-    har_stats["NumObjects"]=num_of_objects
-    har_stats["PageSize"]=pageSize
-    start=0
-    for entry in temp["log"]["entries"]:
-        if start==0:
+	if start==0:
                 start_time=entry["startedDateTime"]
                 start=1
         end_time=entry["startedDateTime"]
         ms=entry["time"]
+
+    har_stats["Objects"]=objs
+    har_stats["NumObjects"]=num_of_objects
+    har_stats["PageSize"]=pageSize
     hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
     hours = int(hours)
     minutes = int(minutes)
     seconds = float(seconds)
     plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
     har_stats["url"]=url[:-1]
+    har_stats["Protocol"]=getter_version	
     har_stats["Web load time"]=plt_ms
     har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
@@ -197,6 +194,10 @@ def run_exp(meta_info, expconfig, url,count):
             print msg
     if not DEBUG:
             monroe_exporter.save_output(msg, expconfig['resultdir'])
+    try:
+        os.remove("har/"+filename+".har")
+    except OSError, e:  ## if failed, report it back to the user ##
+        print ("Error: %s - %s." % (e.filename,e.strerror))
     
     
 
@@ -434,6 +435,8 @@ if __name__ == '__main__':
         output_interface=output.split(" ")[4]
         if output_interface==str(ifname):
                 print "Source interface is set to "+str(ifname)
+	else:
+		continue
 
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
