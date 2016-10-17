@@ -408,7 +408,7 @@ if __name__ == '__main__':
 
         # Ok we have some information lets start the experiment script
 
-
+	output_interface=None
         cmd1=["route",
              "del",
              "default"]
