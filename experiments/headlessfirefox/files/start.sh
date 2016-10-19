@@ -3,6 +3,8 @@
 
 cd /opt/monroe/
 
+export PATH=$PATH:/opt/monroe/
+
 echo "Experiment starts ..."
 
 
