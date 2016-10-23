@@ -1,3 +1,22 @@
+
+Cleaning of old docker images
+-----------------------------
+
+After building and running docker containers, the system may start filling
+up with old instances and images no longer in use. These can be cleaned up with the
+following commands:
+
+`docker rm -v $(docker ps -a -q -f status=exited)`
+
+`docker rmi $(docker images -f "dangling=true" -q)`
+
+
+These commands can also be put in a cleaning-script and put in a common binary directory for convenience.
+
+
+ZMQ messages
+============
+
 Each message sent over the ZMQ bus consists of a topic and a corresponding message identified by the DataId and DataVersion. The suffix of the topic is typically included as a field within the message. Topic is used for ZMQ subscriber filtering, while DataId + DataVersion is used for database mapping and data grouping. The message stored in the database is identical to the ZMQ message (the topic is not stored in the database).
 
 Although only enforced for the mandatory fields below, it is recommended that each "key" in the data field is formatted with CamelCasing, i.e. InterfaceName is preferred over iface_name.
@@ -80,14 +99,3 @@ Topic: MONROE.META.NODE.EVENT
 	Description / Further information: Power up and other events.
 
 
-Cleaning of old docker images
------------------------------
-
-After building and running docker containers, the system may start filling
-up with old instances and images no longer in use. These can be cleaned up with the
-following commands:
-
-`docker rm -v $(docker ps -a -q -f status=exited)`
-`docker rmi $(docker images -f "dangling=true" -q)`
-
-These commands can also be put in a cleaning-script and put in a common binary directory for convenience.
