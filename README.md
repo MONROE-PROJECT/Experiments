@@ -79,3 +79,15 @@ Topic: MONROE.META.NODE.EVENT
 	Data fields: see node events
 	Description / Further information: Power up and other events.
 
+
+Cleaning of old docker images
+-----------------------------
+
+After building and running docker containers, the system may start filling
+up with old instances and images no longer in use. These can be cleaned up with the
+following commands:
+
+`docker rm -v $(docker ps -a -q -f status=exited)`
+`docker rmi $(docker images -f "dangling=true" -q)`
+
+These commands can also be put in a cleaning-script and put in a common binary directory for convenience.
