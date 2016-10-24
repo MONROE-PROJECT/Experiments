@@ -285,8 +285,8 @@ if __name__ == '__main__':
 			    continue
         
 	    except CalledProcessError as e:
-                 if e.returncode == 28:
-                        print "Time limit exceeded"
+            if e.returncode == 28:
+                print "Time limit exceeded"
 		    continue
 	
 
