@@ -1,0 +1,11 @@
+FROM monroe/base
+
+MAINTAINER mohammad.rajiullah@kau.se
+
+RUN apt-get update
+RUN apt-get install -y --force-yes \
+build-essential
+
+COPY files/* /opt/monroe/
+
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]
