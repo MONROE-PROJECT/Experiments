@@ -1,0 +1,8 @@
+FROM monroe/base
+
+MAINTAINER andra@simula.no
+
+COPY files/* /opt/monroe/
+COPY files/adaptation/ /opt/monroe/adaptation/
+
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/AStream_MONROE.py"]
