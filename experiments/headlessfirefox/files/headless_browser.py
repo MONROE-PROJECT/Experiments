@@ -147,7 +147,7 @@ def run_exp(meta_info, expconfig, url,count):
     objs=[]
     pageSize=0
 
-    with open("har/"+filename+".har") as f:
+    with open("/opt/monroe/har/"+filename+".har") as f:
         temp=json.load(f)
     num_of_objects=0
 
@@ -192,9 +192,10 @@ def run_exp(meta_info, expconfig, url,count):
     if expconfig['verbosity'] > 2:
             print har_stats
     if not DEBUG:
+	    print har_stats
             monroe_exporter.save_output(har_stats, expconfig['resultdir'])
     try:
-        os.remove("har/"+filename+".har")
+        os.remove("/opt/monroe/har/"+filename+".har")
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
     
