@@ -118,7 +118,7 @@ def run_exp(meta_info, expconfig, ip):
     har_stats["Iccid"]= meta_info["ICCID"]
     har_stats["Operator"]= meta_info["Operator"]
   
-    #msg=json.dumps(har_stats)
+    print output
     
     if expconfig['verbosity'] > 2:
             print har_stats
@@ -310,16 +310,13 @@ if __name__ == '__main__':
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
         
-
-        for index in range(len(url_list)):
-            for run in range(start_count, loop):
-                # Create a experiment process and start it
-                start_time_exp = time.time()
-                exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, meta_info["InternalIPAddress"])
-                exp_process.start()
+        # Create a experiment process and start it
+        start_time_exp = time.time()
+        exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, meta_info["InternalIPAddress"])
+        exp_process.start()
         
-                while (time.time() - start_time_exp < exp_grace and
-                       exp_process.is_alive()):
+        while (time.time() - start_time_exp < exp_grace and
+                     exp_process.is_alive()):
                     # Here we could add code to handle interfaces going up or down
                     # Similar to what exist in the ping experiment
                     # However, for now we just abort if we loose the interface
@@ -328,27 +325,27 @@ if __name__ == '__main__':
                     #if (check_if(ifname) and ifname in if_without_metadata):
                     #    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
         
-                    if not (check_if(ifname) and check_meta(meta_info,
+		if not (check_if(ifname) and check_meta(meta_info,
                                                             meta_grace,
-                                                            EXPCONFIG)):
-                        if EXPCONFIG['verbosity'] > 0:
-                            print "Interface went down during a experiment"
+	                                                            EXPCONFIG)):
+			if EXPCONFIG['verbosity'] > 0:
+                        	print "Interface went down during a experiment"
                         break
-                    elapsed_exp = time.time() - start_time_exp
-                    if EXPCONFIG['verbosity'] > 1:
-                        print "Running Experiment for {} s".format(elapsed_exp)
-                    time.sleep(ifup_interval_check)
-        
-                if exp_process.is_alive():
-                    exp_process.terminate()
-                if meta_process.is_alive():
-                    meta_process.terminate()
-        
-                elapsed = time.time() - start_time
+                elapsed_exp = time.time() - start_time_exp
                 if EXPCONFIG['verbosity'] > 1:
-                    print "Finished {} after {}".format(ifname, elapsed)
-                time.sleep(time_between_experiments)
+                	print "Running Experiment for {} s".format(elapsed_exp)
+                time.sleep(ifup_interval_check)
+        
+        if exp_process.is_alive():
+                exp_process.terminate()
+        if meta_process.is_alive():
+                meta_process.terminate()
+        
+        elapsed = time.time() - start_time
+        if EXPCONFIG['verbosity'] > 1:
+        	print "Finished {} after {}".format(ifname, elapsed)
+        time.sleep(time_between_experiments)
 
-    if EXPCONFIG['verbosity'] > 1:
+   if EXPCONFIG['verbosity'] > 1:
         print ("Interfaces {} "
                "done, exiting").format(allowed_interfaces)
