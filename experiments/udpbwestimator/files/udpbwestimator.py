@@ -8,12 +8,11 @@
 # Developed for use by the EU H2020 MONROE project
 
 """
-headless firefox browsing using selenium web driver.
-The browsing can make request using h1, h2 or h1 over tls.
-The script will execute one experiment for each of the allowed_interfaces.
-All default values are configurable from the scheduler.
-The output will be formated into a json object suitable for storage in the
-MONROE db.
+A Linux based lightweight tool to estimate available down-link bandwidth. 
+UDPbwEstimator consists of a server that sends n number of back to back UDP 
+packets in the beginning of each second. The receiver tells the server about
+ the number of packets, bursts to be sent. Then receiver calculates the
+  bandwidth using packet arrival times and payloads.
 """
 
 import sys, getopt
@@ -27,22 +26,6 @@ import time
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 
-urlfile =''
-iterations =0 
-url=''
-num_urls=0
-domains = "devtools.netmonitor.har."
-num_urls =0
-url_list = []
-start_count = 0
-getter=''
-newurl=''
-getter_version=''
-h1='http://'
-h1s='https://'
-h2='https://'
-current_directory =''
-har_directory =''
 
 # Configuration
 DEBUG = False
@@ -87,17 +70,17 @@ def run_exp(meta_info, expconfig, ip):
       "-c",
       "50",
        "-b",
-	"3",
-	"-l",
-	 "1400",
-	  "-s",
-           ip,
+	   "3",
+	   "-l",
+	   "1400",
+	   "-s",
+       ip,
 	   "-o",
 	   "8000",
-            "-d", 
-	    "193.10.227.23",
-	     "-p", 
-	     "8080"]
+       "-d", 
+	   "193.10.227.23",
+	   "-p", 
+	   "8080"]
 
     output=None
      
@@ -277,7 +260,7 @@ if __name__ == '__main__':
         # Ok we have some information lets start the experiment script
 
 
-	output_interface=None
+	    output_interface=None
 
         cmd1=["route",
              "del",
@@ -298,13 +281,13 @@ if __name__ == '__main__':
         	output_interface=output.split(" ")[4]
         	if output_interface==str(ifname):
                 	print "Source interface is set to "+str(ifname)
-		else:
-			continue
+		    else:
+			    continue
         
-	except CalledProcessError as e:
+	    except CalledProcessError as e:
                  if e.returncode == 28:
                         print "Time limit exceeded"
-		 continue
+		    continue
 	
 
         if EXPCONFIG['verbosity'] > 1:
@@ -325,21 +308,21 @@ if __name__ == '__main__':
                     #if (check_if(ifname) and ifname in if_without_metadata):
                     #    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
         
-		if not (check_if(ifname) and check_meta(meta_info,
+		    if not (check_if(ifname) and check_meta(meta_info,
                                                             meta_grace,
 	                                                            EXPCONFIG)):
-			if EXPCONFIG['verbosity'] > 0:
-                        	print "Interface went down during a experiment"
-                        break
-                elapsed_exp = time.time() - start_time_exp
-                if EXPCONFIG['verbosity'] > 1:
-                	print "Running Experiment for {} s".format(elapsed_exp)
-                time.sleep(ifup_interval_check)
+			    if EXPCONFIG['verbosity'] > 0:
+                        print "Interface went down during a experiment"
+                break
+            elapsed_exp = time.time() - start_time_exp
+            if EXPCONFIG['verbosity'] > 1:
+               	print "Running Experiment for {} s".format(elapsed_exp)
+            time.sleep(ifup_interval_check)
         
         if exp_process.is_alive():
-                exp_process.terminate()
+            exp_process.terminate()
         if meta_process.is_alive():
-                meta_process.terminate()
+            meta_process.terminate()
         
         elapsed = time.time() - start_time
         if EXPCONFIG['verbosity'] > 1:
