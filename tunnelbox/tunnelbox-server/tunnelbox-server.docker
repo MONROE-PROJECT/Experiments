@@ -7,8 +7,18 @@ RUN mkdir -p /monroe
 
 COPY files/* /opt/monroe/
 
-RUN apt-get update && apt-get install -y --force-yes python-pip \
-    && pip install pyotp && pip install psutil
+RUN apt-get update \
+    && apt-get install -y --force-yes  \
+    python-pip \
+    python-dev \
+    && apt-get update --fix-missing \
+    && pip install pyotp \
+    && pip install psutil \
+    && apt-get remove -y --force-yes python-pip \
+    && apt-get clean -y --force-yes clean \
+    && apt-get -y --force-yes autoremove \
+    # Cleanup
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old
 
 # Default cmd to run
 ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/server.py"]

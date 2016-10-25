@@ -4,4 +4,5 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER=${DIR##*/}
 DOCKERFILE=${CONTAINER}.docker
 
-docker build --rm=true -f ${DOCKERFILE} -t ${CONTAINER} . && echo "Finished building ${CONTAINER}"
+docker pull monroe/base
+docker build --no-cache --rm -f ${DOCKERFILE} -t ${CONTAINER} . && echo "Finished building ${CONTAINER}"
