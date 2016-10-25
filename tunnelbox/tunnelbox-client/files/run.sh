@@ -12,14 +12,21 @@ echo "Starting sshd"
 
 
 # Figure out ip adresses
-BINDIP=$(ip -f inet addr show eth0 |grep -Po 'inet \K[\d.]+')
-[[ -z  $BINDIP  ]] && BINDIP=$(ip -f inet addr show op0 |grep -Po 'inet \K[\d.]+')
-[[ -z  $BINDIP  ]] && BINDIP=$(ip -f inet addr show op1 |grep -Po 'inet \K[\d.]+')
-[[ -z  $BINDIP  ]] && BINDIP=$(ip -f inet addr show op2 |grep -Po 'inet \K[\d.]+')
+BINDIP=""
+for INT in eth0 wlan0 op0 op1 op2
+do
+  [[ -z  ${BINDIP}  ]] && BINDIP=$(ip -f inet addr show ${INT} |grep -Po 'inet \K[\d.]+')
+done
+[[ -z  ${BINDIP}  ]] && echo "No IP exiting" && exit
 
-[[ -z  $BINDIP  ]] && echo "No IP exiting" && exit
+# Assumes /24 and gw on .1 Address so alot of assumptions
+#GWIP=$(echo ${BINDIP}|awk -F. '{$NF="1"; gsub(" ", ".", $0); print $0 }')
 
-SERVER=$(/usr/bin/python /opt/monroe/client.py ${BINDIP})
+#route del default
+#route add default gw ${GWIP}
+#echo "Route is changed to IP "${GWIP}
+
+SERVER=$(/usr/bin/python /opt/monroe/client.py ${BINDIP}
 
 #Start tunnel and loop forever
 while true

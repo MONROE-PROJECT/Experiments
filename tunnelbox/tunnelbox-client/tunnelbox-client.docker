@@ -8,13 +8,21 @@ RUN mkdir -p /root/.ssh
 
 COPY files/* /opt/monroe/
 
-RUN apt-get update && apt-get install -y --force-yes python-pip \
-#    python-crypto \
+RUN apt-get update \
+    && apt-get install -y --force-yes \
+    python-pip \
+    #    python-crypto \
     openssh-server \
-    && pip install pyotp
-
+    && apt-get update --fix-missing \
+    && pip install pyotp \
+    && apt-get remove -y --force-yes python-pip \
+    && apt-get clean -y --force-yes clean \
+    && apt-get -y --force-yes autoremove \
+    # Cleanup
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old
 
 RUN mkdir /var/run/sshd
+
 #RUN echo 'root:screencast' | chpasswd
 #RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
