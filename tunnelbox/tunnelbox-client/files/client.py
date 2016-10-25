@@ -4,6 +4,8 @@ import urllib
 import urllib2
 import json
 import sys
+import httplib
+
 
 # Configuration
 DEBUG = False
@@ -28,6 +30,12 @@ EXPCONFIG = {
 
 if __name__ == '__main__':
     """The main thread control the processes (experiment/metadata)."""
+
+    if len(sys.argv) < 2:
+            print "Need IP to BIND"
+            sys.exit(1)
+
+    SOURCE_IP = sys.argv[1]
 
     if not DEBUG:
         # Try to get the experiment config as provided by the scheduler
@@ -66,6 +74,15 @@ if __name__ == '__main__':
                 'enddate': stop  # end date from scheduler
          }
 try:
+    # Lets go bananas and MONKEYPATCH httplib so urllib2 can bind to ip
+    HTTPSConnection_real = httplib.HTTPSConnection
+
+    class HTTPSConnection_monkey(HTTPSConnection_real):
+        def __init__(*a, **kw):
+            HTTPSConnection_real.__init__(*a, source_address=(SOURCE_IP, 0), **kw)
+    httplib.HTTPSConnection = HTTPSConnection_monkey
+    # End MONKEYPATCH
+
     res = urllib2.urlopen(url="http://{}:{}".format(server, port),
                           data=urllib.urlencode(params))
     retur = json.loads(res.read())
