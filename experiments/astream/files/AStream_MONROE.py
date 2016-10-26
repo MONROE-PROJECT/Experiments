@@ -20,7 +20,7 @@ import zmq
 import sys
 import netifaces
 import time
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 import dash_client
 from dash_client import *
@@ -40,7 +40,7 @@ MPD = "http://128.39.37.161:8080/BigBuckBunny_4s.mpd"
 LIST = False
 PLAYBACK = DEFAULT_PLAYBACK
 DOWNLOAD = False
-SEGMENT_LIMIT = 10
+SEGMENT_LIMIT = 5
 
 
 # Configuration
@@ -56,29 +56,31 @@ EXPCONFIG = {
         "nodeid": "no.nodeid.in.config.file",  # Overridden by scheduler
         "storage": 104857600,  # Overridden by scheduler
         "traffic": 104857600,  # Overridden by scheduler
+        "time": 600,  # The maximum time in seconds for a download
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
-        "gps_metadata_topic": "MONROE.META.DEVICE.GPS",
+        "gps_metadata_topic": "MONROE.META.DEVICE.GPS", # AEL: might want to drop this 
         "dataversion": 1,  #  Version of experiment
         "dataid": "MONROE.EXP.DASH.ASTREAM",  #  Name of experiement
         "nodeid": "fake.nodeid",
-        "meta_grace": 120,  # Grace period to wait for interface metadata
+        "meta_grace": 60,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
         "meta_interval_check": 5,  # Interval to check if interface is up
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
+        "time_between_experiments": 30, # if we want to streem different videos in the same run 
+                                        # we will also need to integrate a list of MPDs
+        "ifup_interval_check": 5,  # Interval to check if interface is up
         "allowed_interfaces": ["op0",
                                "op1",
-                               "op2",
-                               "wlan0",
-                               "wwan2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": ["eth0",
-                                        "wlan0"]  # Manual metadata on these IF
+                               "op2"],  # Interfaces to run the experiment on
+        "interfaces_without_metadata": []  # Manual metadata on these IF
+        # add here all the params for astream -- the MPD, number of segments etc.
         }
 
 
-def run_exp(meta_info, expconfig, dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
+def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
     """Seperate process that runs the experiment and collects the ouput.
         Will abort if the interface goes down.
         -- this essentially upgrades the start_playback_smart() function
@@ -86,9 +88,8 @@ def run_exp(meta_info, expconfig, dp_object, domain, playback_type=None, downloa
         python dash_client.py -m http://128.39.37.161:8080/BigBuckBunny_4s.mpd -n 20
         
     """
+    #ifname = meta_info['modem']['InternalInterface']
     ifname = meta_info['modem']['InternalInterface']
-    # AEL - instead of curl, we run the AStream client -- dash_client.py
-    
     try:
         # If multiple GPS events have ben registered we take the last one
         start_gps_pos = len(meta_info['gps']) - 1
@@ -136,18 +137,6 @@ def run_exp(meta_info, expconfig, dp_object, domain, playback_type=None, downloa
         # "NodeId"
         # "SequenceNumber"
 
-        config_dash.JSON_HANDLE['MONROE'] = {
-            "Guid": expconfig['guid'],
-            "DataId": dataid,
-            "DataVersion": dataversion,
-            "NodeId": expconfig['nodeid'],
-            "Timestamp": time.time(),
-            "Iccid": meta_info['modem']["ICCID"], # modify to MCCMNC from SIM
-            "InterfaceName": ifname,
-            "Operator": meta_info['modem']["Operator"],
-            "SequenceNumber": 1,
-            "GPSPositions": gps_positions
-        }
     except Exception as e:
         if expconfig['verbosity'] > 0:
             config_dash.LOG.info("MONROE - Execution or parsing failed")
@@ -156,6 +145,22 @@ def run_exp(meta_info, expconfig, dp_object, domain, playback_type=None, downloa
 
     while dash_player.playback_state not in dash_buffer.EXIT_STATES:
         time.sleep(1)
+
+    # AEL: adding meta-info to dash json output -- tracking "played" segments
+    config_dash.JSON_HANDLE['MONROE'] = {
+        "Guid": expconfig['guid'],
+        "DataId": dataid,
+        "DataVersion": dataversion,
+        "NodeId": expconfig['nodeid'],
+        "Timestamp": time.time(),
+        "Iccid": meta_info['modem']["ICCID"], 
+        "MCCMNC": meta_info['modem']["NWMCCMNC"] # modify to MCCMNC from SIM
+        "InterfaceName": ifname,
+        "Operator": meta_info['modem']["Operator"],
+        "SequenceNumber": 1,
+        "GPSPositions": gps_positions
+    }
+
     write_json()
     if not download:
         clean_files(file_identifier)
@@ -163,7 +168,7 @@ def run_exp(meta_info, expconfig, dp_object, domain, playback_type=None, downloa
         config_dash.LOG.info("MONROE - Finished Experiment")
 
 
-def metadata(meta_info, expconfig):
+def metadata(meta_ifinfo, ifname, expconfig):
     """Seperate process that attach to the ZeroMQ socket as a subscriber.
 
         Will listen forever to messages with topic defined in topic and update
@@ -172,16 +177,15 @@ def metadata(meta_info, expconfig):
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect(expconfig['zmqport'])
-    socket.setsockopt(zmq.SUBSCRIBE, bytes(expconfig['modem_metadata_topic']))
-    socket.setsockopt(zmq.SUBSCRIBE, bytes(expconfig['gps_metadata_topic']))
-
+    socket.setsockopt(zmq.SUBSCRIBE, expconfig['modem_metadata_topic'])
+    # End Attach
     while True:
         data = socket.recv()
         try:
             topic = data.split(" ", 1)[0]
             msg = json.loads(data.split(" ", 1)[1])
             if topic.startswith(expconfig['modem_metadata_topic']):
-                if msg['Operator'] == expconfig['operator']:
+                    #if msg['Operator'] == expconfig['operator']:
                     if expconfig['verbosity'] > 2:
                         print ("Got a modem message"
                                " for {}, using"
@@ -190,6 +194,7 @@ def metadata(meta_info, expconfig):
                     # In place manipulation of the refrence variable
                     for key, value in msg.iteritems():
                         meta_info['modem'][key] = value
+            # read the GPS metadata
             if topic.startswith(expconfig['gps_metadata_topic']):
                 if expconfig['verbosity'] > 2:
                     print ("Got a gps message "
@@ -203,7 +208,6 @@ def metadata(meta_info, expconfig):
                 print ("Cannot get metadata in template container {}"
                        ", {}").format(e, expconfig['guid'])
             pass
-
 
 # Helper functions
 def check_if(ifname):
@@ -242,9 +246,9 @@ def create_meta_process(ifname, expconfig):
     return (meta_info, process)
 
 
-def create_exp_process(meta_info, expconfig, dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
+def create_exp_process(meta_info, expconfig, dp_object, mpd_file, domain, playback_type=None, download=False, video_segment_duration=None):
     """Creates the experiment process."""
-    process = Process(target=run_exp, args=(meta_info, expconfig, dp_object, domain, playback_type, download, video_segment_duration, ))
+    process = Process(target=run_exp, args=(meta_info, expconfig, dp_object, mpd_file, domain, playback_type, download, video_segment_duration,))
     process.daemon = True
     process.start()
     return process
@@ -260,7 +264,9 @@ if __name__ == '__main__':
     #create_arguments(parser)
     #args = parser.parse_args()
     #globals().update(vars(args))
-    configure_log_file(playback_type=PLAYBACK.lower())
+    print "Playback should be default: " + str(PLAYBACK)
+    playback_type=PLAYBACK.lower()
+    configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
     config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
     if not MPD:
         print "ERROR: Please provide the URL to the MPD file. Try Again.."
@@ -392,43 +398,43 @@ if __name__ == '__main__':
             print "Starting experiment"
         
 
-        for index in range(len(url_list)):
-            for run in range(start_count, loop):
-                # Create a experiment process and start it
-                start_time_exp = time.time()
-                exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, url_list[index],run+1)
-                exp_process.start()
-        
-                while (time.time() - start_time_exp < exp_grace and
-                       exp_process.is_alive()):
-                    # Here we could add code to handle interfaces going up or down
-                    # Similar to what exist in the ping experiment
-                    # However, for now we just abort if we loose the interface
-        
-                    # No modem information hack to add required information
-                    if (check_if(ifname) and ifname in if_without_metadata):
-                        add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
-        
-                    if not (check_if(ifname) and check_meta(meta_info,
-                                                            meta_grace,
-                                                            EXPCONFIG)):
-                        if EXPCONFIG['verbosity'] > 0:
-                            print "Interface went down during a experiment"
-                        break
-                    elapsed_exp = time.time() - start_time_exp
-                    if EXPCONFIG['verbosity'] > 1:
-                        print "Running Experiment for {} s".format(elapsed_exp)
-                    time.sleep(ifup_interval_check)
-        
-                if exp_process.is_alive():
-                    exp_process.terminate()
-                if meta_process.is_alive():
-                    meta_process.terminate()
-        
-                elapsed = time.time() - start_time
-                if EXPCONFIG['verbosity'] > 1:
-                    print "Finished {} after {}".format(ifname, elapsed)
-                time.sleep(time_between_experiments)
+        #for index in range(len(url_list)):
+        #for run in range(start_count, loop):
+        # Create a experiment process and start it
+        start_time_exp = time.time()
+        exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
+        exp_process.start()
+
+        while (time.time() - start_time_exp < exp_grace and
+               exp_process.is_alive()):
+            # Here we could add code to handle interfaces going up or down
+            # Similar to what exist in the ping experiment
+            # However, for now we just abort if we loose the interface
+
+            # No modem information hack to add required information
+            if (check_if(ifname) and ifname in if_without_metadata):
+                add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+
+            if not (check_if(ifname) and check_meta(meta_info,
+                                                    meta_grace,
+                                                    EXPCONFIG)):
+                if EXPCONFIG['verbosity'] > 0:
+                    print "Interface went down during a experiment"
+                break
+            elapsed_exp = time.time() - start_time_exp
+            if EXPCONFIG['verbosity'] > 1:
+                print "Running Experiment for {} s".format(elapsed_exp)
+            time.sleep(ifup_interval_check)
+
+        if exp_process.is_alive():
+            exp_process.terminate()
+        if meta_process.is_alive():
+            meta_process.terminate()
+
+        elapsed = time.time() - start_time
+        if EXPCONFIG['verbosity'] > 1:
+            print "Finished {} after {}".format(ifname, elapsed)
+        time.sleep(time_between_experiments)
 
     if EXPCONFIG['verbosity'] > 1:
         print ("Interfaces {} "
