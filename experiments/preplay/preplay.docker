@@ -1,0 +1,52 @@
+FROM monroe/base
+
+MAINTAINER mohammad.rajiullah@kau.se
+
+
+ENV CURL_VERSION 7.50.1
+
+RUN echo 'deb-src http://httpredir.debian.org/debian jessie main' >> /etc/apt/sources.list && \
+    echo 'deb-src http://httpredir.debian.org/debian jessie-updates main' >> /etc/apt/sources.list
+
+
+RUN apt-get update
+RUN apt-get install -y --force-yes --no-install-recommends --no-install-suggests\
+	g++ make binutils autoconf automake autotools-dev libtool pkg-config \
+        zlib1g-dev libcunit1-dev libssl-dev libxml2-dev libev-dev libevent-dev libjansson-dev \
+        libjemalloc-dev cython python3-dev python-setuptools \
+	git; \
+	git clone https://github.com/tatsuhiro-t/nghttp2.git && \
+	cd nghttp2 && \
+        autoreconf -i && \
+	automake && \
+	autoconf && \
+	./configure && \
+	make && \
+	make install && \
+	cd ~; \
+        rm -rf nghttp2 && \
+        apt-get -y --force-yes build-dep curl && \
+	wget https://curl.haxx.se/download/curl-$CURL_VERSION.tar.bz2 && \
+	tar xjvf curl-$CURL_VERSION.tar.bz2 && \
+    	rm curl-$CURL_VERSION.tar.bz2 && \
+    	cd curl-$CURL_VERSION && \
+	./configure \
+		--with-nghttp2=/usr/local \
+		 --with-ssl && \
+	make && \
+	make install && \
+	ldconfig && \
+	cd ~ && \
+	rm -r curl-$CURL_VERSION\
+	&& apt-get purge -y --force-yes autotools-dev zlib1g-dev libcunit1-dev libssl-dev libxml2-dev libev-dev libevent-dev libjansson-dev libjemalloc-dev \
+        && apt-get clean -y --force-yes clean \
+        && apt-get -y --force-yes autoremove \
+        # Cleanup
+        && rm -rf /var/lib/apt/lists/* /tmp/* /root/.cache/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old 
+
+	
+	
+
+COPY files/* /opt/monroe/
+
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]
