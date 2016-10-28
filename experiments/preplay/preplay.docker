@@ -38,7 +38,9 @@ RUN apt-get install -y --force-yes --no-install-recommends --no-install-suggests
 	ldconfig && \
 	cd ~ && \
 	rm -r curl-$CURL_VERSION\
-	&& apt-get purge -y --force-yes autotools-dev zlib1g-dev libcunit1-dev libssl-dev libxml2-dev libev-dev libevent-dev libjansson-dev libjemalloc-dev \
+	&& apt-get purge -y --force-yes  autotools-dev \
+        libtool pkg-config zlib1g-dev libcunit1-dev libssl-dev libxml2-dev libev-dev libevent-dev libjansson-dev libjemalloc-dev \
+        cython python3-dev python-setuptools \ 
         && apt-get clean -y --force-yes clean \
         && apt-get -y --force-yes autoremove \
         # Cleanup

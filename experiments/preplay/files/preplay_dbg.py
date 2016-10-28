@@ -28,7 +28,7 @@ from multiprocessing import Process, Manager
 
 
 # Configuration
-DEBUG = False
+DEBUG = True
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -51,10 +51,10 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "allowed_interfaces": ["op0",
+        "allowed_interfaces": ["eth0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
+        "interfaces_without_metadata": ["eth0" ]  # Manual metadata on these IF
         }
 
 
@@ -81,22 +81,21 @@ def run_exp(meta_info, expconfig, ifname,url,protocol):
     
     msg = json.loads(output)
     print msg
-
-    msg.update({
-            "Guid": expconfig['guid'],
-            "DataId": expconfig['dataid'],
-            "DataVersion": expconfig['dataversion'],
-            "NodeId": expconfig['nodeid'],
-            "Timestamp": time.time(),
-            "Iccid": meta_info["ICCID"],
-            "Operator": meta_info["Operator"],
-             })
+    har_stats["bw"]=output
+    har_stats["Guid"]= expconfig['guid']
+    har_stats["DataId"]= expconfig['dataid']
+    har_stats["DataVersion"]= expconfig['dataversion']
+    har_stats["NodeId"]= expconfig['nodeid']
+    har_stats["Timestamp"]= time.time()
+    har_stats["Iccid"]= meta_info["ICCID"]
+    har_stats["Operator"]= meta_info["Operator"]
+  
     
     if expconfig['verbosity'] > 2:
-            print msg
+            print har_stats
     if not DEBUG:
-	    print msg
-            monroe_exporter.save_output(msg, expconfig['resultdir'])
+	    print har_stats
+            monroe_exporter.save_output(har_stats, expconfig['resultdir'])
  
   
 
@@ -255,29 +254,29 @@ if __name__ == '__main__':
         cmd1=["route",
              "del",
              "default"]
-        os.system(bashcommand)
-        try:
-                check_output(cmd1)
-        except CalledProcessError as e:
-                if e.returncode == 28:
-                        print "Time limit exceeded"
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
-        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-        try:
-                check_output(cmd2)
-        	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-        	output = output.strip(' \t\r\n\0')
-        	output_interface=output.split(" ")[4]
-        	if output_interface==str(ifname):
-                	print "Source interface is set to "+str(ifname)
-		else:
-			continue
+        #os.system(bashcommand)
+       # try:
+        #        check_output(cmd1)
+      #  except CalledProcessError as e:
+       #         if e.returncode == 28:
+        #                print "Time limit exceeded"
+      #  gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
+      #  cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
+      #  try:
+              #  check_output(cmd2)
+       # 	cmd3=["ip", "route", "get", "8.8.8.8"]
+              #  output=check_output(cmd3)
+        #	output = output.strip(' \t\r\n\0')
+        #	output_interface=output.split(" ")[4]
+        #	if output_interface==str(ifname):
+         #       	print "Source interface is set to "+str(ifname)
+	#	else:
+	#		continue
         
-	except CalledProcessError as e:
-            	if e.returncode == 28:
-                	print "Time limit exceeded"
-		continue
+#	except CalledProcessError as e:
+ #           	if e.returncode == 28:
+  #              	print "Time limit exceeded"
+#		continue
 	
 
         if EXPCONFIG['verbosity'] > 1:
