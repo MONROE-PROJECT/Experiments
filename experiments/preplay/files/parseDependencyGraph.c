@@ -655,7 +655,7 @@ request_url(void *arg)
         /* set options */
 
         /* set source interface */
-        curl_easy_setopt(easyh1[i], CURLOPT_INTERFACE, source_interface);
+        curl_easy_setopt(eh, CURLOPT_INTERFACE, source_interface);
         
 	snprintf(filename, 128, "dl-%d", num);
         out = fopen(filename, "wb");

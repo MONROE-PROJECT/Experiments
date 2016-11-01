@@ -89,13 +89,12 @@ def run_exp(meta_info, expconfig, ifname,url,protocol):
             "NodeId": expconfig['nodeid'],
             "Timestamp": time.time(),
             "Iccid": meta_info["ICCID"],
-            "Operator": meta_info["Operator"],
+            "Operator": meta_info["Operator"]
              })
     
     if expconfig['verbosity'] > 2:
             print msg
     if not DEBUG:
-	    print msg
             monroe_exporter.save_output(msg, expconfig['resultdir'])
  
   
@@ -255,7 +254,6 @@ if __name__ == '__main__':
         cmd1=["route",
              "del",
              "default"]
-        os.system(bashcommand)
         try:
                 check_output(cmd1)
         except CalledProcessError as e:
