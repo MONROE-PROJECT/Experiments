@@ -139,7 +139,7 @@ def run_exp(meta_info, expconfig, url,count):
     driver = webdriver.Firefox(profile)
     
     driver.get(newurl)
-    time.sleep(2)
+    time.sleep(5)
     #close the firefox driver after HAR is written
     driver.close()
     display.stop()
