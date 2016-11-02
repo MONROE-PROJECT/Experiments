@@ -147,8 +147,12 @@ def run_exp(meta_info, expconfig, url,count):
     objs=[]
     pageSize=0
 
-    with open("/opt/monroe/har/"+filename+".har") as f:
-        temp=json.load(f)
+    try:
+    	with open("har/"+filename+".har") as f:
+        	msg=json.load(f)
+    except IOError:
+    	print "har/"+filename+".har doesn't exist"
+        return
     num_of_objects=0
 
     start=0
