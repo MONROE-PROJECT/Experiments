@@ -115,8 +115,13 @@ def run_exp(meta_info, expconfig):
     except Exception as e:
         if expconfig['verbosity'] > 0:
             print ("Execution or parsing failed for "
+<<<<<<< 1a38823045c55e851f10da67af42fbfe99b251cb
                    "command : {}, "
                    "output : {}, "
+=======
+                   "command : {}"
+                   "output : {}"
+>>>>>>> Added some more verbose output when failing
                    "error: {}").format(cmd, output, e)
 
 
