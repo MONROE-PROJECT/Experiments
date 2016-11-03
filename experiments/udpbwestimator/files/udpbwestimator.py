@@ -25,7 +25,8 @@ import netifaces
 import time
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
-
+from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
+import netifaces as ni
 
 # Configuration
 DEBUG = False
@@ -58,12 +59,11 @@ EXPCONFIG = {
         }
 
 
-def run_exp(meta_info, expconfig, ip):
+def run_exp(ip):
     """Seperate process that runs the experiment and collect the ouput.
 
         Will abort if the interface goes down.
     """
-    ifname = meta_info[expconfig["modeminterfacename"]]
 
     har_stats={}
     cmd=["./UDPbwEstimatorRcvr","-c","50","-b","3","-l","1400","-s",ip,"-o",
@@ -84,8 +84,6 @@ def run_exp(meta_info, expconfig, ip):
 	    print "Time limit exceeded"
     
     har_stats["bw"]=output
-   
-    print har_stats
     har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
@@ -165,7 +163,7 @@ def create_meta_process(ifname, expconfig):
 
 
 def create_exp_process(meta_info, expconfig,ip):
-    process = Process(target=run_exp, args=(meta_info, expconfig,ip))
+    process = Process(target=run_exp, args=[ip])
     process.daemon = True
     return process
 
@@ -253,42 +251,13 @@ if __name__ == '__main__':
         # Ok we have some information lets start the experiment script
 
 
-	    output_interface=None
-
-        cmd1=["route",
-             "del",
-             "default"]
-        #os.system(bashcommand)
-        try:
-                check_output(cmd1)
-        except CalledProcessError as e:
-                if e.returncode == 28:
-                        print "Time limit exceeded"
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
-        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-        try:
-                check_output(cmd2)
-        	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-        	output = output.strip(' \t\r\n\0')
-        	output_interface=output.split(" ")[4]
-        	if output_interface==str(ifname):
-                	print "Source interface is set to "+str(ifname)
-		else:
-			continue
-        
-	except CalledProcessError as e:
-            	if e.returncode == 28:
-                	print "Time limit exceeded"
-		continue
-	
-
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
         
         # Create a experiment process and start it
         start_time_exp = time.time()
-        exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, meta_info["InternalIPAddress"])
+	iface_ip= str(ni.ifaddresses(ifname)[AF_INET][0]['addr'])
+        exp_process = exp_process = create_exp_process(iface_ip)
         exp_process.start()
         
         while (time.time() - start_time_exp < exp_grace and
