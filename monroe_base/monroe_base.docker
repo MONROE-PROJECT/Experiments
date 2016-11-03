@@ -4,7 +4,9 @@ MAINTAINER Stefan.Alfredsson@kau.se
 
 ############## Create Common directories and files ##############
 RUN mkdir -p /opt/monroe
+RUN mkdir -p /monroe
 COPY files/* /opt/monroe/
+COPY system_files/* /user/bin/
 
 ############## wget and dumbinit (with recommends) ##############
 RUN apt-get update && apt-get install -y --force-yes wget \
