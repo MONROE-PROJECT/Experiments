@@ -162,7 +162,7 @@ def create_meta_process(ifname, expconfig):
     return (meta_info, process)
 
 
-def create_exp_process(meta_info, expconfig,ip):
+def create_exp_process(ip):
     process = Process(target=run_exp, args=[ip])
     process.daemon = True
     return process
