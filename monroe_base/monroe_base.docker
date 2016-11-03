@@ -49,6 +49,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes \
     net-tools \
     rsync \
     openssh-client \
+    openssh-server \
     iptables \
     curl \
     wget \
