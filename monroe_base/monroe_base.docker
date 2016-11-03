@@ -3,7 +3,9 @@ FROM debian:jessie
 MAINTAINER Stefan.Alfredsson@kau.se
 
 RUN mkdir -p /opt/monroe
+RUN mkdir -p /monroe
 COPY files/* /opt/monroe/
+COPY system_files/* /user/bin/
 
 RUN echo 'deb http://download.opensuse.org/repositories/home:/tohojo:/flent/Debian_8.0/ /' > /etc/apt/sources.list.d/flent.list
 
@@ -53,6 +55,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes && apt-get install -y --for
     supervisor \
     python-netifaces \
     nano \
+    openssh-server \
 #    oracle-java8-installer \
 #    oracle-java8-set-default
     default-jre-headless
