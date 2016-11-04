@@ -156,7 +156,7 @@ def run_exp(meta_info, expconfig, url,count):
     num_of_objects=0
 
     start=0
-    for entry in temp["log"]["entries"]:
+    for entry in msg["log"]["entries"]:
         obj={}
         obj["url"]=entry["request"]["url"]
         obj["ObjectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
