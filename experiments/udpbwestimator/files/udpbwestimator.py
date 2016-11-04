@@ -25,7 +25,8 @@ import netifaces
 import time
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
-
+from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
+import netifaces as ni
 
 # Configuration
 DEBUG = False
@@ -58,12 +59,11 @@ EXPCONFIG = {
         }
 
 
-def run_exp(meta_info, expconfig, ip):
+def run_exp(expconfig,ip):
     """Seperate process that runs the experiment and collect the ouput.
 
         Will abort if the interface goes down.
     """
-    ifname = meta_info[expconfig["modeminterfacename"]]
 
     har_stats={}
     cmd=["./UDPbwEstimatorRcvr","-c","50","-b","3","-l","1400","-s",ip,"-o",
@@ -84,15 +84,84 @@ def run_exp(meta_info, expconfig, ip):
 	    print "Time limit exceeded"
     
     har_stats["bw"]=output
-   
-    print har_stats
     har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
     har_stats["Timestamp"]= time.time()
-    har_stats["Iccid"]= meta_info["ICCID"]
-    har_stats["Operator"]= meta_info["Operator"]
+      try:
+    	har_stats["Iccid"]= meta_info["ICCID"]
+    except Exception:
+    	print("ICCID info is not available")
+    try:
+    	har_stats["Operator"]= meta_info["Operator"]
+    except Exception:
+    	print("Operator info is not available")
+    try:
+    	har_stats["IMSI"]=meta_info["IMSI"]
+    except Exception:
+    	print("IMSI info is not available")
+    try:
+    	har_stats["IMEI"]=meta_info["IMEI"]
+    except Exception:
+    	print("IMEI info is not available")
+    try:
+    	har_stats["InternalInterface"]=meta_info["InternalInterface"]
+    except Exception:
+    	print("InternalInterface info is not available")
+    try:
+    	har_stats["IPAddress"]=meta_info["IPAddress"]
+    except Exception:
+    	print("IPAddress info is not available")
+    try:
+    	har_stats["InternalIPAddress"]=meta_info["InternalIPAddress"]
+    except Exception:
+    	print("InternalIPAddress info is not available")
+    try:
+    	har_stats["InterfaceName"]=meta_info["InterfaceName"]
+    except Exception:
+    	print("InterfaceName info is not available")
+    try:
+    	har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
+    except Exception:
+    	print("IMSIMCCMNC info is not available")
+    try:
+    	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
+    except Exception:
+    	print("NWMCCMNC info is not available")
+    try:
+    	har_stats["LAC"]=meta_info["LAC"]
+    except Exception:
+    	print("LAC info is not available")
+    try:
+    	har_stats["CID"]=meta_info["CID"]
+    except Exception:
+    	print("CID info is not available")
+    try:
+    	har_stats["RSCP"]=meta_info["RSCP"]
+    except Exception:
+    	print("RSCP info is not available")
+    try:
+    	har_stats["RSSI"]=meta_info["RSSI"]
+    except Exception:
+    	print("RSSI info is not available")
+    try:
+    	har_stats["ECIO"]=meta_info["ECIO"]
+    except Exception:
+    	print("ECIO info is not available")
+    try:
+    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
+    except Exception:
+    	print("DeviceMode info is not available")
+    try:
+    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
+    except Exception:
+    	print("DeviceSubmode info is not available")
+    try:
+    	har_stats["DeviceState"]=meta_info["DeviceState"]
+    except Exception:
+    	print("DeviceState info is not available")
+    har_stats["SequenceNumber"]= 1
   
     
     if expconfig['verbosity'] > 2:
@@ -164,8 +233,8 @@ def create_meta_process(ifname, expconfig):
     return (meta_info, process)
 
 
-def create_exp_process(meta_info, expconfig,ip):
-    process = Process(target=run_exp, args=(meta_info, expconfig,ip))
+def create_exp_process(expconfig,ip):
+    process = Process(target=run_exp, args=(expconfig,ip,))
     process.daemon = True
     return process
 
@@ -253,42 +322,13 @@ if __name__ == '__main__':
         # Ok we have some information lets start the experiment script
 
 
-	    output_interface=None
-
-        cmd1=["route",
-             "del",
-             "default"]
-        #os.system(bashcommand)
-        try:
-                check_output(cmd1)
-        except CalledProcessError as e:
-                if e.returncode == 28:
-                        print "Time limit exceeded"
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
-        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-        try:
-                check_output(cmd2)
-        	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-        	output = output.strip(' \t\r\n\0')
-        	output_interface=output.split(" ")[4]
-        	if output_interface==str(ifname):
-                	print "Source interface is set to "+str(ifname)
-		else:
-			continue
-        
-	except CalledProcessError as e:
-            	if e.returncode == 28:
-                	print "Time limit exceeded"
-		continue
-	
-
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
         
         # Create a experiment process and start it
         start_time_exp = time.time()
-        exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, meta_info["InternalIPAddress"])
+	iface_ip= str(ni.ifaddresses(ifname)[AF_INET][0]['addr'])
+        exp_process = exp_process = create_exp_process(EXPCONFIG,iface_ip)
         exp_process.start()
         
         while (time.time() - start_time_exp < exp_grace and
