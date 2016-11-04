@@ -92,8 +92,8 @@ def run_exp(meta_info, expconfig, ifname,url,protocol):
             "Operator": meta_info["Operator"],
             "IPAddress": meta_info["IPAddress"],
             "InternalIPAddress": meta_info["InternalIPAddress"],
-            "LAC"=meta_info["LAC"],
-            "RSSI"=meta_info["RSSI"]   
+            "LAC":meta_info["LAC"],
+            "RSSI":meta_info["RSSI"]   
              })
     
     if expconfig['verbosity'] > 2:
@@ -253,34 +253,6 @@ if __name__ == '__main__':
         # Ok we have some information lets start the experiment script
 
 
-	    output_interface=None
-
-        cmd1=["route",
-             "del",
-             "default"]
-        try:
-                check_output(cmd1)
-        except CalledProcessError as e:
-                if e.returncode == 28:
-                        print "Time limit exceeded"
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
-        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-        try:
-                check_output(cmd2)
-        	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-        	output = output.strip(' \t\r\n\0')
-        	output_interface=output.split(" ")[4]
-        	if output_interface==str(ifname):
-                	print "Source interface is set to "+str(ifname)
-		else:
-			continue
-        
-	except CalledProcessError as e:
-            	if e.returncode == 28:
-                	print "Time limit exceeded"
-		continue
-	
 
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
