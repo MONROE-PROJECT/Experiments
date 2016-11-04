@@ -89,7 +89,7 @@ def run_exp(expconfig,ip):
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
     har_stats["Timestamp"]= time.time()
-      try:
+    try:
     	har_stats["Iccid"]= meta_info["ICCID"]
     except Exception:
     	print("ICCID info is not available")

@@ -89,7 +89,11 @@ def run_exp(meta_info, expconfig, ifname,url,protocol):
             "NodeId": expconfig['nodeid'],
             "Timestamp": time.time(),
             "Iccid": meta_info["ICCID"],
-            "Operator": meta_info["Operator"]
+            "Operator": meta_info["Operator"],
+            "IPAddress": meta_info["IPAddress"],
+            "InternalIPAddress": meta_info["InternalIPAddress"],
+            "LAC"=meta_info["LAC"],
+            "RSSI"=meta_info["RSSI"]   
              })
     
     if expconfig['verbosity'] > 2:
