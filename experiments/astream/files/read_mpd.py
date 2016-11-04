@@ -150,7 +150,8 @@ def read_mpd(mpd_file, dashplayback):
                     height = int(representation.attrib['height'])
                     # AEL -- end of list
                     # AEL -- in the list of available bitrates, also export the other params 
-                    config_dash.JSON_HANDLE["video_metadata"]['available_bitrates'].append([bandwidth, frameRate, codecs, width, height])
+                    #config_dash.JSON_HANDLE["video_metadata"]['available_bitrates'].append([bandwidth, frameRate, codecs, width, height])
+                    config_dash.JSON_HANDLE["video_metadata"]['available_bitrates'].append({'bandwidth' : bandwidth, 'frameRate' : frameRate, 'codecs' : codecs, 'width' : width, 'height' : height})
                     media_object[bandwidth] = MediaObject()
                     media_object[bandwidth].segment_sizes = []
                     for segment_info in representation:

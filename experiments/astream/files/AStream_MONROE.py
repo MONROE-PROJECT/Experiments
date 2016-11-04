@@ -59,24 +59,24 @@ EXPCONFIG = {
         "time": 600,  # The maximum time in seconds for a download
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
-        "gps_metadata_topic": "MONROE.META.DEVICE.GPS", # AEL: might want to drop this 
         "dataversion": 1,  #  Version of experiment
-        "dataid": "MONROE.EXP.DASH.ASTREAM",  #  Name of experiement
+        "dataid": "MONROE.EXP.ASTREAM",  #  Name of experiement
         "nodeid": "fake.nodeid",
-        "meta_grace": 60,  # Grace period to wait for interface metadata
+        "meta_grace": 120,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
         "meta_interval_check": 5,  # Interval to check if interface is up
-        "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
+        "verbosity": 3,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
         "time_between_experiments": 30, # if we want to streem different videos in the same run 
                                         # we will also need to integrate a list of MPDs
         "ifup_interval_check": 5,  # Interval to check if interface is up
+        "script": None,  # Overridden by scheduler
         "allowed_interfaces": ["op0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": []  # Manual metadata on these IF
-        # add here all the params for astream -- the MPD, number of segments etc.
+        # AEL -- add here all the params for astream -- the MPD, number of segments etc.
         }
 
 
@@ -88,15 +88,10 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
         python dash_client.py -m http://128.39.37.161:8080/BigBuckBunny_4s.mpd -n 20
         
     """
-    #ifname = meta_info['modem']['InternalInterface']
-    ifname = meta_info['modem']['InternalInterface']
-    try:
-        # If multiple GPS events have ben registered we take the last one
-        start_gps_pos = len(meta_info['gps']) - 1
-        # output = check_output(cmd)
-        # start the DASH player, according to the selected playback_type
-        # dash_client.start_playback_smart(dp_object, domain, playback_type, download, video_segment_duration)
+    ifname = meta_info[expconfig["modeminterfacename"]]
 
+    try:
+        # start the DASH player, according to the selected playback_type
         if "all" in playback_type.lower():
             if mpd_file:
                 config_dash.LOG.critical("Start ALL Parallel PLayback")
@@ -115,16 +110,10 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
             return None
 
 
-        if ifname != meta_info['modem']['InternalInterface']:
-            print "Error: Interface has changed during the experiment, abort"
+        if ifname != meta_info['InternalInterface']:
+            print "Error: Interface has changed during the astream experiment, abort"
             return
-        # We store all gps_positions during the experiment
-        gps_positions = meta_info['gps'][start_gps_pos:]
 
-        # # Clean away leading and trailing whitespace
-        # output = output.strip(' \t\r\n\0')
-        # # Convert to JSON
-        # msg = json.loads(output)
 
         scriptname = expconfig['script'].replace('/', '.')
         dataid = expconfig.get('dataid', scriptname)
@@ -136,6 +125,20 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
         # "DataVersion"
         # "NodeId"
         # "SequenceNumber"
+            # AEL: adding meta-info to dash json output -- tracking "played" segments
+        config_dash.JSON_HANDLE['MONROE'].append({
+            "Guid": expconfig['guid'],
+            "DataId": dataid,
+            "DataVersion": dataversion,
+            "NodeId": expconfig['nodeid'],
+            "Timestamp": time.time(),
+            "Iccid": meta_info['modem']["ICCID"], 
+            "NWMCCMNC": meta_info['modem']["NWMCCMNC"], # modify to MCCMNC from SIM
+            "InterfaceName": ifname,
+            "Operator": meta_info['modem']["Operator"],
+            "SequenceNumber": 1,
+            "GPSPositions": gps_positions
+        })
 
     except Exception as e:
         if expconfig['verbosity'] > 0:
@@ -145,21 +148,6 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
 
     while dash_player.playback_state not in dash_buffer.EXIT_STATES:
         time.sleep(1)
-
-    # AEL: adding meta-info to dash json output -- tracking "played" segments
-    config_dash.JSON_HANDLE['MONROE'] = {
-        "Guid": expconfig['guid'],
-        "DataId": dataid,
-        "DataVersion": dataversion,
-        "NodeId": expconfig['nodeid'],
-        "Timestamp": time.time(),
-        "Iccid": meta_info['modem']["ICCID"], 
-        "MCCMNC": meta_info['modem']["NWMCCMNC"] # modify to MCCMNC from SIM
-        "InterfaceName": ifname,
-        "Operator": meta_info['modem']["Operator"],
-        "SequenceNumber": 1,
-        "GPSPositions": gps_positions
-    }
 
     write_json()
     if not download:
@@ -182,30 +170,15 @@ def metadata(meta_ifinfo, ifname, expconfig):
     while True:
         data = socket.recv()
         try:
-            topic = data.split(" ", 1)[0]
-            msg = json.loads(data.split(" ", 1)[1])
-            if topic.startswith(expconfig['modem_metadata_topic']):
-                    #if msg['Operator'] == expconfig['operator']:
-                    if expconfig['verbosity'] > 2:
-                        print ("Got a modem message"
-                               " for {}, using"
-                               " interface {}").format(msg['Operator'],
-                                                       msg['InterfaceName'])
-                    # In place manipulation of the refrence variable
-                    for key, value in msg.iteritems():
-                        meta_info['modem'][key] = value
-            # read the GPS metadata
-            if topic.startswith(expconfig['gps_metadata_topic']):
-                if expconfig['verbosity'] > 2:
-                    print ("Got a gps message "
-                           "with seq nr {}").format(msg["SequenceNumber"])
-                meta_info['gps'].append(msg)
-
-            if expconfig['verbosity'] > 2:
-                print "zmq message", topic, msg
+            ifinfo = json.loads(data.split(" ", 1)[1])
+            if (expconfig["modeminterfacename"] in ifinfo and
+                    ifinfo[expconfig["modeminterfacename"]] == ifname):
+                # In place manipulation of the reference variable
+                for key, value in ifinfo.iteritems():
+                    meta_ifinfo[key] = value
         except Exception as e:
             if expconfig['verbosity'] > 0:
-                print ("Cannot get metadata in template container {}"
+                print ("Cannot get modem metadata in astream container {}"
                        ", {}").format(e, expconfig['guid'])
             pass
 

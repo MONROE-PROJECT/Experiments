@@ -51,18 +51,21 @@ JSON_HANDLE['playback_info'] = {'start_time': None,
                                 'down_shifts': 0
                                 }
 # AEL -- adding MONROE modem info to the output JSON
-JSON_HANDLE['MONROE'] = {
-            "Guid": None,
-            "DataId": None,
-            "DataVersion": 0,
-            "NodeId": 0,
-            "Timestamp": 0,
-            "Iccid": None,
-            "InterfaceName": None,
-            "Operator": None,
-            "SequenceNumber": 0,
-            "GPSPositions": None
-        }
+# AEL -- need to change this to be a list 
+JSON_HANDLE['MONROE'] = list() # list of dictionaries
+# {
+#             "Guid": None,
+#             "DataId": None,
+#             "DataVersion": 0,
+#             "NodeId": 0,
+#             "Timestamp": 0,
+#             "Iccid": None,
+#             "NWMCCMNC": None,
+#             "InterfaceName": None,
+#             "Operator": None,
+#             "SequenceNumber": 0,
+#             "GPSPositions": None
+#         }
 # Constants for the BASIC-2 adaptation scheme
 BASIC_THRESHOLD = 10
 BASIC_UPPER_THRESHOLD = 1.2
