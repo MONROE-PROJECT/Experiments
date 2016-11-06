@@ -80,7 +80,6 @@ def run_exp(meta_info, expconfig, ifname,url,protocol):
 	    print "Time limit exceeded"
     
     msg = json.loads(output)
-    print msg
 
     msg.update({
             "Guid": expconfig['guid'],
@@ -93,7 +92,8 @@ def run_exp(meta_info, expconfig, ifname,url,protocol):
             "IPAddress": meta_info["IPAddress"],
             "InternalIPAddress": meta_info["InternalIPAddress"],
             "LAC":meta_info["LAC"],
-            "RSSI":meta_info["RSSI"]   
+            "RSSI":meta_info["RSSI"],   
+            "SequenceNumber":1
              })
     
     if expconfig['verbosity'] > 2:
