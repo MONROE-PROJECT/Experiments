@@ -136,9 +136,14 @@ def run_exp(meta_info, expconfig, url,count):
     time.sleep(1)
 
     #create firefox driver
-    driver = webdriver.Firefox(profile)
+
+    try:
+        driver = webdriver.Firefox(profile)
+        driver.get(newurl)
+    except Exception as e:
+        raise WebDriverException("Unable to start webdriver with FF.", e)
+        return
     
-    driver.get(newurl)
     time.sleep(5)
     #close the firefox driver after HAR is written
     driver.close()
@@ -157,19 +162,22 @@ def run_exp(meta_info, expconfig, url,count):
 
     start=0
     for entry in msg["log"]["entries"]:
-        obj={}
-        obj["url"]=entry["request"]["url"]
-        obj["ObjectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
-        pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
-        obj["time"]=entry["time"]
-        obj["timings"]=entry["timings"]
-        objs.append(obj)
-        num_of_objects=num_of_objects+1
-	if start==0:
-                start_time=entry["startedDateTime"]
-                start=1
-        end_time=entry["startedDateTime"]
-        ms=entry["time"]
+        try:
+                obj={}
+                obj["url"]=entry["request"]["url"]
+                obj["ObjectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
+                pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
+                obj["time"]=entry["time"]
+                obj["timings"]=entry["timings"]
+                objs.append(obj)
+                num_of_objects=num_of_objects+1
+                if start==0:
+                        start_time=entry["startedDateTime"]
+                        start=1
+                end_time=entry["startedDateTime"]
+                ms=entry["time"]
+    	except KeyError:
+        	pass
 
     har_stats["Objects"]=objs
     har_stats["NumObjects"]=num_of_objects
