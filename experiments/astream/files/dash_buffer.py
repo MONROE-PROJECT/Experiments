@@ -232,6 +232,7 @@ class DashPlayer:
             else:
                 log_time = 0
             if not os.path.exists(self.buffer_log_file):
+                # AEL -- could add here the nodeid, iccid, mccmnc, operatorname
                 header_row = "EpochTime,CurrentPlaybackTime,CurrentBufferSize,CurrentPlaybackState,Action,Bitrate".split(",")
                 stats = (log_time, str(self.playback_timer.time()), self.buffer.qsize(),
                          self.playback_state, action,bitrate)
@@ -239,7 +240,7 @@ class DashPlayer:
                 stats = (log_time, str(self.playback_timer.time()), self.buffer.qsize(),
                          self.playback_state, action,bitrate)
             str_stats = [str(i) for i in stats]
-            with open(self.buffer_log_file, "ab") as log_file_handle:
+            with open(self.buffer_log_file, "a") as log_file_handle:
                 result_writer = csv.writer(log_file_handle, delimiter=",")
                 if header_row:
                     result_writer.writerow(header_row)

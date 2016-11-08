@@ -40,7 +40,7 @@ MPD = "http://128.39.37.161:8080/BigBuckBunny_4s.mpd"
 LIST = False
 PLAYBACK = DEFAULT_PLAYBACK
 DOWNLOAD = False
-SEGMENT_LIMIT = 5
+SEGMENT_LIMIT = 10
 
 
 # Configuration
@@ -448,6 +448,7 @@ if __name__ == '__main__':
         time_between_experiments = EXPCONFIG['time_between_experiments']
         mpd = EXPCONFIG['mpd_file']
         SEGMENT_LIMIT = EXPCONFIG['segment_limit']
+        PLAYBACK = EXPCONFIG['playback']
         EXPCONFIG['guid']
         EXPCONFIG['modem_metadata_topic']
         EXPCONFIG['zmqport']
@@ -457,7 +458,11 @@ if __name__ == '__main__':
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
- 
+    # create the log files 
+    playback_type=PLAYBACK.lower()
+    configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
+    config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
+
     for ifname in allowed_interfaces:
         # Interface is not up we just skip that one
         if not check_if(ifname):
@@ -535,16 +540,12 @@ if __name__ == '__main__':
             print "Starting experiment"
         
         # Create an experiment process and start it
-        playback_type=PLAYBACK.lower()
-        configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
-        config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
         if not mpd:
             print "ERROR: Please provide the URL to the MPD file. Try Again.."
             #return None
             sys.exit(1)
         config_dash.LOG.info('Downloading MPD file %s' % mpd)
         # Retrieve the MPD files for the video
-
         mpd_file = get_mpd(mpd)
         domain = get_domain_name(mpd)
         dp_object = DashPlayback()

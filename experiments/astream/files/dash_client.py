@@ -31,7 +31,6 @@ from adaptation.adaptation import WeightedMean
 import config_dash
 import dash_buffer
 import time
-from configure_log_file import write_json, configure_log_file
 
 try:
     WindowsError
@@ -234,49 +233,3 @@ def start_playback_all(dp_object, domain):
                 config_dash.LOG.critical("Finished download of all video segments")
                 break
 
-
-
-# def main():
-#     """ Main AStream Program wrapper """
-#     # configure the log file
-#     # Create arguments
-#     parser = ArgumentParser(description='Process Client parameters')
-#     create_arguments(parser)
-#     args = parser.parse_args()
-#     globals().update(vars(args))
-#     configure_log_file(playback_type=PLAYBACK.lower())
-#     config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
-#     if not MPD:
-#         print "ERROR: Please provide the URL to the MPD file. Try Again.."
-#         return None
-#     config_dash.LOG.info('Downloading MPD file %s' % MPD)
-#     # Retrieve the MPD files for the video
-#     mpd_file = get_mpd(MPD)
-#     domain = get_domain_name(MPD)
-#     dp_object = DashPlayback()
-#     # Reading the MPD file created
-#     dp_object, video_segment_duration = read_mpd.read_mpd(mpd_file, dp_object)
-#     config_dash.LOG.info("The DASH media has %d video representations" % len(dp_object.video))
-#     if LIST:
-#         # Print the representations and EXIT
-#         print_representations(dp_object)
-#         return None
-#     if "all" in PLAYBACK.lower():
-#         if mpd_file:
-#             config_dash.LOG.critical("Start ALL Parallel PLayback")
-#             start_playback_all(dp_object, domain)
-#     elif "basic" in PLAYBACK.lower():
-#         config_dash.LOG.critical("Started Basic-DASH Playback")
-#         start_playback_smart(dp_object, domain, "BASIC", DOWNLOAD, video_segment_duration)
-#     elif "sara" in PLAYBACK.lower():
-#         config_dash.LOG.critical("Started SARA-DASH Playback")
-#         start_playback_smart(dp_object, domain, "SMART", DOWNLOAD, video_segment_duration)
-#     elif "netflix" in PLAYBACK.lower():
-#         config_dash.LOG.critical("Started Netflix-DASH Playback")
-#         start_playback_smart(dp_object, domain, "NETFLIX", DOWNLOAD, video_segment_duration)
-#     else:
-#         config_dash.LOG.error("Unknown Playback parameter {}".format(PLAYBACK))
-#         return None
-
-# if __name__ == "__main__":
-#     sys.exit(main())

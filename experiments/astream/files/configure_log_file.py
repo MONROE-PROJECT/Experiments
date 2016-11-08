@@ -5,7 +5,7 @@ from time import strftime
 import io
 import json
 
-def configure_log_file(playback_type="", log_file=config_dash.LOG_FILENAME):
+def configure_log_files(playback_type="", log_file=config_dash.LOG_FILENAME):
     """ Module to configure the log file and the log parameters.
     Logs are streamed to the log file as well as the screen.
     Log Levels: CRITICAL:50, ERROR:40, WARNING:30, INFO:20, DEBUG:10, NOTSET	0
@@ -34,6 +34,8 @@ def write_json(json_data=config_dash.JSON_HANDLE, json_file=config_dash.JSON_LOG
     :return: None
         Using utf-8 to reduce size of the file
     """
-    with io.open(json_file, 'w', encoding='utf-8') as json_file_handle:
+    # with io.open(json_file, 'w', encoding='utf-8') as json_file_handle:
+    #     json_file_handle.write(unicode(json.dumps(json_data, ensure_ascii=False)))
+    #AEL -- changed the json write function to append to the json_file
+    with io.open(json_file, 'a', encoding='utf-8') as json_file_handle:
         json_file_handle.write(unicode(json.dumps(json_data, ensure_ascii=False)))
-        
