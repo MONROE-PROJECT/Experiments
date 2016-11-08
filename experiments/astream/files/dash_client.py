@@ -38,25 +38,12 @@ except NameError:
     from shutil import WindowsError
 
 
-class DashPlayback:
-    """
-    Audio[bandwidth] : {duration, url_list}
-    Video[bandwidth] : {duration, url_list}
-    """
-    def __init__(self):
-
-        self.min_buffer_time = None
-        self.playback_duration = None
-        self.audio = dict()
-        self.video = dict()
-
-
 def get_mpd(url):
     """ Module to download the MPD from the URL and save it to file"""
     try:
         connection = urllib2.urlopen(url, timeout=10)
     except urllib2.HTTPError, error:
-        config_dash.LOG.error("Unable to download MPD file HTTP Error: %s" % error.code)
+        config_dash.LOG.error("Unable to download MPD file, HTTP Error: %s" % error.code)
         return None
     except urllib2.URLError:
         error_message = "URLError. Unable to reach Server.Check if Server active"
@@ -64,7 +51,7 @@ def get_mpd(url):
         print error_message
         return None
     except IOError, httplib.HTTPException:
-        message = "Unable to , file_identifierdownload MPD file HTTP Error."
+        message = "Unable to download MPD file HTTP Error."
         config_dash.LOG.error(message)
         return None
     
@@ -155,14 +142,7 @@ def make_sure_path_exists(path):
             raise
 
 
-def print_representations(dp_object):
-    """ Module to print the representations"""
-    print "The DASH media has the following video representations/bitrates"
-    for bandwidth in dp_object.video:
-        print bandwidth
-
-
-def start_playback_smart(dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
+def start_playback_smart(dash_player, dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
     """ Module that downloads the MPD-FIle and download
         all the representations of the Module to download
         the MPEG-DASH media.
@@ -179,8 +159,10 @@ def start_playback_smart(dp_object, domain, playback_type=None, download=False, 
         :return:
     """
     # Initialize the DASH buffer
-    dash_player = dash_buffer.DashPlayer(dp_object.playback_duration, video_segment_duration)
-    dash_player.start()
+    # AEL -- moved this to run_exp function to integrate interaction with MONROE
+    # config_dash.LOG.info("Initializing the DASH buffer...")
+    # dash_player = dash_buffer.DashPlayer(dp_object.playback_duration, video_segment_duration)
+    # dash_player.start()
     # A folder to save the segments in
     file_identifier = id_generator()
     config_dash.LOG.info("The segments are stored in %s" % file_identifier)
@@ -334,12 +316,13 @@ def start_playback_smart(dp_object, domain, playback_type=None, download=False, 
                 config_dash.JSON_HANDLE['playback_info']['down_shifts'] += 1
             previous_bitrate = current_bitrate
 
+    # AEL -- moved this to the run_exp function to integrate with MONROE
     # waiting for the player to finish playing
-    # while dash_player.playback_state not in dash_buffer.EXIT_STATES:
-    #     time.sleep(1)
-    # write_json()
-    # if not download:
-    #     clean_files(file_identifier)
+    while dash_player.playback_state not in dash_buffer.EXIT_STATES:
+        time.sleep(1)
+    write_json()
+    if not download:
+        clean_files(file_identifier)
 
 
 def get_segment_sizes(dp_object, segment_number):

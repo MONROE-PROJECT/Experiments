@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Author: Andra Lutu, Jonas Karlsson
+# Author: Andra Lutu (based on a template from Jonas Karlsson)
 # Date: October 2016
 # License: GNU General Public License v3
 # Developed for use by the EU H2020 MONROE project
@@ -15,6 +15,7 @@ The output will be formated into a json object.
 
 The experiment received the target MPD file and the number of segments to download.
 """
+import io
 import json
 import zmq
 import sys
@@ -22,11 +23,10 @@ import netifaces
 import time
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
-import dash_client
 from dash_client import *
-from configure_log_file import configure_log_file, write_json
-import config_dash
-import dash_buffer
+from configure_log_file import *
+from config_dash import *
+from dash_buffer import *
 from adaptation import basic_dash, basic_dash2, weighted_dash, netflix_dash
 from adaptation.adaptation import WeightedMean
 
@@ -75,10 +75,22 @@ EXPCONFIG = {
         "allowed_interfaces": ["op0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": []  # Manual metadata on these IF
+        "interfaces_without_metadata": [],  # Manual metadata on these IF
         # AEL -- add here all the params for astream -- the MPD, number of segments etc.
+        "mpd_file": MPD # ASTREAM-specific params
         }
 
+class DashPlayback:
+    """
+    Audio[bandwidth] : {duration, url_list}
+    Video[bandwidth] : {duration, url_list}
+    """
+    def __init__(self):
+
+        self.min_buffer_time = None
+        self.playback_duration = None
+        self.audio = dict()
+        self.video = dict()
 
 def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
     """Seperate process that runs the experiment and collects the ouput.
@@ -91,6 +103,27 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
     ifname = meta_info[expconfig["modeminterfacename"]]
 
     try:
+        config_dash.LOG.info("Initializing the DASH buffer...")
+        dash_player = dash_buffer.DashPlayer(dp_object.playback_duration, video_segment_duration)
+        dash_player.start()
+        # AEL: adding meta-info to dash json output -- tracking "played" segments
+        scriptname = expconfig['script'].replace('/', '.')
+        dataid = expconfig.get('dataid', scriptname)
+        dataversion = expconfig.get('dataversion', 1)
+
+        config_dash.JSON_HANDLE['MONROE'].append({
+            "Guid": expconfig['guid'],
+            "DataId": dataid,
+            "DataVersion": dataversion,
+            "NodeId": expconfig['nodeid'],
+            "Timestamp": time.time(),
+            "Iccid": meta_info["ICCID"], 
+            "NWMCCMNC": meta_info["NWMCCMNC"], # modify to MCCMNC from SIM
+            "InterfaceName": ifname,
+            "Operator": meta_info["Operator"],
+            "SequenceNumber": 1
+        })
+
         # start the DASH player, according to the selected playback_type
         if "all" in playback_type.lower():
             if mpd_file:
@@ -98,63 +131,32 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
                 start_playback_all(dp_object, domain)
         elif "basic" in playback_type.lower():
             config_dash.LOG.critical("Started Basic-DASH Playback")
-            start_playback_smart(dp_object, domain, "BASIC", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "BASIC", download, video_segment_duration)
         elif "sara" in playback_type.lower():
             config_dash.LOG.critical("Started SARA-DASH Playback")
-            start_playback_smart(dp_object, domain, "SMART", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "SMART", download, video_segment_duration)
         elif "netflix" in playback_type.lower():
             config_dash.LOG.critical("Started Netflix-DASH Playback")
-            start_playback_smart(dp_object, domain, "NETFLIX", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "NETFLIX", download, video_segment_duration)
         else:
             config_dash.LOG.error("Unknown Playback parameter {}".format(playback_type))
             return None
-
+        while dash_player.playback_state not in dash_buffer.EXIT_STATES:
+            time.sleep(1)
 
         if ifname != meta_info['InternalInterface']:
             print "Error: Interface has changed during the astream experiment, abort"
-            return
-
-
-        scriptname = expconfig['script'].replace('/', '.')
-        dataid = expconfig.get('dataid', scriptname)
-        dataversion = expconfig.get('dataversion', 1)
-
-        # To use monroe_exporter the following fields must be present
-        # "Guid"
-        # "DataId"
-        # "DataVersion"
-        # "NodeId"
-        # "SequenceNumber"
-            # AEL: adding meta-info to dash json output -- tracking "played" segments
-        config_dash.JSON_HANDLE['MONROE'].append({
-            "Guid": expconfig['guid'],
-            "DataId": dataid,
-            "DataVersion": dataversion,
-            "NodeId": expconfig['nodeid'],
-            "Timestamp": time.time(),
-            "Iccid": meta_info['modem']["ICCID"], 
-            "NWMCCMNC": meta_info['modem']["NWMCCMNC"], # modify to MCCMNC from SIM
-            "InterfaceName": ifname,
-            "Operator": meta_info['modem']["Operator"],
-            "SequenceNumber": 1,
-            "GPSPositions": gps_positions
-        })
-
+            return None
+    
+        if expconfig['verbosity'] > 1:
+            config_dash.LOG.info("MONROE - Finished Experiment")
     except Exception as e:
         if expconfig['verbosity'] > 0:
             config_dash.LOG.info("MONROE - Execution or parsing failed")
             config_dash.LOG.error(e)
-
-
-    while dash_player.playback_state not in dash_buffer.EXIT_STATES:
-        time.sleep(1)
-
-    write_json()
-    if not download:
-        clean_files(file_identifier)
-    if expconfig['verbosity'] > 1:
-        config_dash.LOG.info("MONROE - Finished Experiment")
-
+    # write_json()
+    # if not download:
+    #     clean_files(file_identifier)
 
 def metadata(meta_ifinfo, ifname, expconfig):
     """Seperate process that attach to the ZeroMQ socket as a subscriber.
@@ -178,7 +180,7 @@ def metadata(meta_ifinfo, ifname, expconfig):
                     meta_ifinfo[key] = value
         except Exception as e:
             if expconfig['verbosity'] > 0:
-                print ("Cannot get modem metadata in astream container {}"
+                print ("Cannot get modem metadata in http container {}"
                        ", {}").format(e, expconfig['guid'])
             pass
 
@@ -221,11 +223,16 @@ def create_meta_process(ifname, expconfig):
 
 def create_exp_process(meta_info, expconfig, dp_object, mpd_file, domain, playback_type=None, download=False, video_segment_duration=None):
     """Creates the experiment process."""
-    process = Process(target=run_exp, args=(meta_info, expconfig, dp_object, mpd_file, domain, playback_type, download, video_segment_duration,))
+    process = Process(target=run_exp, args=(meta_info, expconfig, mpd_file, dp_object, domain, playback_type, download, video_segment_duration, ))
     process.daemon = True
-    process.start()
     return process
 
+
+# def print_representations(dp_object):
+#     """ Module to print the representations"""
+#     print "The DASH media has the following video representations/bitrates"
+#     for bandwidth in dp_object.video:
+#         print bandwidth
 
 if __name__ == '__main__':
     """The main thread control the processes (experiment/metadata))."""
@@ -237,28 +244,6 @@ if __name__ == '__main__':
     #create_arguments(parser)
     #args = parser.parse_args()
     #globals().update(vars(args))
-    print "Playback should be default: " + str(PLAYBACK)
-    playback_type=PLAYBACK.lower()
-    configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
-    config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
-    if not MPD:
-        print "ERROR: Please provide the URL to the MPD file. Try Again.."
-        #return None
-        sys.exit(1)
-    config_dash.LOG.info('Downloading MPD file %s' % MPD)
-    # Retrieve the MPD files for the video
-    mpd_file = get_mpd(MPD)
-    domain = get_domain_name(MPD)
-    dp_object = DashPlayback()
-    # Reading the MPD file created
-    dp_object, video_segment_duration = read_mpd.read_mpd(mpd_file, dp_object)
-    config_dash.LOG.info("The DASH media has %d video representations" % len(dp_object.video))
-    if LIST:
-        # Print the representations and EXIT
-        print_representations(dp_object)
-        sys.exit(1)
-        #return None
-
 
 # MONROE stuff
     if not DEBUG:
@@ -282,6 +267,7 @@ if __name__ == '__main__':
         exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
         ifup_interval_check = EXPCONFIG['ifup_interval_check']
         time_between_experiments = EXPCONFIG['time_between_experiments']
+        mpd = EXPCONFIG['mpd_file']
         EXPCONFIG['guid']
         EXPCONFIG['modem_metadata_topic']
         EXPCONFIG['zmqport']
@@ -291,7 +277,7 @@ if __name__ == '__main__':
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
-
+ 
     for ifname in allowed_interfaces:
         # Interface is not up we just skip that one
         if not check_if(ifname):
@@ -338,8 +324,6 @@ if __name__ == '__main__':
             continue
 
         # Ok we have some information lets start the experiment script
-
-
         cmd1=["route",
              "del",
              "default"]
@@ -370,12 +354,30 @@ if __name__ == '__main__':
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
         
+        # Create an experiment process and start it
+        playback_type=PLAYBACK.lower()
+        configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
+        config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
+        if not mpd:
+            print "ERROR: Please provide the URL to the MPD file. Try Again.."
+            #return None
+            sys.exit(1)
+        config_dash.LOG.info('Downloading MPD file %s' % mpd)
+        # Retrieve the MPD files for the video
 
-        #for index in range(len(url_list)):
-        #for run in range(start_count, loop):
-        # Create a experiment process and start it
+        mpd_file = get_mpd(mpd)
+        domain = get_domain_name(mpd)
+        dp_object = DashPlayback()
+        # Reading the MPD file created
+        dp_object, video_segment_duration = read_mpd.read_mpd(mpd_file, dp_object)
+        config_dash.LOG.info("The DASH media has %d video representations" % len(dp_object.video))
+        config_dash.LOG.info("Listing available representations... ") 
+        config_dash.LOG.info("The DASH media has the following video representations/bitrates")
+        for bandwidth in dp_object.video:
+            config_dash.LOG.info(bandwidth)
         start_time_exp = time.time()
         exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
+        #exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
         exp_process.start()
 
         while (time.time() - start_time_exp < exp_grace and
@@ -392,7 +394,7 @@ if __name__ == '__main__':
                                                     meta_grace,
                                                     EXPCONFIG)):
                 if EXPCONFIG['verbosity'] > 0:
-                    print "Interface went down during a experiment"
+                    print "Interface went down during the experiment"
                 break
             elapsed_exp = time.time() - start_time_exp
             if EXPCONFIG['verbosity'] > 1:

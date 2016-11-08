@@ -27,7 +27,6 @@ def configure_log_file(playback_type="", log_file=config_dash.LOG_FILENAME):
         config_dash.LOG.addHandler(handler2)
         print("Started logging in the log file:{}".format(log_file))
 
-
 def write_json(json_data=config_dash.JSON_HANDLE, json_file=config_dash.JSON_LOG):
     """
     :param json_data: dict
