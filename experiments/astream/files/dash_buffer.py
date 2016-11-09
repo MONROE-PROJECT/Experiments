@@ -240,7 +240,7 @@ class DashPlayer:
                 stats = (log_time, str(self.playback_timer.time()), self.buffer.qsize(),
                          self.playback_state, action,bitrate)
             str_stats = [str(i) for i in stats]
-            with open(self.buffer_log_file, "a") as log_file_handle:
+            with open(self.buffer_log_file, "a+") as log_file_handle:
                 result_writer = csv.writer(log_file_handle, delimiter=",")
                 if header_row:
                     result_writer.writerow(header_row)

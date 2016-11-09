@@ -24,8 +24,8 @@ import time
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 from dash_client import *
-from configure_log_file import *
-from config_dash import *
+from configure_log_file import configure_log_file, write_json
+import config_dash
 from dash_buffer import *
 from adaptation import basic_dash, basic_dash2, weighted_dash, netflix_dash
 from adaptation.adaptation import WeightedMean
@@ -152,7 +152,7 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
     # Start playback of all the segments
     for segment_number, segment in enumerate(dp_list, dp_object.video[current_bitrate].start):
         config_dash.LOG.info(" {}: Processing the segment {}".format(playback_type.upper(), segment_number))
-        write_json()
+        #write_json()
         if not previous_bitrate:
             previous_bitrate = current_bitrate
         if SEGMENT_LIMIT:
@@ -267,7 +267,6 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
             elif previous_bitrate > current_bitrate:
                 config_dash.JSON_HANDLE['playback_info']['down_shifts'] += 1
             previous_bitrate = current_bitrate
-
     # AEL -- moved this to the run_exp function to integrate with MONROE
     # waiting for the player to finish playing
     while dash_player.playback_state not in dash_buffer.EXIT_STATES:
@@ -339,9 +338,6 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
         if expconfig['verbosity'] > 0:
             config_dash.LOG.info("MONROE - Execution or parsing failed")
             config_dash.LOG.error(e)
-    # write_json()
-    # if not download:
-    #     clean_files(file_identifier)
 
 def metadata(meta_ifinfo, ifname, expconfig):
     """Seperate process that attach to the ZeroMQ socket as a subscriber.
@@ -470,8 +466,6 @@ if __name__ == '__main__':
                 print "Interface is not up {}".format(ifname)
             continue
         # set the default route
-            
-
         # Create a process for getting the metadata
         # (could have used a thread as well but this is true multiprocessing)
         meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
