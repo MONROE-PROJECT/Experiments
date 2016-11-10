@@ -1,0 +1,20 @@
+FROM monroe/base
+
+MAINTAINER jonas.karlsson@kau.se
+
+COPY files/config /monroe/config
+COPY files/* /opt/monroe/
+#temporary
+COPY files/monroe-sshtunnel-client.sh /usr/bin/
+RUN apt-get update && apt-get install -y --force-yes --no-install-recommends --no-install-suggests \
+    openssh-server \
+    jq \
+    && apt-get update --fix-missing \
+    && apt-get clean -y --force-yes clean \
+    && apt-get -y --force-yes autoremove \
+    # Cleanup
+    && rm -rf dumb-init*deb /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old
+
+
+# Default cmd to run
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/usr/bin/monroe-sshtunnel-client.sh"]
