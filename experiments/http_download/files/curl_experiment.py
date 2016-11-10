@@ -18,7 +18,7 @@ import json
 import zmq
 import netifaces
 import time
-from subprocess import check_output, CalledProcessError
+from subprocess import check_output
 from multiprocessing import Process, Manager
 
 # Configuration
@@ -31,7 +31,7 @@ CONFIGFILE = '/monroe/config'
 EXPCONFIG = {
         "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
         "url": "http://193.10.227.25/test/1000M.zip",
-        "size": 3*1024,  # The maximum size in Kbytes to download
+        "size": 3*1024 - 1,  # The maximum size in Kbytes to download
         "time": 3600,  # The maximum time in seconds for a download
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
@@ -44,10 +44,9 @@ EXPCONFIG = {
         "time_between_experiments": 30,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
-        "modeminterfacename": "InternalInterface",
-        "allowed_interfaces": ["op0",
-                               "op1",
-                               "op2",
+        "allowed_interfaces": ["usb0",
+                               "usb1",
+                               "usb2",
                                "wlan0",
                                "wwan2"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0",
@@ -70,28 +69,17 @@ def run_exp(meta_info, expconfig):
 
         Will abort if the interface goes down.
     """
-    ifname = meta_info[expconfig["modeminterfacename"]]
+    ifname = meta_info['InterfaceName']
     cmd = ["curl",
            "--raw",
            "--silent",
            "--write-out", "{}".format(CURL_METRICS),
            "--interface", "{}".format(ifname),
            "--max-time", "{}".format(expconfig['time']),
-           "--range", "0-{}".format(expconfig['size'] - 1),
+           "--range", "0-{}".format(expconfig['size']),
            "{}".format(expconfig['url'])]
-    # Safeguard to always have a defined output variable
-    output = None
     try:
-        try:
-            output = check_output(cmd)
-        except CalledProcessError as e:
-                if e.returncode == 28:  # time-limit exceeded
-                    if expconfig['verbosity'] > 2:
-                        print ("Exceding timelimit {}, "
-                               "saving what we have").format(expconfig['time'])
-                    output = e.output
-                else:
-                    raise e
+        output = check_output(cmd)
         # Clean away leading and trailing whitespace
         output = output.strip(' \t\r\n\0')
         # Convert to JSON
@@ -115,13 +103,8 @@ def run_exp(meta_info, expconfig):
     except Exception as e:
         if expconfig['verbosity'] > 0:
             print ("Execution or parsing failed for "
-<<<<<<< 1a38823045c55e851f10da67af42fbfe99b251cb
-                   "command : {}, "
-                   "output : {}, "
-=======
                    "command : {}"
                    "output : {}"
->>>>>>> Added some more verbose output when failing
                    "error: {}").format(cmd, output, e)
 
 
@@ -140,9 +123,14 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            if (expconfig["modeminterfacename"] in ifinfo and
-                    ifinfo[expconfig["modeminterfacename"]] == ifname):
-                # In place manipulation of the reference variable
+            if expconfig["modeminterfacename"] not in ifinfo:
+                print ("Fallback to use InterfaceName as {} "
+                       "do not exist").format(expconfig["modeminterfacename"])
+
+            ifinfo_name = ifinfo.get(expconfig["modeminterfacename"],
+                                     ifinfo['InterfaceName'])
+            if ifinfo_name == ifname:
+                # In place manipulation of the refrence variable
                 for key, value in ifinfo.iteritems():
                     meta_ifinfo[key] = value
         except Exception as e:
@@ -161,7 +149,8 @@ def check_if(ifname):
 
 def check_meta(info, graceperiod, expconfig):
     """Check if we have recieved required information within graceperiod."""
-    return (expconfig["modeminterfacename"] in info and
+    return ((expconfig["modeminterfacename"] in info or
+             "InterfaceName" in info) and
             "Operator" in info and
             "Timestamp" in info and
             time.time() - info["Timestamp"] < graceperiod)

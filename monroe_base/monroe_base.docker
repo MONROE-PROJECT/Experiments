@@ -25,6 +25,7 @@ RUN echo 'deb http://download.opensuse.org/repositories/home:/tohojo:/flent/Debi
 RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:/stable/Debian_7.0/ /' > /etc/apt/sources.list.d/oml2.list \
     && wget -qO - http://download.opensuse.org/repositories/devel:tools:mytestbed:stable/Debian_7.0/Release.key | apt-key add -
 
+RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:/stable/Debian_7.0/ /' >> /etc/apt/sources.list.d/oml2.list
 
 ############## Main Installation and cleanup ##############
 RUN apt-get update && apt-get upgrade -y --force-yes \
