@@ -76,29 +76,45 @@ def run_exp(meta_info, expconfig):
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
 
-    ifname = meta_info[expconfig["modeminterfacename"]]
+    ifname = meta_info.get(expconfig["modeminterfacename"],
+                           meta_info['InterfaceName'])
     interval = str(expconfig['interval'])
     server = expconfig['server']
     cmd = ["fping",
            "-I", ifname,
-           "-D",
+           "-Q", str(int(interval)/1000),
            "-p", interval,
-           "-l", server]
+           "-l", server,
+           "-r", str(1)]
     # Regexp to parse fping ouput from command
-    r = re.compile(r'^\[(?P<ts>[0-9]+\.[0-9]+)\] (?P<host>[^ ]+) : \[(?P<seq>[0-9]+)\], (?P<bytes>\d+) bytes, (?P<rtt>[0-9]+(?:\.[0-9]+)?) ms \(.*\)$')
+    rok = re.compile(r'^(?P<host>\S+) : \S+ = (?P<xmt>\d+)/(?P<rcv>\d+)/(?P<loss>\d+)%(?:, \S+ = (?P<min>[0-9\.]+)/(?P<avg>[0-9\.]+)/(?P<max>[0-9\.]+))?$', re.MULTILINE)
+    time = re.compile(r'^\[(?P<ts>[0-9]+:[0-9]+:[0-9]+)\](.*)$', re.MULTILINE)
 
     popen = subprocess.Popen(cmd,
                              stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
                              bufsize=1)
     FPING_PROCESS = popen
     stdout_lines = iter(popen.stdout.readline, "")
+    stderr_lines = iter(popen.stderr.readline, "")
     # This is the inner loop where we wait for output from fping
     # This will run until we get a interface hickup
-    for line in stdout_lines:
-        m = r.match(line)
+    results = {}
+    for line in stderr_lines:
+        # First comes the timstamp
+        m = time.match(line)
+        if m is None:
+            m = rok.match(line)
+
+        print m.groupdict()
         if m is None:
             if expconfig['verbosity'] > 1:
-                print "Could not match regexp, exiting"
+                print "Could not match regexp"
+                print "Cleaning up fping process and exiting"
+            popen.stdout.close()
+            popen.stderr.close()
+            popen.terminate()
+            popen.kill()
             sys.exit(1)
 
         # keys are defined in regexp compilation. Nice!
@@ -118,7 +134,7 @@ def run_exp(meta_info, expconfig):
                         "Iccid": meta_info["ICCID"],
                         "Operator": meta_info["Operator"]
                }
-
+        exp_result = {}
         if expconfig['verbosity'] > 2:
             print msg
         if not DEBUG:
@@ -129,6 +145,7 @@ def run_exp(meta_info, expconfig):
     if expconfig['verbosity'] > 1:
         print "Cleaning up fping process"
     popen.stdout.close()
+    popen.stderr.close()
     popen.terminate()
     popen.kill()
 
@@ -148,15 +165,20 @@ def metadata(meta_ifinfo, ifname, expconfig):
         data = socket.recv()
         try:
             ifinfo = json.loads(data.split(" ", 1)[1])
-            if (expconfig["modeminterfacename"] in ifinfo and
-                    ifinfo[expconfig["modeminterfacename"]] == ifname):
-                # In place manipulation of the reference variable
+            if expconfig["modeminterfacename"] not in ifinfo:
+                print ("Fallback to use InterfaceName as {} "
+                       "do not exist").format(expconfig["modeminterfacename"])
+
+            ifinfo_name = ifinfo.get(expconfig["modeminterfacename"],
+                                     ifinfo['InterfaceName'])
+            if ifinfo_name == ifname:
+                # In place manipulation of the refrence variable
                 for key, value in ifinfo.iteritems():
                     meta_ifinfo[key] = value
         except Exception as e:
             if expconfig['verbosity'] > 0:
-                print ("Cannot get modem metadata in http container"
-                       "error : {} , {}").format(e, expconfig['guid'])
+                print ("Cannot get modem metadata in http container {}"
+                       ", {}").format(e, expconfig['guid'])
             pass
 
 
@@ -169,7 +191,8 @@ def check_if(ifname):
 
 def check_meta(info, graceperiod, expconfig):
     """Check if we have recieved required information within graceperiod."""
-    return (expconfig["modeminterfacename"] in info and
+    return ((expconfig["modeminterfacename"] in info or
+             "InterfaceName" in info) and
             "Operator" in info and
             "Timestamp" in info and
             time.time() - info["Timestamp"] < graceperiod)
@@ -180,6 +203,7 @@ def add_manual_metadata_information(info, ifname, expconfig):
 
        Normally eth0 and wlan0.
     """
+    info["InterfaceName"] = ifname
     info[expconfig["modeminterfacename"]] = ifname
     info["ICCID"] = ifname
     info["Operator"] = ifname
@@ -231,13 +255,10 @@ if __name__ == '__main__':
         EXPCONFIG['verbosity']
         EXPCONFIG['resultdir']
         EXPCONFIG['export_interval']
-        EXPCONFIG['modeminterfacename']
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
 
-    if EXPCONFIG['verbosity'] > 2:
-        print EXPCONFIG
     # Create a process for getting the metadata
     # (could have used a thread as well but this is true multiprocessing)
     meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
@@ -269,14 +290,14 @@ if __name__ == '__main__':
         # Do we have the interfaces up ?
         if (check_if(ifname) and check_meta(meta_info, meta_grace, EXPCONFIG)):
             # We are all good
-            if EXPCONFIG['verbosity'] > 2:
-                print "Interface {} is up".format(ifname)
             if exp_process.is_alive() is False:
-                exp_process.start()
+                try:
+                    exp_process.start()
+                except AssertionError as e:
+                    # Most likeley we tried to start the process twice
+                    # ie the subprocess died or crashed in some way
+                    sys.exit(1)
         elif exp_process.is_alive():
-            if EXPCONFIG['verbosity'] > 2:
-                print ("Interface {} is down and "
-                       "experiment are running").format(ifname)
             # Interfaces down and we are running
             exp_process.terminate()
             exp_process = create_exp_process(meta_info, EXPCONFIG)
