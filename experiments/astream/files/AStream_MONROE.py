@@ -329,7 +329,7 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
             time.sleep(1)
 
         if ifname != meta_info['InternalInterface']:
-            print "Error: Interface has changed during the astream experiment, abort"
+            config_dash.LOG.info("Error: Interface has changed during the astream experiment, abort")
             return None
     
         if expconfig['verbosity'] > 1:
@@ -458,12 +458,13 @@ if __name__ == '__main__':
     playback_type=PLAYBACK.lower()
     configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
     config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
+    config_dash.LOG.info("Starting AStream container")
 
     for ifname in allowed_interfaces:
         # Interface is not up we just skip that one
         if not check_if(ifname):
             if EXPCONFIG['verbosity'] > 1:
-                print "Interface is not up {}".format(ifname)
+                config_dash.LOG.info("Interface is not up {}".format(ifname))
             continue
         # set the default route
         # Create a process for getting the metadata
@@ -472,7 +473,7 @@ if __name__ == '__main__':
         meta_process.start()
 
         if EXPCONFIG['verbosity'] > 1:
-            print "Starting Experiment Run on if : {}".format(ifname)
+            config_dash.LOG.info("Starting Experiment Run on if : {}".format(ifname))
 
         # On these Interfaces we do net get modem information so we hack
         # in the required values by hand whcih will immeditaly terminate
@@ -492,14 +493,14 @@ if __name__ == '__main__':
                                                               EXPCONFIG)
                 meta_process.start()
             if EXPCONFIG['verbosity'] > 1:
-                print "Trying to get metadata"
+                config_dash.LOG.info("Trying to get metadata")
             time.sleep(ifup_interval_check)
 
         # Ok we did not get any information within the grace period
         # we give up on that interface
         if not check_meta(meta_info, meta_grace, EXPCONFIG):
             if EXPCONFIG['verbosity'] > 1:
-                print "No Metadata continuing"
+                config_dash.LOG.info("No Metadata, continuing...")
             continue
 
         # Ok we have some information lets start the experiment script
@@ -511,31 +512,31 @@ if __name__ == '__main__':
                 check_output(cmd1)
         except CalledProcessError as e:
                 if e.returncode == 28:
-                        print "Time limit exceeded"
+                         config_dash.LOG.info("Time limit exceeded")
         gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
         cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
         try:
                 check_output(cmd2)
         except CalledProcessError as e:
                  if e.returncode == 28:
-                        print "Time limit exceeded"
+                        config_dash.LOG.info("Time limit exceeded")
         cmd3=["ip", "route", "get", "8.8.8.8"]
         try:
                 output=check_output(cmd3)
         except CalledProcessError as e:
                  if e.returncode == 28:
-                        print "Time limit exceeded"
+                        config_dash.LOG.info("Time limit exceeded")
         output = output.strip(' \t\r\n\0')
         output_interface=output.split(" ")[4]
         if output_interface==str(ifname):
-                print "Source interface is set to "+str(ifname)
+                config_dash.LOG.info("Source interface is set to " + str(ifname))
 
         if EXPCONFIG['verbosity'] > 1:
-            print "Starting experiment"
+            config_dash.LOG.info("Starting experiment")
         
         # Create an experiment process and start it
         if not mpd:
-            print "ERROR: Please provide the URL to the MPD file. Try Again.."
+            config_dash.LOG.info("ERROR: Please provide the URL to the MPD file. Try Again..")
             #return None
             sys.exit(1)
         config_dash.LOG.info('Downloading MPD file %s' % mpd)
@@ -551,7 +552,8 @@ if __name__ == '__main__':
         for bandwidth in dp_object.video:
             config_dash.LOG.info(bandwidth)
         start_time_exp = time.time()
-        exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
+        #exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
+        exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
         #exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
         exp_process.start()
 
@@ -569,11 +571,11 @@ if __name__ == '__main__':
                                                     meta_grace,
                                                     EXPCONFIG)):
                 if EXPCONFIG['verbosity'] > 0:
-                    print "Interface went down during the experiment"
+                    config_dash.LOG.info("Interface went down during the experiment")
                 break
             elapsed_exp = time.time() - start_time_exp
             if EXPCONFIG['verbosity'] > 1:
-                print "Running Experiment for {} s".format(elapsed_exp)
+                 config_dash.LOG.info("Running Experiment for {} s".format(elapsed_exp))
             time.sleep(ifup_interval_check)
 
         if exp_process.is_alive():
@@ -583,9 +585,8 @@ if __name__ == '__main__':
 
         elapsed = time.time() - start_time
         if EXPCONFIG['verbosity'] > 1:
-            print "Finished {} after {}".format(ifname, elapsed)
+            config_dash.LOG.info("Finished {} after {}".format(ifname, elapsed))
         time.sleep(time_between_experiments)
 
     if EXPCONFIG['verbosity'] > 1:
-        print ("Interfaces {} "
-               "done, exiting").format(allowed_interfaces)
+        config_dash.LOG.info(("Interfaces {} done, exiting").format(allowed_interfaces))
