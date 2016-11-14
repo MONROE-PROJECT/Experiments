@@ -36,7 +36,7 @@ LOG_FILENAME = os.path.join(LOG_FOLDER, 'DASH_RUNTIME_LOG')
 # Logs related to the statistics for the video
 # PLAYBACK_LOG_FILENAME = os.path.join(LOG_FOLDER, strftime('DASH_PLAYBACK_LOG_%Y-%m-%d.%H_%M_%S.csv'))
 # Buffer logs created by dash_buffer.py
-# AEL -- need to create different logs for each run of the dash player -- initialize the names of the logs with the LOG_FILENAME ??????
+## AEL -- need to create different logs for each run of the dash player -- initialize the names of the logs with the LOG_FILENAME ??????
 BUFFER_LOG_FILENAME = os.path.join(LOG_FOLDER, strftime('DASH_BUFFER_LOG_%Y-%m-%d.%H_%M_%S.csv'))
 #BUFFER_LOG_FILENAME = os.path.join(LOG_FOLDER, 'DASH_BUFFER_LOG')
 LOG_FILE_HANDLE = None

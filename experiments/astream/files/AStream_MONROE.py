@@ -303,6 +303,7 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
             "Timestamp": time.time(),
             "Iccid": meta_info["ICCID"], 
             "NWMCCMNC": meta_info["NWMCCMNC"], # modify to MCCMNC from SIM
+            "IMSIMCCMNC": meta_info["IMSIMCCMNC"],
             "InterfaceName": ifname,
             "Operator": meta_info["Operator"],
             "SequenceNumber": 1

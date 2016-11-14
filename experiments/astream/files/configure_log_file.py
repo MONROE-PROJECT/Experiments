@@ -37,5 +37,5 @@ def write_json(json_data=config_dash.JSON_HANDLE, json_file=config_dash.JSON_LOG
     # with io.open(json_file, 'w', encoding='utf-8') as json_file_handle:
     #     json_file_handle.write(unicode(json.dumps(json_data, ensure_ascii=False)))
     #AEL -- changed the json write function to append to the json_file
-    with io.open(json_file, 'a+', encoding='utf-8') as json_file_handle:
+    with io.open(json_file, 'a', encoding='utf-8') as json_file_handle:
         json_file_handle.write(unicode(json.dumps(json_data, ensure_ascii=False)))
