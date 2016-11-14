@@ -34,10 +34,13 @@ while true
 do
   #curl ${CURL_OPT} | jq ${JQ_OPT} > ${AUTHKEY_FILE}
   cat /opt/monroe/curlresults.txt | jq ${JQ_OPT} > ${AUTHKEY_FILE}
+  echo "###################"
   echo "Authorized keys : "
   cat ${AUTHKEY_FILE}
-  echo "Connections:"
-  netstat -tnpa | grep 'ESTABLISHED.*sshd'
+  echo "Tunnel Connections:"
+  netstat -tnpa | grep 'ESTABLISHED'|grep ":${SERVERPORT}"
+  echo "Client Connections:"
+  netstat -tnpa | grep 'ESTABLISHED'|grep -v ":${SERVERPORT}"
   sleep ${UPDATEFREQ}
 done
 echo " SSH tunnel-server finished"

@@ -1,9 +1,10 @@
 
 # Tunnelbox-server
-1. Scheduler uses pyotp to generate an OTP token that is future-valid at container start time
-2. The container calls a simple rest api on the tunnelbox, submits the OTP and the container-generated public key
-3. The tunnelbox validates the OTP && stores the public key into a authorized_keys.d directory (which purges files older than X hours)
+1. Scheduler exposes public keys of the containers that should connect in https://scheduler.monroe-system.eu:4443/v1/backend/pubkeys
+2. The script regulary parse these keys and insert them in the current user authorized keys
 4. and the container can now establish the tunnel connection.
+
+docker --restart=always
 
 
 The container requires that docker is installed and working.
