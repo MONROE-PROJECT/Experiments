@@ -252,6 +252,14 @@ def run_exp(meta_info, expconfig, url,count):
     except Exception:
     	print("RSSI info is not available")
     try:
+    	har_stats["RSRQ"]=meta_info["RSRQ"]
+    except Exception:
+    	print("RSRQ info is not available")
+    try:
+    	har_stats["RSRP"]=meta_info["RSRP"]
+    except Exception:
+    	print("RSRP info is not available")
+    try:
     	har_stats["ECIO"]=meta_info["ECIO"]
     except Exception:
     	print("ECIO info is not available")
@@ -271,6 +279,8 @@ def run_exp(meta_info, expconfig, url,count):
     har_stats["SequenceNumber"]= count
 
     #msg=json.dumps(har_stats)
+    with open('/tmp/'+filename+'_'+ifname+'.json', 'w') as outfile:
+        json.dump(har_stats, outfile)
     
     if expconfig['verbosity'] > 2:
             print har_stats
