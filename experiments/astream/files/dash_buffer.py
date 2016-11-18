@@ -44,7 +44,7 @@ class DashPlayer:
         self.buffer = Queue.Queue()
         self.buffer_lock = threading.Lock()
         self.current_segment = None
-        self.buffer_log_file = config_dash.BUFFER_LOG_FILENAME # may be an issue here for which we are losing logged data?
+        self.buffer_log_file = config_dash.BUFFER_LOG
         config_dash.LOG.info("VideoLength={},segmentDuration={},MaxBufferSize={},InitialBuffer(secs)={},"
                              "BufferAlph(secs)={},BufferBeta(secs)={}".format(self.playback_duration,
                                                                               self.segment_duration,
@@ -64,8 +64,9 @@ class DashPlayer:
             config_dash.LOG.error("Unidentified state: {}".format(state))
 
     def initialize_player(self):
-        """Method that update the current playback time"""
+        """Method that updates the current playback time"""
         start_time = time.time()
+        config_dash.JSON_HANDLE['playback_info']['start_time'] = start_time
         initial_wait = 0
         paused = False
         buffering = False
@@ -81,8 +82,10 @@ class DashPlayer:
 
             if self.playback_state == "STOP":
                 # If video is stopped quit updating the playback time and exit player
+                end_time = time.time() - start_time
+                config_dash.JSON_HANDLE['playback_info']['end_time'] = time.time()
                 config_dash.LOG.info("Player Stopped at time {}".format(
-                    time.time() - start_time))
+                    end_time))
                 self.playback_timer.pause()
                 self.log_entry("Stopped")
                 return "STOPPED"
@@ -128,6 +131,7 @@ class DashPlayer:
             if self.playback_state == "INITIAL_BUFFERING":
                 if self.buffer.qsize() < config_dash.INITIAL_BUFFERING_COUNT:
                     initial_wait = time.time() - start_time
+                    config_dash.JSON_HANDLE['playback_info']['initial_buffering_duration'] = initial_wait
                     continue
                 else:
                     config_dash.LOG.info("Initial Waiting Time = {}".format(initial_wait))
@@ -224,7 +228,6 @@ class DashPlayer:
 
     def log_entry(self, action, bitrate=0):
         """Method to log the current state"""
-
         if self.buffer_log_file:
             header_row = None
             if self.actual_start_time:

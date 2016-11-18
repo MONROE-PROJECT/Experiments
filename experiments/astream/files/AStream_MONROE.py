@@ -29,6 +29,7 @@ import config_dash
 from dash_buffer import *
 from adaptation import basic_dash, basic_dash2, weighted_dash, netflix_dash
 from adaptation.adaptation import WeightedMean
+from time import strftime
 
 # Constants
 DEFAULT_PLAYBACK = 'BASIC'
@@ -241,8 +242,10 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
         segment_name = os.path.split(segment_url)[1]
         if "segment_info" not in config_dash.JSON_HANDLE:
             config_dash.JSON_HANDLE["segment_info"] = list()
-        config_dash.JSON_HANDLE["segment_info"].append((segment_name, current_bitrate, segment_size,
-                                                        segment_download_time))
+        config_dash.JSON_HANDLE["segment_info"].append({"segment_name":segment_name, 
+                                                        "bitrate":current_bitrate, 
+                                                        "segment_size":segment_size,
+                                                        "segment_download_time":segment_download_time})
         total_downloaded += segment_size
         config_dash.LOG.info("{} : The total downloaded = {}, segment_size = {}, segment_number = {}".format(
             playback_type.upper(),
@@ -271,7 +274,7 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
     # waiting for the player to finish playing
     while dash_player.playback_state not in dash_buffer.EXIT_STATES:
         time.sleep(1)
-    write_json()
+    # write_json(config_dash.JSON_HANDLE, config_dash.JSON_LOG)
     if not download:
         clean_files(file_identifier)
 
@@ -285,9 +288,16 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
         
     """
     ifname = meta_info[expconfig["modeminterfacename"]]
+    config_dash.IFNAME = ifname
 
     try:
         config_dash.LOG.info("Initializing the DASH buffer...")
+        # AEL -- added here a different buffer log file for each interface
+        config_dash.BUFFER_LOG="_".join((config_dash.BUFFER_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.log')))
+        config_dash.JSON_LOG="_".join((config_dash.JSON_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.json')))
+        config_dash.LOG.info("Configured buffer log file: {}".format(config_dash.BUFFER_LOG))
+        config_dash.LOG.info("Configured json log file: {}".format(config_dash.JSON_LOG))
+
         dash_player = dash_buffer.DashPlayer(dp_object.playback_duration, video_segment_duration)
         dash_player.start()
         # AEL: adding meta-info to dash json output -- tracking "played" segments
@@ -300,7 +310,7 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
             "DataId": dataid,
             "DataVersion": dataversion,
             "NodeId": expconfig['nodeid'],
-            "Timestamp": time.time(),
+            "Timestamp": time.time(), # time just before we trigger the player on the interface
             "Iccid": meta_info["ICCID"], 
             "NWMCCMNC": meta_info["NWMCCMNC"], # modify to MCCMNC from SIM
             "IMSIMCCMNC": meta_info["IMSIMCCMNC"],
@@ -328,6 +338,7 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
             return None
         while dash_player.playback_state not in dash_buffer.EXIT_STATES:
             time.sleep(1)
+        write_json(config_dash.JSON_HANDLE, config_dash.JSON_LOG)
 
         if ifname != meta_info['InternalInterface']:
             config_dash.LOG.info("Error: Interface has changed during the astream experiment, abort")
