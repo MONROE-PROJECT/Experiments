@@ -51,6 +51,11 @@ while True:
             print ("Error: Invalid zmq msg")
         continue
 
+    # Skip all messages that belong to connectivity as they are redundant
+    # as we save the modem messages.
+    if topic.startswith("MONROE.META.DEVICE.CONNECTIVITY."):
+        continue
+
     # According to specification all messages that ends with .UPDATE in the
     # topic are rebrodcasts so we skip these.
     if topic.endswith(".UPDATE"):
