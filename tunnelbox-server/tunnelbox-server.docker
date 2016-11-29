@@ -1,0 +1,45 @@
+FROM debian:jessie
+
+MAINTAINER jonas.karlsson@kau.se
+
+# Make necessary directories
+RUN mkdir -p /opt/monroe
+RUN mkdir -p /var/run/sshd
+COPY files/* /opt/monroe/
+
+############## Main Installation and cleanup ##############
+RUN apt-get update && apt-get upgrade -y --force-yes \
+    && apt-get install -y --force-yes --no-install-recommends --no-install-suggests \
+    openssh-server \
+    curl \
+    ca-certificates \
+    jq \
+    net-tools \
+    && curl -L -O https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb \
+    && dpkg -i dumb-init_*.deb \
+    && apt-get update --fix-missing \
+    && apt-get clean -y --force-yes clean \
+    && apt-get -y --force-yes autoremove \
+    # Cleanup
+    && rm -rf dumb-init*deb /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old
+
+# Add a tunnel user
+RUN adduser -disabled-login --disabled-password --shell /bin/false --gecos "Tunnel User, , , , " tunnel \
+    && mkdir -p /home/tunnel/.ssh
+
+# Enable SSH portforwarding
+RUN echo "GatewayPorts yes" >> /etc/ssh/sshd_config
+
+# Export some of the variables set here
+RUN echo "export USER=tunnel" >> /etc/profile \
+    && echo "export SERVERPORT=29999" >> /etc/profile \
+    && echo "export SCHEDULERURL=https://scheduler.monroe-system.eu/v1/backend/pubkeys" >> /etc/profile \
+    && echo "export UPDATEFREQ=30" >> /etc/profile \
+    && echo "export CERT=/opt/monroe/tunnelbox-server.pem" >> /etc/profile \
+    && echo "export KEY=/opt/monroe/tunnelbox-server.key" >> /etc/profile
+# First port is used by the server, the remaining are for client nodes (NODEID + 30000)
+#EXPOSE 29999-31000
+EXPOSE 29999-30001
+
+# Default cmd to run
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/monroe-sshtunnel-server.sh"]
