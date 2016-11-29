@@ -1,34 +1,61 @@
 FROM debian:jessie
 
-MAINTAINER Stefan.Alfredsson@kau.se
+MAINTAINER jonas.karlsson@kau.se
+
+# FireFox
+ENV FF_VER 46.0.1
+# DumbInit
+ENV DI_VER 1.2.0
+# Gecko Driver
+ENV GD_VER 0.11.1
 
 ############## Create Common directories and files ##############
 RUN mkdir -p /opt/monroe
+RUN mkdir -p /opt/monroe/lib
+RUN mkdir -p /monroe
+
 COPY files/* /opt/monroe/
+COPY system_files/monroe-sshtunnel-client.sh /usr/bin/
+COPY system_files/bind.so /opt/monroe/lib/
 
-############## wget and dumbinit (with recommends) ##############
-RUN apt-get update && apt-get install -y --force-yes wget \
-    && wget https://github.com/Yelp/dumb-init/releases/download/v1.1.3/dumb-init_1.1.3_amd64.deb \
-    && dpkg -i dumb-init_*.deb \
-    # Cleanup
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* dumb-init*deb /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old
-
-############## 3: party repositories ##############
-## FLENT
+############## Add 3: party repositories ##############
+# Flent
+ADD http://download.opensuse.org/repositories/home:tohojo:flent/Debian_8.0/Release.key flent.key
 RUN echo 'deb http://download.opensuse.org/repositories/home:/tohojo:/flent/Debian_8.0/ /' > /etc/apt/sources.list.d/flent.list \
-    && wget -qO - http://download.opensuse.org/repositories/home:tohojo:flent/Debian_8.0/Release.key | apt-key add -
-
-## OML (per Turin F2F workshop 2016-01-28)
-### https://software.opensuse.org/download.html?project=devel:tools:mytestbed:stable&package=oml2
+    && apt-key add flent.key \
+    && rm flent.key
+# OML (per Turin F2F workshop 2016-01-28)
+ADD http://download.opensuse.org/repositories/devel:tools:mytestbed:stable/Debian_7.0/Release.key oml2.key
 RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:/stable/Debian_7.0/ /' > /etc/apt/sources.list.d/oml2.list \
-    && wget -qO - http://download.opensuse.org/repositories/devel:tools:mytestbed:stable/Debian_7.0/Release.key | apt-key add -
+    && apt-key add oml2.key \
+    && rm oml2.key
 
 
 ############## Main Installation and cleanup ##############
 RUN apt-get update && apt-get upgrade -y --force-yes \
     && apt-get install -y --force-yes --no-install-recommends --no-install-suggests \
+    ca-certificates \
     python \
     python-zmq \
+    python-scapy \
+    python-six \
+    python-netifaces \
+    python-rrdtool \
+    python-pip \
+    python3 \
+    python3-netifaces \
+    python3-zmq \
+    python3-six \
+    # No python3-scapy in jessie
+    # Needed for headless firefox
+    xvfb \
+    xauth \
+    libgtk-3-0 \
+    libasound2 \
+    dbus \
+    libdbus-glib-1-2 \
+    # Common tools
+    bzip2 \
     traceroute \
     paris-traceroute \
     fping \
@@ -47,19 +74,27 @@ RUN apt-get update && apt-get upgrade -y --force-yes \
     net-tools \
     rsync \
     openssh-client \
+    openssh-server \
     iptables \
     curl \
     wget \
     supervisor \
-    python-netifaces \
     nano \
     default-jre-headless \
-    python-rrdtool \
-    python3 \
-    python3-netifaces \
-    python3-zmq \
-    && apt-get update --fix-missing \
+    jq \
+    # Dumb init
+    && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
+    && dpkg -i dumb-init.deb \
+    # Headless Firefox
+    && curl -L -o firefox.tbz2 "https://download.mozilla.org/?product=firefox-${FF_VER}&os=linux64&lang=en-US" \
+    && tar -C /opt -jxf firefox.tbz2 \
+    && ln -s /opt/firefox/firefox /usr/bin/firefox \
+    && curl -L -o geckodriver.tgz "https://github.com/mozilla/geckodriver/releases/download/v${GD_VER}/geckodriver-v${GD_VER}-linux64.tar.gz" \
+    && tar -C /usr/bin -zxf geckodriver.tgz \
+    && pip install pyvirtualdisplay selenium python-dateutil \
+    # Fix missing packages
+    && apt-get update -y --force-yes --fix-missing \
+    # Cleanup
     && apt-get clean -y --force-yes clean \
     && apt-get -y --force-yes autoremove \
-    # Cleanup
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 geckodriver.tgz dumb-init.deb
