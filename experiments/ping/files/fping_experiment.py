@@ -40,7 +40,7 @@ EXPCONFIG = {
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
         "server": "8.8.8.8",  # ping target
         "interval": 1000,  # time in milliseconds between successive packets
-        "dataversion": 1,
+        "dataversion": 2,
         "dataid": "MONROE.EXP.PING",
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "ifup_interval_check": 5,  # Interval to check if interface is up
@@ -53,17 +53,6 @@ EXPCONFIG = {
                                         "wlan0"]  # Manual metadata on these IF
         }
 
-# We are only running one process (popen) at a time (in each subprocess)
-FPING_PROCESS = None
-
-
-def handle_signal(signum, frame):
-    # send signal recieved to subprocesses
-    print "Recived signal {}".format(signum)
-    if FPING_PROCESS is not None and FPING_PROCESS.poll() is None:
-        print "Killing fping"
-        FPING_PROCESS.send_signal(signum)
-
 
 def run_exp(meta_info, expconfig):
 
@@ -72,59 +61,64 @@ def run_exp(meta_info, expconfig):
     monroe_exporter.initalize(expconfig['export_interval'],
                               expconfig['resultdir'])
 
-    # Register signla handlers
-    signal.signal(signal.SIGTERM, handle_signal)
-    signal.signal(signal.SIGINT, handle_signal)
-
     ifname = meta_info[expconfig["modeminterfacename"]]
-    interval = str(expconfig['interval'])
+    interval = float(expconfig['interval']/1000.0)
     server = expconfig['server']
     cmd = ["fping",
            "-I", ifname,
            "-D",
-           "-p", interval,
-           "-l", server]
+           "-c", "1",
+           server]
     # Regexp to parse fping ouput from command
     r = re.compile(r'^\[(?P<ts>[0-9]+\.[0-9]+)\] (?P<host>[^ ]+) : \[(?P<seq>[0-9]+)\], (?P<bytes>\d+) bytes, (?P<rtt>[0-9]+(?:\.[0-9]+)?) ms \(.*\)$')
 
-    popen = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             bufsize=1)
-    FPING_PROCESS = popen
-    stdout_lines = iter(popen.stdout.readline, "")
     # This is the inner loop where we wait for output from fping
-    # This will run until we get a interface hickup
-    for line in stdout_lines:
-        m = r.match(line)
-        if m is None:
-            if expconfig['verbosity'] > 1:
-                print "Could not match regexp, exiting"
-            sys.exit(1)
+    # This will run until we get a interface hickup, where the process will be
+    # killed from parent process.
+    seq = 0
+    while True:
+        popen = subprocess.Popen(cmd,
+                                 stdout=subprocess.PIPE,
+                                 bufsize=1)
+        output = popen.stdout.readline()
+        m = r.match(output)
+        if m is not None:  # We could send and got a reply
+            # keys are defined in regexp compilation. Nice!
+            exp_result = m.groupdict()
 
-        # keys are defined in regexp compilation. Nice!
-        exp_result = m.groupdict()
-
-        # Experiment outputinfo["ICCID"] = "local"
-        msg = {
-                        'Bytes': int(exp_result['bytes']),
-                        'Host': exp_result['host'],
-                        'Rtt': float(exp_result['rtt']),
-                        'SequenceNumber': int(exp_result['seq']),
-                        'Timestamp': float(exp_result['ts']),
-                        "Guid": expconfig['guid'],
-                        "DataId": expconfig['dataid'],
-                        "DataVersion": expconfig['dataversion'],
-                        "NodeId": expconfig['nodeid'],
-                        "Iccid": meta_info["ICCID"],
-                        "Operator": meta_info["Operator"]
-               }
+            msg = {
+                            'Bytes': int(exp_result['bytes']),
+                            'Host': exp_result['host'],
+                            'Rtt': float(exp_result['rtt']),
+                            'SequenceNumber': int(seq),
+                            'Timestamp': float(exp_result['ts']),
+                            "Guid": expconfig['guid'],
+                            "DataId": expconfig['dataid'],
+                            "DataVersion": expconfig['dataversion'],
+                            "NodeId": expconfig['nodeid'],
+                            "Iccid": meta_info["ICCID"],
+                            "Operator": meta_info["Operator"]
+                  }
+        else:  # We lost the interface or did not get a reply
+            msg = {
+                            'Host': server,
+                            'SequenceNumber': int(seq),
+                            'Timestamp': time.time(),
+                            "Guid": expconfig['guid'],
+                            "DataId": expconfig['dataid'],
+                            "DataVersion": expconfig['dataversion'],
+                            "NodeId": expconfig['nodeid'],
+                            "Iccid": meta_info["ICCID"],
+                            "Operator": meta_info["Operator"]
+                   }
 
         if expconfig['verbosity'] > 2:
             print msg
         if not DEBUG:
             # We have already initalized the exporter with the export dir
             monroe_exporter.save_output(msg)
-
+        seq += 1
+        time.sleep(interval)
     # Cleanup
     if expconfig['verbosity'] > 1:
         print "Cleaning up fping process"
