@@ -93,11 +93,9 @@ def run_exp(meta_info, expconfig, url,count):
 
     url=url_list[index]
 
-    print url, url[:-1] 
-    
     try:
     	response = subprocess.check_output(
-        ['ping', '-I',ifname,'-c', '3', '-nq', url[:-1]],
+        ['fping', '-I',ifname,'-c', '3', '-nq', url],
         stderr=subprocess.STDOUT,  # get all output
         universal_newlines=True  # return string not bytes
     	)
@@ -112,7 +110,8 @@ def run_exp(meta_info, expconfig, url,count):
 
  
     tr_output=""
-    ip = IP(dst=url[:-1])
+    host_or_ip=url
+    ip = IP(dst=host_or_ip)
 
     icmp = ICMP()
 
@@ -128,7 +127,6 @@ def run_exp(meta_info, expconfig, url,count):
       		break
 
     	ip.ttl += 1
-    print tr_output
     display = Display(visible=0, size=(800, 600))
     display.start()
     profile = webdriver.FirefoxProfile()
