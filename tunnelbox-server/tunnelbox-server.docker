@@ -38,8 +38,8 @@ RUN echo "export USER=tunnel" >> /etc/profile \
     && echo "export CERT=/opt/monroe/tunnelbox-server.pem" >> /etc/profile \
     && echo "export KEY=/opt/monroe/tunnelbox-server.key" >> /etc/profile
 # First port is used by the server, the remaining are for client nodes (NODEID + 30000)
-#EXPOSE 29999-31000
-EXPOSE 29999-30001
+EXPOSE 29999-31000
+#EXPOSE 29999-30001
 
 # Default cmd to run
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/monroe-sshtunnel-server.sh"]
