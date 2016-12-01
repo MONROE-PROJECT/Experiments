@@ -23,16 +23,14 @@ from pyvirtualdisplay import Display
 from selenium import webdriver
 import datetime
 from dateutil.parser import parse
-import logging
-logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-
-from scapy.all import IP, ICMP, sr1
-
+from selenium.common.exceptions import WebDriverException
 import json
-import subprocess
 import zmq
 import netifaces
 import time
+import subprocess
+import socket
+import struct
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 
@@ -80,8 +78,66 @@ EXPCONFIG = {
         "allowed_interfaces": ["op0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": []  # Manual metadata on these IF
+        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
         }
+
+def py_traceroute(dest_name):
+    dest_addr = socket.gethostbyname(dest_name)
+    port = 33434
+    max_hops = 30
+    icmp = socket.getprotobyname('icmp')
+    udp = socket.getprotobyname('udp')
+    ttl = 1
+
+    tr_output=""
+    while True:
+        recv_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
+        send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, udp)
+        send_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+        
+        # Build the GNU timeval struct (seconds, microseconds)
+        timeout = struct.pack("ll", 5, 0)
+        
+        # Set the receive timeout so we behave more like regular traceroute
+        recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, timeout)
+        
+        recv_socket.bind(("", port))
+        #sys.stdout.write(" %d  " % ttl)
+        send_socket.sendto("", (dest_name, port))
+        curr_addr = None
+        curr_name = None
+        finished = False
+        tries = 3
+        while not finished and tries > 0:
+            try:
+                _, curr_addr = recv_socket.recvfrom(512)
+                finished = True
+                curr_addr = curr_addr[0]
+                try:
+                    curr_name = socket.gethostbyaddr(curr_addr)[0]
+                except socket.error:
+                    curr_name = curr_addr
+            except socket.error as (errno, errmsg):
+                tries = tries - 1
+                sys.stdout.write("* ")
+        
+        send_socket.close()
+        recv_socket.close()
+        
+        if not finished:
+            pass
+        
+        if curr_addr is not None:
+            curr_host = "%s (%s)" % (curr_name, curr_addr)
+        else:
+            curr_host = ""
+            curr_addr = " "
+        tr_output+=curr_addr+" "
+
+        ttl += 1
+        if curr_addr == dest_addr or ttl > max_hops:
+            break
+    return tr_output
 
 
 def run_exp(meta_info, expconfig, url,count):
@@ -94,39 +150,27 @@ def run_exp(meta_info, expconfig, url,count):
     url=url_list[index]
 
     try:
+    	routes=py_traceroute(str(url[:-1]))
+    except Exception:
+    	print ("tracerouting unsuccessful")
+
+    try:
     	response = subprocess.check_output(
-        ['fping', '-I',ifname,'-c', '3', '-q', url],
+        ['fping', '-I',ifname,'-c', '3', '-q', str(url[:-1])],
         stderr=subprocess.STDOUT,  # get all output
         universal_newlines=True  # return string not bytes
     	)
     	ping_outputs= response.splitlines()[-1].split("=")[-1]
     	ping_output=ping_outputs.split("/")
-        ping_mean = ping_output[0]
+        ping_min = ping_output[0]
     	ping_avg = ping_output[1]
     	ping_max = ping_output[2]
     except subprocess.CalledProcessError:
     	response = None
-        print "Ping info is unknown"
+	print "Ping info is unknown"
 
- 
-    tr_output=""
-    host_or_ip=url
-    ip = IP(dst=host_or_ip)
 
-    icmp = ICMP()
-
-    ip.ttl = 1
-
-    while True:
-
-    	res = sr1(ip/icmp, verbose=False)
-
-    	tr_output+=res['IP'].src+" "
-
-    	if res['ICMP'].type == 0:
-      		break
-
-    	ip.ttl += 1
+    #count=run+1
     display = Display(visible=0, size=(800, 600))
     display.start()
     profile = webdriver.FirefoxProfile()
@@ -217,6 +261,12 @@ def run_exp(meta_info, expconfig, url,count):
                 ms=entry["time"]
     	except KeyError:
         	pass
+
+    try:
+       har_stats["tracedRoutes"]=routes.rstrip().split(" ")
+    except Exception:
+       print "traceroute info is not available"
+
     try:
     	har_stats["ping_max"]=ping_max
         har_stats["ping_avg"]=ping_avg
@@ -224,9 +274,7 @@ def run_exp(meta_info, expconfig, url,count):
 	har_stats["ping_exp"]=1
     except Exception:
 	print("Ping info is not available")
-	har_stats["ping_exp"]=0
-
-    har_stats["trace_rt_ips"]=tr_output
+        har_stats["ping_exp"]=0
     har_stats["Objects"]=objs
     har_stats["NumObjects"]=num_of_objects
     har_stats["PageSize"]=pageSize
@@ -243,22 +291,22 @@ def run_exp(meta_info, expconfig, url,count):
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
     har_stats["Timestamp"]= time.time()
-    try:
-    	har_stats["Iccid"]= meta_info["ICCID"]
-    except Exception:
-    	print("ICCID info is not available")
+    #try:
+    #	har_stats["Iccid"]= meta_info["ICCID"]
+    #except Exception:
+    #	print("ICCID info is not available")
     try:
     	har_stats["Operator"]= meta_info["Operator"]
     except Exception:
     	print("Operator info is not available")
-    try:
-    	har_stats["IMSI"]=meta_info["IMSI"]
-    except Exception:
-    	print("IMSI info is not available")
-    try:
-    	har_stats["IMEI"]=meta_info["IMEI"]
-    except Exception:
-    	print("IMEI info is not available")
+    #try:
+    #	har_stats["IMSI"]=meta_info["IMSI"]
+    #except Exception:
+    #	print("IMSI info is not available")
+    #try:
+    #	har_stats["IMEI"]=meta_info["IMEI"]
+    #except Exception:
+    #	print("IMEI info is not available")
     try:
     	har_stats["InternalInterface"]=meta_info["InternalInterface"]
     except Exception:
@@ -275,59 +323,59 @@ def run_exp(meta_info, expconfig, url,count):
     	har_stats["InterfaceName"]=meta_info["InterfaceName"]
     except Exception:
     	print("InterfaceName info is not available")
-    try:
-    	har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
-    except Exception:
-    	print("IMSIMCCMNC info is not available")
-    try:
-    	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
-    except Exception:
-    	print("NWMCCMNC info is not available")
-    try:
-    	har_stats["LAC"]=meta_info["LAC"]
-    except Exception:
-    	print("LAC info is not available")
-    try:
-    	har_stats["CID"]=meta_info["CID"]
-    except Exception:
-    	print("CID info is not available")
-    try:
-    	har_stats["RSCP"]=meta_info["RSCP"]
-    except Exception:
-    	print("RSCP info is not available")
-    try:
-    	har_stats["RSSI"]=meta_info["RSSI"]
-    except Exception:
-    	print("RSSI info is not available")
-    try:
-    	har_stats["RSRQ"]=meta_info["RSRQ"]
-    except Exception:
-    	print("RSRQ info is not available")
-    try:
-    	har_stats["RSRP"]=meta_info["RSRP"]
-    except Exception:
-    	print("RSRP info is not available")
-    try:
-    	har_stats["ECIO"]=meta_info["ECIO"]
-    except Exception:
-    	print("ECIO info is not available")
-    try:
-    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
-    except Exception:
-    	print("DeviceMode info is not available")
-    try:
-    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
-    except Exception:
-    	print("DeviceSubmode info is not available")
-    try:
-    	har_stats["DeviceState"]=meta_info["DeviceState"]
-    except Exception:
-    	print("DeviceState info is not available")
-
+#    try:
+#    	har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
+#    except Exception:
+#    	print("IMSIMCCMNC info is not available")
+#    try:
+#    	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
+#    except Exception:
+#    	print("NWMCCMNC info is not available")
+#    try:
+#    	har_stats["LAC"]=meta_info["LAC"]
+#    except Exception:
+#    	print("LAC info is not available")
+#    try:
+#    	har_stats["CID"]=meta_info["CID"]
+#    except Exception:
+#    	print("CID info is not available")
+#    try:
+#    	har_stats["RSCP"]=meta_info["RSCP"]
+#    except Exception:
+#    	print("RSCP info is not available")
+#    try:
+#    	har_stats["RSSI"]=meta_info["RSSI"]
+#    except Exception:
+#    	print("RSSI info is not available")
+#    try:
+#    	har_stats["RSRQ"]=meta_info["RSRQ"]
+#    except Exception:
+#    	print("RSRQ info is not available")
+#    try:
+#    	har_stats["RSRP"]=meta_info["RSRP"]
+#    except Exception:
+#    	print("RSRP info is not available")
+#    try:
+#    	har_stats["ECIO"]=meta_info["ECIO"]
+#    except Exception:
+#    	print("ECIO info is not available")
+#    try:
+#    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
+#    except Exception:
+#    	print("DeviceMode info is not available")
+#    try:
+#    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
+#    except Exception:
+#    	print("DeviceSubmode info is not available")
+#    try:
+#    	har_stats["DeviceState"]=meta_info["DeviceState"]
+#    except Exception:
+#    	print("DeviceState info is not available")
+#
     har_stats["SequenceNumber"]= count
 
     #msg=json.dumps(har_stats)
-    with open('/tmp/'+filename+'_'+ifname+'.json', 'w') as outfile:
+    with open('/tmp/'+str(har_stats["NodeId"])+'_'+str(har_stats["DataId"])+'_'+str(har_stats["Timestamp"])+'.json', 'w') as outfile:
         json.dump(har_stats, outfile)
     
     if expconfig['verbosity'] > 2:
@@ -384,16 +432,15 @@ def check_meta(info, graceperiod, expconfig):
             time.time() - info["Timestamp"] < graceperiod)
 
 
-def add_manual_metadata_information(info, ifname, expconfig):
-    """Only used for local interfaces that do not have any metadata information.
-
-       Normally eth0 and wlan0.
-    """
-    info[expconfig["modeminterfacename"]] = ifname
-    info["Operator"] = "local"
-    info["Timestamp"] = time.time()
-    info["internalIPAddress"]="172.17.0.2"
-
+#def add_manual_metadata_information(info, ifname, expconfig):
+#    """Only used for local interfaces that do not have any metadata information.
+#
+#       Normally eth0 and wlan0.
+#    """
+#    info[expconfig["modeminterfacename"]] = ifname
+#    info["Operator"] = "local"
+#    info["Timestamp"] = time.time()
+#
 
 def create_meta_process(ifname, expconfig):
     meta_info = Manager().dict()
@@ -523,8 +570,8 @@ if __name__ == '__main__':
         # On these Interfaces we do net get modem information so we hack
         # in the required values by hand whcih will immeditaly terminate
         # metadata loop below
-      #  if (check_if(ifname) and ifname in if_without_metadata):
-       #     add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+#        if (check_if(ifname) and ifname in if_without_metadata):
+#            add_manual_metadata_information(meta_info, ifname)
 #
         # Try to get metadadata
         # if the metadata process dies we retry until the IF_META_GRACE is up
@@ -553,34 +600,34 @@ if __name__ == '__main__':
 
 	output_interface=None
 
-#        cmd1=["route",
-#             "del",
-#             "default"]
-#        #os.system(bashcommand)
-#        try:
-#                check_output(cmd1)
-#        except CalledProcessError as e:
-#                if e.returncode == 28:
-#                        print "Time limit exceeded"
-#        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
-#        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-#        try:
-#                check_output(cmd2)
-#        	cmd3=["ip", "route", "get", "8.8.8.8"]
-#                output=check_output(cmd3)
-#        	output = output.strip(' \t\r\n\0')
-#        	output_interface=output.split(" ")[4]
-#        	if output_interface==str(ifname):
-#                	print "Source interface is set to "+str(ifname)
-#		else:
-#			continue
-#        
-#	except CalledProcessError as e:
-#                 if e.returncode == 28:
-#                        print "Time limit exceeded"
-#		 continue
-#	
-#
+        cmd1=["route",
+             "del",
+             "default"]
+        #os.system(bashcommand)
+        try:
+                check_output(cmd1)
+        except CalledProcessError as e:
+                if e.returncode == 28:
+                        print "Time limit exceeded"
+        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
+        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
+        try:
+                check_output(cmd2)
+        	cmd3=["ip", "route", "get", "8.8.8.8"]
+                output=check_output(cmd3)
+        	output = output.strip(' \t\r\n\0')
+        	output_interface=output.split(" ")[4]
+        	if output_interface==str(ifname):
+                	print "Source interface is set to "+str(ifname)
+		else:
+			continue
+        
+	except CalledProcessError as e:
+                 if e.returncode == 28:
+                        print "Time limit exceeded"
+		 continue
+	
+
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
         
