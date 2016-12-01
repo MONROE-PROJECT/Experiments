@@ -23,7 +23,7 @@ from pyvirtualdisplay import Display
 from selenium import webdriver
 import datetime
 from dateutil.parser import parse
-
+from selenium.common.exceptions import WebDriverException
 import json
 import zmq
 import netifaces
@@ -87,7 +87,7 @@ def run_exp(meta_info, expconfig, url,count):
     ifname = meta_info[expconfig["modeminterfacename"]]
 
     url=url_list[index]
-    count=run+1
+    #count=run+1
     display = Display(visible=0, size=(800, 600))
     display.start()
     profile = webdriver.FirefoxProfile()
@@ -195,22 +195,22 @@ def run_exp(meta_info, expconfig, url,count):
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
     har_stats["Timestamp"]= time.time()
-    try:
-    	har_stats["Iccid"]= meta_info["ICCID"]
-    except Exception:
-    	print("ICCID info is not available")
+    #try:
+    #	har_stats["Iccid"]= meta_info["ICCID"]
+    #except Exception:
+    #	print("ICCID info is not available")
     try:
     	har_stats["Operator"]= meta_info["Operator"]
     except Exception:
     	print("Operator info is not available")
-    try:
-    	har_stats["IMSI"]=meta_info["IMSI"]
-    except Exception:
-    	print("IMSI info is not available")
-    try:
-    	har_stats["IMEI"]=meta_info["IMEI"]
-    except Exception:
-    	print("IMEI info is not available")
+    #try:
+    #	har_stats["IMSI"]=meta_info["IMSI"]
+    #except Exception:
+    #	print("IMSI info is not available")
+    #try:
+    #	har_stats["IMEI"]=meta_info["IMEI"]
+    #except Exception:
+    #	print("IMEI info is not available")
     try:
     	har_stats["InternalInterface"]=meta_info["InternalInterface"]
     except Exception:
@@ -227,59 +227,59 @@ def run_exp(meta_info, expconfig, url,count):
     	har_stats["InterfaceName"]=meta_info["InterfaceName"]
     except Exception:
     	print("InterfaceName info is not available")
-    try:
-    	har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
-    except Exception:
-    	print("IMSIMCCMNC info is not available")
-    try:
-    	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
-    except Exception:
-    	print("NWMCCMNC info is not available")
-    try:
-    	har_stats["LAC"]=meta_info["LAC"]
-    except Exception:
-    	print("LAC info is not available")
-    try:
-    	har_stats["CID"]=meta_info["CID"]
-    except Exception:
-    	print("CID info is not available")
-    try:
-    	har_stats["RSCP"]=meta_info["RSCP"]
-    except Exception:
-    	print("RSCP info is not available")
-    try:
-    	har_stats["RSSI"]=meta_info["RSSI"]
-    except Exception:
-    	print("RSSI info is not available")
-    try:
-    	har_stats["RSRQ"]=meta_info["RSRQ"]
-    except Exception:
-    	print("RSRQ info is not available")
-    try:
-    	har_stats["RSRP"]=meta_info["RSRP"]
-    except Exception:
-    	print("RSRP info is not available")
-    try:
-    	har_stats["ECIO"]=meta_info["ECIO"]
-    except Exception:
-    	print("ECIO info is not available")
-    try:
-    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
-    except Exception:
-    	print("DeviceMode info is not available")
-    try:
-    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
-    except Exception:
-    	print("DeviceSubmode info is not available")
-    try:
-    	har_stats["DeviceState"]=meta_info["DeviceState"]
-    except Exception:
-    	print("DeviceState info is not available")
-
+#    try:
+#    	har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
+#    except Exception:
+#    	print("IMSIMCCMNC info is not available")
+#    try:
+#    	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
+#    except Exception:
+#    	print("NWMCCMNC info is not available")
+#    try:
+#    	har_stats["LAC"]=meta_info["LAC"]
+#    except Exception:
+#    	print("LAC info is not available")
+#    try:
+#    	har_stats["CID"]=meta_info["CID"]
+#    except Exception:
+#    	print("CID info is not available")
+#    try:
+#    	har_stats["RSCP"]=meta_info["RSCP"]
+#    except Exception:
+#    	print("RSCP info is not available")
+#    try:
+#    	har_stats["RSSI"]=meta_info["RSSI"]
+#    except Exception:
+#    	print("RSSI info is not available")
+#    try:
+#    	har_stats["RSRQ"]=meta_info["RSRQ"]
+#    except Exception:
+#    	print("RSRQ info is not available")
+#    try:
+#    	har_stats["RSRP"]=meta_info["RSRP"]
+#    except Exception:
+#    	print("RSRP info is not available")
+#    try:
+#    	har_stats["ECIO"]=meta_info["ECIO"]
+#    except Exception:
+#    	print("ECIO info is not available")
+#    try:
+#    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
+#    except Exception:
+#    	print("DeviceMode info is not available")
+#    try:
+#    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
+#    except Exception:
+#    	print("DeviceSubmode info is not available")
+#    try:
+#    	har_stats["DeviceState"]=meta_info["DeviceState"]
+#    except Exception:
+#    	print("DeviceState info is not available")
+#
     har_stats["SequenceNumber"]= count
 
     #msg=json.dumps(har_stats)
-    with open('/tmp/'+filename+'_'+ifname+'.json', 'w') as outfile:
+    with open('/tmp/'+str(har_stats["NodeId"])+'_'+str(har_stats["DataId"])+'_'+str(har_stats["Timestamp"])+'.json', 'w') as outfile:
         json.dump(har_stats, outfile)
     
     if expconfig['verbosity'] > 2:

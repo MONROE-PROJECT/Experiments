@@ -29,6 +29,7 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import IP, ICMP, sr1
 
 import json
+import subprocess
 import zmq
 import netifaces
 import time
@@ -79,7 +80,7 @@ EXPCONFIG = {
         "allowed_interfaces": ["op0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
+        "interfaces_without_metadata": []  # Manual metadata on these IF
         }
 
 
@@ -92,11 +93,9 @@ def run_exp(meta_info, expconfig, url,count):
 
     url=url_list[index]
 
-   
-    
     try:
     	response = subprocess.check_output(
-        ['ping', '-I',ifname,'-c', '3', '-nq', url[:-1]],
+        ['fping', '-I',ifname,'-c', '3', '-q', url],
         stderr=subprocess.STDOUT,  # get all output
         universal_newlines=True  # return string not bytes
     	)
@@ -107,10 +106,11 @@ def run_exp(meta_info, expconfig, url,count):
     	ping_max = ping_output[2]
     except subprocess.CalledProcessError:
     	response = None
-        print "Ping info in known"
+        print "Ping info is unknown"
 
  
     tr_output=""
+    host_or_ip=url
     ip = IP(dst=host_or_ip)
 
     icmp = ICMP()
@@ -225,6 +225,8 @@ def run_exp(meta_info, expconfig, url,count):
     except Exception:
 	print("Ping info is not available")
 	har_stats["ping_exp"]=0
+
+    har_stats["trace_rt_ips"]=tr_output
     har_stats["Objects"]=objs
     har_stats["NumObjects"]=num_of_objects
     har_stats["PageSize"]=pageSize
@@ -382,15 +384,16 @@ def check_meta(info, graceperiod, expconfig):
             time.time() - info["Timestamp"] < graceperiod)
 
 
-#def add_manual_metadata_information(info, ifname, expconfig):
-#    """Only used for local interfaces that do not have any metadata information.
-#
-#       Normally eth0 and wlan0.
-#    """
-#    info[expconfig["modeminterfacename"]] = ifname
-#    info["Operator"] = "local"
-#    info["Timestamp"] = time.time()
-#
+def add_manual_metadata_information(info, ifname, expconfig):
+    """Only used for local interfaces that do not have any metadata information.
+
+       Normally eth0 and wlan0.
+    """
+    info[expconfig["modeminterfacename"]] = ifname
+    info["Operator"] = "local"
+    info["Timestamp"] = time.time()
+    info["internalIPAddress"]="172.17.0.2"
+
 
 def create_meta_process(ifname, expconfig):
     meta_info = Manager().dict()
@@ -520,8 +523,8 @@ if __name__ == '__main__':
         # On these Interfaces we do net get modem information so we hack
         # in the required values by hand whcih will immeditaly terminate
         # metadata loop below
-#        if (check_if(ifname) and ifname in if_without_metadata):
-#            add_manual_metadata_information(meta_info, ifname)
+      #  if (check_if(ifname) and ifname in if_without_metadata):
+       #     add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
 #
         # Try to get metadadata
         # if the metadata process dies we retry until the IF_META_GRACE is up
@@ -550,34 +553,34 @@ if __name__ == '__main__':
 
 	output_interface=None
 
-        cmd1=["route",
-             "del",
-             "default"]
-        #os.system(bashcommand)
-        try:
-                check_output(cmd1)
-        except CalledProcessError as e:
-                if e.returncode == 28:
-                        print "Time limit exceeded"
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
-        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-        try:
-                check_output(cmd2)
-        	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-        	output = output.strip(' \t\r\n\0')
-        	output_interface=output.split(" ")[4]
-        	if output_interface==str(ifname):
-                	print "Source interface is set to "+str(ifname)
-		else:
-			continue
-        
-	except CalledProcessError as e:
-                 if e.returncode == 28:
-                        print "Time limit exceeded"
-		 continue
-	
-
+#        cmd1=["route",
+#             "del",
+#             "default"]
+#        #os.system(bashcommand)
+#        try:
+#                check_output(cmd1)
+#        except CalledProcessError as e:
+#                if e.returncode == 28:
+#                        print "Time limit exceeded"
+#        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
+#        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
+#        try:
+#                check_output(cmd2)
+#        	cmd3=["ip", "route", "get", "8.8.8.8"]
+#                output=check_output(cmd3)
+#        	output = output.strip(' \t\r\n\0')
+#        	output_interface=output.split(" ")[4]
+#        	if output_interface==str(ifname):
+#                	print "Source interface is set to "+str(ifname)
+#		else:
+#			continue
+#        
+#	except CalledProcessError as e:
+#                 if e.returncode == 28:
+#                        print "Time limit exceeded"
+#		 continue
+#	
+#
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
         
