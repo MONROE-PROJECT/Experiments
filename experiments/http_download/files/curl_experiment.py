@@ -169,6 +169,7 @@ def add_manual_metadata_information(info, ifname, expconfig):
     """
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
+    info["ICCID"] = "local"
     info["Timestamp"] = time.time()
 
 
@@ -201,6 +202,7 @@ if __name__ == '__main__':
     else:
         # We are in debug state always put out all information
         EXPCONFIG['verbosity'] = 3
+        EXPCONFIG["allowed_interfaces"].append("eth0")
 
     # Short hand variables and check so we have all variables we need
     try:
@@ -239,7 +241,7 @@ if __name__ == '__main__':
         # in the required values by hand whcih will immeditaly terminate
         # metadata loop below
         if (check_if(ifname) and ifname in if_without_metadata):
-            add_manual_metadata_information(meta_info, ifname)
+            add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
 
         # Try to get metadadata
         # if the metadata process dies we retry until the IF_META_GRACE is up
