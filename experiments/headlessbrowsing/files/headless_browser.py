@@ -54,7 +54,7 @@ current_directory =''
 har_directory =''
 
 # Configuration
-DEBUG = True
+DEBUG = False
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -95,7 +95,7 @@ def run_exp(meta_info, expconfig, url,count):
 
     try:
     	response = subprocess.check_output(
-        ['fping', '-I',ifname,'-c', '3', '-nq', url],
+        ['fping', '-I',ifname,'-c', '3', '-q', url],
         stderr=subprocess.STDOUT,  # get all output
         universal_newlines=True  # return string not bytes
     	)

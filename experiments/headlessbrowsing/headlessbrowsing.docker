@@ -1,4 +1,4 @@
-FROM monroe/base-firefox
+FROM monroe/base
 
 MAINTAINER mohammad.rajiullah@kau.se
 
