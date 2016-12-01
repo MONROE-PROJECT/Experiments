@@ -8,9 +8,9 @@ echo "Experiment starts ..."
 
 while IFS='' read -r line || [[ -n "$line" ]]; do
     echo "$line" > one_url
-    #python headless_browser.py one_url 3 h1
+    python headless_browser.py one_url 3 h1
     python headless_browser.py one_url 3 h2
-    #python headless_browser.py one_url 3 h1s
+    python headless_browser.py one_url 3 h1s
 done < url
 
 tar -zcvf /monroe/results/results$RANDOM.tgz /tmp/*.json
