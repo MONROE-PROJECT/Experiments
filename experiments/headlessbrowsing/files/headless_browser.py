@@ -147,7 +147,7 @@ def run_exp(meta_info, expconfig, url,count):
     """
     ifname = meta_info[expconfig["modeminterfacename"]]
 
-    url=url_list[index]
+    #url=url_list[index]
 
     try:
     	routes=py_traceroute(str(url[:-1]))
@@ -286,7 +286,7 @@ def run_exp(meta_info, expconfig, url,count):
     har_stats["url"]=url[:-1]
     har_stats["Protocol"]=getter_version	
     har_stats["Web load time"]=plt_ms
-    har_stats["Guid"]= expconfig['guid']
+    #har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
