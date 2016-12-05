@@ -291,7 +291,7 @@ def run_exp(meta_info, expconfig, url,count):
     har_stats["Web load time"]=plt_ms
     #har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
-    #har_stats["DataVersion"]= expconfig['dataversion']
+    har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
     har_stats["Timestamp"]= time.time()
     try:
