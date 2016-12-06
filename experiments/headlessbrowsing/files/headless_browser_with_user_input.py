@@ -251,8 +251,10 @@ def run_exp(meta_info, expconfig, url,count):
         try:
                 obj={}
                 obj["url"]=entry["request"]["url"]
-                obj["ObjectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
+                obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
                 pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
+		obj["mimeType"]=entry["response"]["content"]["mimeType"]
+		obj["startedDateTime"]=entry["startedDateTime"]
                 obj["time"]=entry["time"]
                 obj["timings"]=entry["timings"]
                 objs.append(obj)
