@@ -153,13 +153,13 @@ def run_exp(meta_info, expconfig, url,count):
     #url=url_list[index]
 
     try:
-    	routes=py_traceroute(str(url[:-1]))
+    	routes=py_traceroute(str(url))
     except Exception:
     	print ("tracerouting unsuccessful")
 
     try:
     	response = subprocess.check_output(
-        ['fping', '-I',ifname,'-c', '3', '-q', str(url[:-1])],
+        ['fping', '-I',ifname,'-c', '3', '-q', str(url)],
         stderr=subprocess.STDOUT,  # get all output
         universal_newlines=True  # return string not bytes
     	)
@@ -288,7 +288,7 @@ def run_exp(meta_info, expconfig, url,count):
     minutes = int(minutes)
     seconds = float(seconds)
     plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
-    har_stats["url"]=url[:-1]
+    har_stats["url"]=url
     har_stats["Protocol"]=getter_version	
     har_stats["Web load time"]=plt_ms
     #har_stats["Guid"]= expconfig['guid']
