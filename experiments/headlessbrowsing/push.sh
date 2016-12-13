@@ -3,6 +3,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 CONTAINER=${DIR##*/}
 
-CONTAINERTAG=mraj/http2measurements2 # Modify to your own dockerhub user/repo
+REPO=monroe1.cs.kau.se:5000
+CONTAINERTAG=${REPO}/monroe/${CONTAINER}
 
-docker login && docker tag ${CONTAINER} ${CONTAINERTAG} && docker push ${CONTAINERTAG} && echo "Finished uploading ${CONTAINERTAG}"
+docker login ${REPO} && docker tag ${CONTAINER} ${CONTAINERTAG} && docker push ${CONTAINERTAG} && echo "Finished uploading ${CONTAINERTAG}"
