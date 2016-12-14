@@ -72,6 +72,7 @@ def run_exp(meta_info, expconfig):
     """
     ifname = meta_info[expconfig["modeminterfacename"]]
     cmd = ["curl",
+           "-f", # added this to get the curl exit code 22 for http failures
            "--raw",
            "--silent",
            "--write-out", "{}".format(CURL_METRICS),
@@ -82,9 +83,11 @@ def run_exp(meta_info, expconfig):
     # Safeguard to always have a defined output variable
     output = None
     try:
+        start_curl = time.time()
         try:
             output = check_output(cmd)
         except CalledProcessError as e:
+                # need to log here all the pottential curl exit codes
                 if e.returncode == 28:  # time-limit exceeded
                     if expconfig['verbosity'] > 2:
                         print ("Exceding timelimit {}, "
@@ -96,13 +99,13 @@ def run_exp(meta_info, expconfig):
         output = output.strip(' \t\r\n\0')
         # Convert to JSON
         msg = json.loads(output)
-
+        # AEL: need to add here the curl exit code as well
         msg.update({
             "Guid": expconfig['guid'],
             "DataId": expconfig['dataid'],
             "DataVersion": expconfig['dataversion'],
             "NodeId": expconfig['nodeid'],
-            "Timestamp": time.time(),
+            "Timestamp": start_curl,
             "Iccid": meta_info["ICCID"],
             "Operator": meta_info["Operator"],
             "DownloadTime": msg["TotalTime"] - msg["SetupTime"],

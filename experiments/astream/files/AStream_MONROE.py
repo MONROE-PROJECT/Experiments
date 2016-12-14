@@ -150,6 +150,7 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
     # Netflix Variables
     average_segment_sizes = netflix_rate_map = None
     netflix_state = "INITIAL"
+    down_rate = 0
     # Start playback of all the segments
     for segment_number, segment in enumerate(dp_list, dp_object.video[current_bitrate].start):
         config_dash.LOG.info(" {}: Processing the segment {}".format(playback_type.upper(), segment_number))
@@ -200,6 +201,7 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
                             segment_download_rate = segment_size / segment_download_time
                         else:
                             segment_download_rate = 0
+                        down_rate = segment_download_rate # AEL -- adding the "download rate" to the segment info
                         current_bitrate, netflix_rate_map, netflix_state = netflix_dash.netflix_dash(
                             bitrates, dash_player, segment_download_rate, current_bitrate, average_segment_sizes,
                             netflix_rate_map, netflix_state)
@@ -245,7 +247,8 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
         config_dash.JSON_HANDLE["segment_info"].append({"segment_name":segment_name, 
                                                         "bitrate":current_bitrate, 
                                                         "segment_size":segment_size,
-                                                        "segment_download_time":segment_download_time})
+                                                        "segment_download_time":segment_download_time,
+                                                        "segment_download_rate":segment_download_rate})
         total_downloaded += segment_size
         config_dash.LOG.info("{} : The total downloaded = {}, segment_size = {}, segment_number = {}".format(
             playback_type.upper(),
