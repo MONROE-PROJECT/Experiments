@@ -82,25 +82,28 @@ def run_exp(meta_info, expconfig):
            "{}".format(expconfig['url'])]
     # Safeguard to always have a defined output variable
     output = None
+    err_code = 0
     try:
         start_curl = time.time()
         try:
             output = check_output(cmd)
         except CalledProcessError as e:
-                # need to log here all the pottential curl exit codes
-                if e.returncode == 28:  # time-limit exceeded
-                    if expconfig['verbosity'] > 2:
-                        print ("Exceding timelimit {}, "
-                               "saving what we have").format(expconfig['time'])
-                    output = e.output
-                else:
-                    raise e
+                err_code = e.returncode # AEL get the error code here
+                output = e.output
+                # if e.returncode == 28:  # time-limit exceeded
+                #     if expconfig['verbosity'] > 2:
+                #         print ("Exceding timelimit {}, "
+                #                "saving what we have").format(expconfig['time'])
+                #     output = e.output
+                # else:
+                #     raise e
         # Clean away leading and trailing whitespace
         output = output.strip(' \t\r\n\0')
         # Convert to JSON
         msg = json.loads(output)
         # AEL: need to add here the curl exit code as well
         msg.update({
+            "ErrorCode": err_code,
             "Guid": expconfig['guid'],
             "DataId": expconfig['dataid'],
             "DataVersion": expconfig['dataversion'],
