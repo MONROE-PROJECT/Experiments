@@ -120,11 +120,11 @@ class DashPlayer:
                         if interruption_start:
                             interruption_end = time.time()
                             interruption = interruption_end - interruption_start
-                            interruption_start = None
                             config_dash.JSON_HANDLE['playback_info']['interruptions']['events'].append(
                                 (interruption_start, interruption_end))
                             config_dash.JSON_HANDLE['playback_info']['interruptions']['total_duration'] += interruption
                             config_dash.LOG.info("Duration of interruption = {}".format(interruption))
+                            interruption_start = None
                         self.set_state("PLAY")
                         self.log_entry("Buffering-Play")
 
