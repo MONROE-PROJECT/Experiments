@@ -4,6 +4,7 @@ MAINTAINER jonas.karlsson@kau.se
 
 # FireFox
 ENV FF_VER 46.0.1
+# ENV FF_VER 45.5.1esr
 # DumbInit
 ENV DI_VER 1.2.0
 # Gecko Driver
@@ -17,6 +18,8 @@ RUN mkdir -p /monroe
 COPY files/* /opt/monroe/
 COPY system_files/monroe-sshtunnel-client.sh /usr/bin/
 COPY system_files/bind.so /opt/monroe/lib/
+COPY system_files/paris-traceroute /usr/sbin/
+RUN chmod +x /usr/sbin/paris-traceroute
 
 ############## Add 3: party repositories ##############
 # Flent
@@ -46,7 +49,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes \
     python3-netifaces \
     python3-zmq \
     python3-six \
-    # No python3-scapy in jessie
+    # No python3-scapy or python3-rrdtool in jessie
     # Needed for headless firefox
     xvfb \
     xauth \
@@ -54,10 +57,11 @@ RUN apt-get update && apt-get upgrade -y --force-yes \
     libasound2 \
     dbus \
     libdbus-glib-1-2 \
+    libgtk2.0-0 \
+    libgtk2.0-common \
     # Common tools
     bzip2 \
     traceroute \
-    paris-traceroute \
     fping \
     smokeping \
     httping \
@@ -92,6 +96,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes \
     && curl -L -o geckodriver.tgz "https://github.com/mozilla/geckodriver/releases/download/v${GD_VER}/geckodriver-v${GD_VER}-linux64.tar.gz" \
     && tar -C /usr/bin -zxf geckodriver.tgz \
     && pip install pyvirtualdisplay selenium python-dateutil \
+    #  && apt-get -y --force-yes remove python-pip
     # Fix missing packages
     && apt-get update -y --force-yes --fix-missing \
     # Cleanup
