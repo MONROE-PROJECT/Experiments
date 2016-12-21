@@ -35,7 +35,7 @@ EXPCONFIG = {
         "time": 3600,  # The maximum time in seconds for a download
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
-        "dataversion": 1,
+        "dataversion": 2,
         "dataid": "MONROE.EXP.HTTP.DOWNLOAD",
         "nodeid": "fake.nodeid",
         "meta_grace": 120,  # Grace period to wait for interface metadata
@@ -60,6 +60,7 @@ CURL_METRICS = ('{ '
                 '"Port": "%{remote_port}", '
                 '"Speed": %{speed_download}, '
                 '"Bytes": %{size_download}, '
+                '"Url": "%{url_effective}", '
                 '"TotalTime": %{time_total}, '
                 '"SetupTime": %{time_starttransfer} '
                 '}')
@@ -72,7 +73,9 @@ def run_exp(meta_info, expconfig):
     """
     ifname = meta_info[expconfig["modeminterfacename"]]
     cmd = ["curl",
-           "-f", # added this to get the curl exit code 22 for http failures
+           "-o", "/dev/null",  # to not output filecontents on stdout
+           "--fail",  # to get the curl exit code 22 for http failures
+           "--insecure",  # to allow selfsigned certificates
            "--raw",
            "--silent",
            "--write-out", "{}".format(CURL_METRICS),
