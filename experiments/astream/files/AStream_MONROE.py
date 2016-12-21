@@ -75,7 +75,9 @@ EXPCONFIG = {
         "script": None,  # Overridden by scheduler
         "allowed_interfaces": ["op0",
                                "op1",
-                               "op2"],  # Interfaces to run the experiment on
+                               "op2",
+                               "wwan0",
+                               "wwan2"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": [],  # Manual metadata on these IF
         # AEL -- params for astream -- the MPD, number of segments etc.
         "mpd_file": MPD, # ASTREAM-specific params
@@ -247,8 +249,8 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
         config_dash.JSON_HANDLE["segment_info"].append({"segment_name":segment_name, 
                                                         "bitrate":current_bitrate, 
                                                         "segment_size":segment_size,
-                                                        "segment_download_time":segment_download_time,
-                                                        "segment_download_rate":segment_download_rate})
+                                                        "segment_download_time":segment_download_time})
+                                                        #"segment_download_rate":segment_download_rate})
         total_downloaded += segment_size
         config_dash.LOG.info("{} : The total downloaded = {}, segment_size = {}, segment_number = {}".format(
             playback_type.upper(),
