@@ -21,7 +21,7 @@ COPY system_files/bind.so /opt/monroe/lib/
 COPY system_files/paris-traceroute /usr/sbin/
 RUN chmod +x /usr/sbin/paris-traceroute
 
-############## Add 3: party repositories ##############
+############## Add 3: party repositories ########################
 # Flent
 ADD http://download.opensuse.org/repositories/home:tohojo:flent/Debian_8.0/Release.key flent.key
 RUN echo 'deb http://download.opensuse.org/repositories/home:/tohojo:/flent/Debian_8.0/ /' > /etc/apt/sources.list.d/flent.list \
@@ -34,7 +34,7 @@ RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:
     && rm oml2.key
 
 
-############## Main Installation and cleanup ##############
+############## Main Installation and cleanup ####################
 RUN apt-get update && apt-get upgrade -y --force-yes \
     && apt-get install -y --force-yes --no-install-recommends --no-install-suggests \
     ca-certificates \
@@ -60,6 +60,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes \
     libgtk2.0-0 \
     libgtk2.0-common \
     # Common tools
+    tshark \
     bzip2 \
     traceroute \
     fping \
