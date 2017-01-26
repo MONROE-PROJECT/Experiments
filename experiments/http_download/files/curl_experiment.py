@@ -45,11 +45,11 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "allowed_interfaces": ["op0",
-                               "op1",
-                               "op2",
-                               "wlan0",
-                               "wwan2"],  # Interfaces to run the experiment on
+        "disabled_interfaces": ["lo",
+                                "metadata",
+                                "eth0",
+                                "wlan0"
+                                ],  # Interfaces to NOT run the experiment on
         "interfaces_without_metadata": ["eth0",
                                         "wlan0"]  # Manual metadata on these IF
         }
@@ -211,11 +211,14 @@ if __name__ == '__main__':
     else:
         # We are in debug state always put out all information
         EXPCONFIG['verbosity'] = 3
-        EXPCONFIG["allowed_interfaces"].append("eth0")
+        try:
+            EXPCONFIG['disabled_interfaces'].remove("eth0")
+        except Exception as e:
+            pass
 
     # Short hand variables and check so we have all variables we need
     try:
-        allowed_interfaces = EXPCONFIG['allowed_interfaces']
+        disabled_interfaces = EXPCONFIG['disabled_interfaces']
         if_without_metadata = EXPCONFIG['interfaces_without_metadata']
         meta_grace = EXPCONFIG['meta_grace']
         exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
@@ -230,8 +233,14 @@ if __name__ == '__main__':
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
+    tot_start_time = time.time()
+    for ifname in netifaces.interfaces():
+        # Skip disbaled interfaces
+        if ifname in disabled_interfaces:
+            if EXPCONFIG['verbosity'] > 1:
+                print "Interface is disabled skipping, {}".format(ifname)
+            continue
 
-    for ifname in allowed_interfaces:
         # Interface is not up we just skip that one
         if not check_if(ifname):
             if EXPCONFIG['verbosity'] > 1:
@@ -313,5 +322,5 @@ if __name__ == '__main__':
             print "Finished {} after {}".format(ifname, elapsed)
         time.sleep(time_between_experiments)
     if EXPCONFIG['verbosity'] > 1:
-        print ("Interfaces {} "
-               "done, exiting").format(allowed_interfaces)
+        print ("Complete experiment took {}"
+               ", now exiting").format(time.time() - tot_start_time)
