@@ -2,8 +2,9 @@
 # Experiment template
 A template to show of some of the capabilities of the Monroe platform.
 
-The experiment will download a url (file) over http using curl from a specified operator.
-If the operator is not available in the node the experiment will fail. 
+The experiment will download a url (file) over http using curl from a specified
+operator while at the same time record the GPS posistion.
+If the operator is not available in the node the experiment will fail.
 The default values are (can be overridden by providing /monroe/config):
 ```
 {
@@ -88,11 +89,11 @@ curl -o /dev/null --raw --silent --write-out "{ remote: %{remote_ip}:%{remote_po
     * ```docker logs [container runtime name]```
 
 ## Sample output
-Pretty printed and with comments for readability
+The experiment will produce a single line JSON object similar to this (pretty printed for readability)
 ```
 {
     "Bytes": 30720000,
-    "DataId": "jonakarl.experiment-template",
+    "DataId": "313.123213.123123.123123",
     "DataVersion": 1,
     "DownloadTime": 2.716,
     "GPSPositions": [
