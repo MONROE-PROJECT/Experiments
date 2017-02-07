@@ -1,0 +1,8 @@
+FROM monroe/base
+
+MAINTAINER foivos.michelinakis@imdea.org
+
+RUN mkdir -p /opt/paris_traceroute
+COPY files/* /opt/paris_traceroute/
+
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/paris_traceroute/paris_traceroute_launch.py"]
