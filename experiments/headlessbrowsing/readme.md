@@ -1,12 +1,46 @@
+# Headlessbrowsing
 This experiment evaluates the performance of different http protocols (HTTP1.1, HTTP1.1/TLS, HTTP2) 
 using the headless firefox browser. The experiment uses selenium browser automation framework.
 This framework allows to execute web-browsing automation tests in different browsers such as Firefox and Chrome. 
-We use selenium web-driver for Firefox. For a given url, http protocol  and source network interface, seleneium launches the 
+We use selenium web-driver for Firefox. For a given url, http protocol  and source network interface, the experiment launches the 
 native Firefox browser to visit the url. This experiment generates HTTP ARchive (HAR) file during the download of 
 a target url which assists in finding impact of different web-page features on its overall Page Load Time (PLT), afterwards.
 
-Results:
+## Input
+The default input values are (can be overridden by a /monroe/config):
 
+{
+        "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
+        "url": "http://193.10.227.25/test/1000M.zip",
+        "size": 3*1024,  # The maximum size in Kbytes to download
+        "time": 3600,  # The maximum time in seconds for a download
+        "zmqport": "tcp://172.17.0.1:5556",
+        "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
+        "dataversion": 1,
+        "dataid": "MONROE.EXP.FIREFOX.HEADLESS.BROWSING",
+        "nodeid": "fake.nodeid",
+        "meta_grace": 120,  # Grace period to wait for interface metadata
+        "exp_grace": 120,  # Grace period before killing experiment
+        "ifup_interval_check": 5,  # Interval to check if interface is up
+        "time_between_experiments": 30,
+        "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
+        "resultdir": "/monroe/results/",
+        "modeminterfacename": "InternalInterface",
+        "urls": ["www.wikipedia.com"],
+        "http_protocols":["h1","h1s","h2"],
+        "iterations": 1,
+        "allowed_interfaces": ["op0",
+                               "op1",
+                               "op2"],  # Interfaces to run the experiment on
+        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
+        }
+
+For example, using the above inputs (default), the experiment will download wikipedia with different combinations of 
+three different http protocols and three different source interfaces each time.
+So, it is possible to input required urls, http protocols, iterations, interfaces etc. during 
+scheduling the experiment.
+
+## Output
 The experiment generates a single JSON file like the following
 
 {  
