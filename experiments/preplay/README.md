@@ -8,7 +8,7 @@ pReplay keeps walking through the dependency graph this way until all activities
 
 ## usage
 ```
-./pReplay interface_name server testfile [http|https|http2|phttpget] [max-connections] [cookie-size]
+./pReplay interface_name server testfile [http|https|http2] [max-connections] [cookie-size]
 ```
 * `interface_name`: source interface for outgoing traffic 
 * `server` : DNS name or IP address
