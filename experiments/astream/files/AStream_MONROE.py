@@ -73,12 +73,16 @@ EXPCONFIG = {
                                         # we will also need to integrate a list of MPDs
         "ifup_interval_check": 5,  # Interval to check if interface is up
         "script": None,  # Overridden by scheduler
+        "disabled_interfaces": ["lo",
+                                "metadata",
+                                "eth0",
+                                "wlan0"
+                                ],
         "allowed_interfaces": ["op0",
                                "op1",
-                               "op2",
-                               "wwan0",
-                               "wwan2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [],  # Manual metadata on these IF
+                               "op2"],  # Interfaces to run the experiment on
+        "interfaces_without_metadata": ["eth0",
+                                        "wlan0"],  # Manual metadata on these IF
         # AEL -- params for astream -- the MPD, number of segments etc.
         "mpd_file": MPD, # ASTREAM-specific params
         "segment_limit": SEGMENT_LIMIT, 
@@ -298,8 +302,8 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
     try:
         config_dash.LOG.info("Initializing the DASH buffer...")
         # AEL -- added here a different buffer log file for each interface
-        config_dash.BUFFER_LOG="_".join((config_dash.BUFFER_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.log')))
-        config_dash.JSON_LOG="_".join((config_dash.JSON_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.json')))
+        config_dash.BUFFER_LOG="_".join((expconfig['nodeid'], config_dash.BUFFER_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.log')))
+        config_dash.JSON_LOG="_".join((expconfig['nodeid'], config_dash.JSON_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.json')))
         config_dash.LOG.info("Configured buffer log file: {}".format(config_dash.BUFFER_LOG))
         config_dash.LOG.info("Configured json log file: {}".format(config_dash.JSON_LOG))
 
@@ -445,8 +449,8 @@ if __name__ == '__main__':
             with open(CONFIGFILE) as configfd:
                 EXPCONFIG.update(json.load(configfd))
         except Exception as e:
-            print "Cannot retrive expconfig {}".format(e)
-            sys.exit(1)
+            print "Cannot retrive expconfig {}. Working with default values.".format(e)
+            #sys.exit(1)
     else:
         # We are in debug state always put out all information
         EXPCONFIG['verbosity'] = 3
@@ -454,6 +458,7 @@ if __name__ == '__main__':
     # Short hand variables and check so we have all variables we need
     try:
         allowed_interfaces = EXPCONFIG['allowed_interfaces']
+        disabled_interfaces = EXPCONFIG['disabled_interfaces']
         if_without_metadata = EXPCONFIG['interfaces_without_metadata']
         meta_grace = EXPCONFIG['meta_grace']
         exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
@@ -476,14 +481,27 @@ if __name__ == '__main__':
     configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
     config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
     config_dash.LOG.info("Starting AStream container")
-
+    print netifaces.interfaces()
     for ifname in allowed_interfaces:
+        # Skip disbaled interfaces
+        if ifname in disabled_interfaces:
+            if EXPCONFIG['verbosity'] > 1:
+                print "Interface is disabled skipping, {}".format(ifname)
+            continue
+
         # Interface is not up we just skip that one
         if not check_if(ifname):
             if EXPCONFIG['verbosity'] > 1:
-                config_dash.LOG.info("Interface is not up {}".format(ifname))
+                print "Interface is not up {}".format(ifname)
             continue
-        # set the default route
+
+    # for ifname in allowed_interfaces:
+    #     # Interface is not up we just skip that one
+    #     if not check_if(ifname):
+    #         if EXPCONFIG['verbosity'] > 1:
+    #             config_dash.LOG.info("Interface is not up {}".format(ifname))
+    #         continue
+    #     # set the default route
         # Create a process for getting the metadata
         # (could have used a thread as well but this is true multiprocessing)
         meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
@@ -530,7 +548,8 @@ if __name__ == '__main__':
         except CalledProcessError as e:
                 if e.returncode == 28:
                          config_dash.LOG.info("Time limit exceeded")
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
+        gw_ip = meta_info["IPAddress"]
+        #gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
         cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
         try:
                 check_output(cmd2)
@@ -605,5 +624,5 @@ if __name__ == '__main__':
             config_dash.LOG.info("Finished {} after {}".format(ifname, elapsed))
         time.sleep(time_between_experiments)
 
-    if EXPCONFIG['verbosity'] > 1:
-        config_dash.LOG.info(("Interfaces {} done, exiting").format(allowed_interfaces))
+        if EXPCONFIG['verbosity'] > 1:
+            config_dash.LOG.info(("Interfaces {} done, exiting").format(allowed_interfaces))
