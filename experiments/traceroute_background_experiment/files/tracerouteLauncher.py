@@ -18,6 +18,7 @@ Launches the traceroute binary to the specified target and then calls the parser
 """
 
 CURRENT_DIR = os.getcwd() + "/"
+SCRIPT_DIR = '/opt/traceroute/'
 
 cmd = [
     "traceroute",
@@ -48,7 +49,7 @@ with open(CURRENT_DIR + filename, "w") as outputFile:
 # parsing the result
 cmd = [
     "python",
-    "outputParser.py",
+    SCRIPT_DIR + "outputParser.py",
     filename
 ]
 

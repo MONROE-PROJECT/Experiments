@@ -19,7 +19,7 @@ If "Additional options" fails to load a set of default parameters is used instea
 
 An example "Additional options" JSON string that can be used with this container is:
 
-"interfaces": ["op0", "op1", "op2"], "targets": ["www.ntua.gr", "www.uc3m.es", "Google.com", "Facebook.com", "Youtube.com", "Baidu.com", "Yahoo.com", "Amazon.com", "Wikipedia.org", "audio-ec.spotify.com", "mme.whatsapp.net", "sync.liverail.com", "ds.serving-sys.com", "instagramstatic-a.akamaihd.net"], "maxNumberOfTotalTracerouteInstances": 5, "executionMode": "parallel"
+"internal": 1, "basedir": "/traceroute", "interfaces": ["op0", "op1", "op2"], "targets": ["www.ntua.gr", "www.uc3m.es", "Google.com", "Facebook.com", "Youtube.com", "Baidu.com", "Yahoo.com", "Amazon.com", "Wikipedia.org", "audio-ec.spotify.com", "mme.whatsapp.net", "sync.liverail.com", "ds.serving-sys.com", "instagramstatic-a.akamaihd.net"], "maxNumberOfTotalTracerouteInstances": 5, "executionMode": "parallel"
 """
 
 import json
@@ -32,6 +32,7 @@ import shutil
 CONFIG_FILE = '/monroe/config'
 RESULTS_DIR = "/monroe/results/"
 CURRENT_DIR = os.getcwd() + "/"
+SCRIPT_DIR = '/opt/traceroute/'
 containerTimestamp = int(time.time())
 
 # default parameters
@@ -61,7 +62,7 @@ except Exception as e:
     configurationParameters = {}
     usingDefaults = True
 
-nodeId = str(configurationParameters.get("nodeId", nodeId))
+nodeId = str(configurationParameters.get("nodeid", nodeId))
 interfaces = configurationParameters.get("interfaces", interfaces)
 targets = configurationParameters.get("targets", targets)
 protocol = configurationParameters.get("protocol", protocol)
@@ -98,7 +99,7 @@ if executionMode == "serially":
         for target in targets:
             cmd = [
                 "python",
-                "tracerouteLauncher.py",
+                SCRIPT_DIR + "tracerouteLauncher.py",
                 protocolFlag,
                 interface,
                 target
@@ -108,7 +109,11 @@ if executionMode == "serially":
 elif executionMode == "serialPerInterface":
     interfacesProcesses = []
     for interface in interfaces:
-        commandList = ["python", "scheduler.py", interface]
+        commandList = [
+            "python",
+            SCRIPT_DIR  + "scheduler.py",
+            interface
+            ]
         interfacesProcesses.append(subprocess.Popen(commandList))
     for proc in interfacesProcesses:
         proc.wait()
@@ -121,11 +126,12 @@ elif executionMode == "parallel":
                 # we do the checks every one second to avoid maxing out the processor for no reason
                 time.sleep(1)
                 for pr in procs:
-                    if pr.poll() == 0:
+                    # A None value indicates that the process hasn’t terminated yet.
+                    if pr.poll() != None:
                         procs.remove(pr)
             cmd = [
                 "python",
-                "tracerouteLauncher.py",
+                SCRIPT_DIR + "tracerouteLauncher.py",
                 protocolFlag,
                 interface,
                 target

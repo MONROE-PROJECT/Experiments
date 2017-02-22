@@ -34,6 +34,7 @@ HEADER_RE = re.compile(r'traceroute to (\S+) \((\d+\.\d+\.\d+\.\d+)\), ([0-9]+) 
 CURRENT_DIR = os.getcwd() + "/"
 CONFIG_FILE = os.getcwd() + "/intermediate.json"
 RESULTS_DIR = "/monroe/results/"
+SCRIPT_DIR = '/opt/traceroute/'
 
 with open(CONFIG_FILE, "r") as fd:
     variables = json.load(fd)

@@ -18,6 +18,7 @@ import subprocess
 import time
 
 CONFIG_FILE = os.getcwd() + "/intermediate.json"
+SCRIPT_DIR = '/opt/traceroute/'
 
 with open(CONFIG_FILE, "r") as fd:
     variables = json.load(fd)
@@ -32,11 +33,12 @@ for target in variables["targets"]:
         # we do the checks every one second to avoid maxing out the processor for no reason
         time.sleep(1)
         for pr in procs:
-            if pr.poll() == 0:
+            # A None value indicates that the process hasn’t terminated yet.
+            if pr.poll() != None:
                 procs.remove(pr)
     cmd = [
         "python",
-        "tracerouteLauncher.py",
+        SCRIPT_DIR + "tracerouteLauncher.py",
         variables["protocolFlag"],
         sys.argv[1],  # interface
         target
