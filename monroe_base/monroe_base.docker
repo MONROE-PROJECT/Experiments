@@ -3,12 +3,12 @@ FROM debian:jessie
 MAINTAINER jonas.karlsson@kau.se
 
 # FireFox
-ENV FF_VER 46.0.1
-# ENV FF_VER 45.5.1esr
+#ENV FF_VER 46.0.1
+ENV FF_VER 45.7.0esr
 # DumbInit
 ENV DI_VER 1.2.0
 # Gecko Driver
-ENV GD_VER 0.11.1
+ENV GD_VER 0.14.0
 
 ############## Create Common directories and files ##############
 RUN mkdir -p /opt/monroe
@@ -35,7 +35,8 @@ RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:
 
 
 ############## Main Installation and cleanup ####################
-RUN apt-get update && apt-get upgrade -y --force-yes \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && apt-get upgrade -y --force-yes \
     && apt-get install -y --force-yes --no-install-recommends --no-install-suggests \
     ca-certificates \
     python \
@@ -87,6 +88,7 @@ RUN apt-get update && apt-get upgrade -y --force-yes \
     nano \
     default-jre-headless \
     jq \
+    dnsutils \
     # Dumb init
     && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
     && dpkg -i dumb-init.deb \
