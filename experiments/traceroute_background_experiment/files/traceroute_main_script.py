@@ -33,7 +33,7 @@ CONFIG_FILE = '/monroe/config'
 RESULTS_DIR = "/monroe/results/"
 CURRENT_DIR = os.getcwd() + "/"
 SCRIPT_DIR = '/opt/traceroute/'
-containerTimestamp = int(time.time())
+containerTimestamp = "%.6f" % time.time()
 
 # default parameters
 nodeId = "0"

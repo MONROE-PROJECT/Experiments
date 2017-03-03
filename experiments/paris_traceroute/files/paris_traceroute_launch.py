@@ -49,7 +49,7 @@ except Exception as e:
 for interface in interfaces:
     for target in targets:
         for traceAlgo in traceAlgos:
-            start = int(time.time())
+            start = "%.6f" % time.time()
             if traceAlgo == "exh":
                 cmd = ["paris-traceroute",
                        "-O",
@@ -71,7 +71,7 @@ for interface in interfaces:
                 print "Unknown traceroute type: {}\nIgnoring........".format(traceAlgo)
                 continue
             output = subprocess.check_output(cmd)
-            end = int(time.time())
+            end = "%.6f" % time.time()
             filename = "ParisTracerouteOutput_" + str(start) + "_" + str(end) + "_" + \
                        interface + "_" + protocol + "_" + traceAlgo + "_" + \
                        target + "_" + nodeId + ".txt"

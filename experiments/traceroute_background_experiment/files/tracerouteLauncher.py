@@ -34,9 +34,9 @@ while 'default' in cmd:
     cmd.remove('default')
 
 # doing the measurement
-start = int(time.time())
+start = "%.6f" % time.time()
 output = subprocess.check_output(cmd)
-end = int(time.time())
+end = "%.6f" % time.time())
 
 
 # saving the output to a file.
