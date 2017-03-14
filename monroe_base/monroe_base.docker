@@ -4,22 +4,24 @@ MAINTAINER jonas.karlsson@kau.se
 
 # FireFox
 #ENV FF_VER 46.0.1
-ENV FF_VER 45.7.0esr
+ENV FF_VER 45.8.0esr
 # DumbInit
 ENV DI_VER 1.2.0
 # Gecko Driver
 ENV GD_VER 0.14.0
 
 ############## Create Common directories and files ##############
-RUN mkdir -p /opt/monroe
 RUN mkdir -p /opt/monroe/lib
+RUN mkdir -p /opt/monroe/bin
 RUN mkdir -p /monroe
 
 COPY files/* /opt/monroe/
 COPY system_files/monroe-sshtunnel-client.sh /usr/bin/
 COPY system_files/bind.so /opt/monroe/lib/
+COPY system_files/dig /opt/monroe/bin/
 COPY system_files/paris-traceroute /usr/sbin/
 RUN chmod +x /usr/sbin/paris-traceroute
+RUN chmod +x /opt/monroe/bin/dig
 
 ############## Add 3: party repositories ########################
 # Flent
