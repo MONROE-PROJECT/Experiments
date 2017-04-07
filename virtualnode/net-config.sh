@@ -47,7 +47,7 @@ fi
 IPMETA=$($MNS ip route | tail -n 1 | awk '{print $NF}')
 ip=$(echo $IPMETA|awk -F. '{print $NF}')
 ((ip++))
-INTERFACES="op0 op1 op2 wlan0 eth0";
+INTERFACES="op0 op1 op2 eth0 wlan0";
 for IF in $INTERFACES; do
   IPADRESS=$(echo $IPMETA|awk -F. '{$NF=""; print $0}'|tr ' ' '.')$ip
   SUBNET=$SUBNETDOCKER
@@ -74,9 +74,9 @@ for IF in $INTERFACES; do
 
   echo "Setting up routing tables for $IF (monroe)"
   #echo "$MARK $TABLE" >> /etc/iproute2/rt_tables
-  $MNS ip rule add from $IPADRESS table $MARK
-  $MNS ip rule add dev $IF table $MARK
-  $MNS ip rule add dev lo table $MARK
+  $MNS ip rule add from $IPADRESS table $MARK pref 10000
+  #$MNS ip rule add dev $IF table $MARK
+  $MNS ip rule add dev lo table $MARK pref 40000
 
   #Not working
   #$MSN ip rule add fwmark $MARK table $TABLE
@@ -85,9 +85,9 @@ for IF in $INTERFACES; do
   #$MNS iptables -A PREROUTING -i $IF -j MARK --set-mark $MARK
   #$MNS iptables -A PREROUTING -j CONNMARK --save-mark
 
-
-  $MNS ip route add $NETDOCKER/$SUBNETDOCKER dev $IF scope link table $MARK
-  $MNS ip route add default via $IPDOCKER table $MARK
+  $MNS ip route del $NETDOCKER/$SUBNETDOCKER dev $IF scope link 
+  $MNS ip route add $NETDOCKER/$SUBNETDOCKER dev $IF src $IPADRESS scope link table $MARK
+  $MNS ip route add default via $IPDOCKER src $IPADRESS table $MARK
 
   # Prepopulate arp
   $MNS ip neighbor add $IPDOCKER lladdr $MACDOCKER dev $IF
