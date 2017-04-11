@@ -76,7 +76,7 @@ EXPCONFIG = {
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
         "urls": ["www.google.com"],
-        "http_protocols":["h1","h1s","h2"],
+        "http_protocols":["h1s","h2"],
         "iterations": 1,
         "allowed_interfaces": ["op0",
                                "op1",
@@ -186,6 +186,7 @@ def run_exp(meta_info, expconfig, url,count):
     profile.set_preference('browser.cache.offline.enable', False)
     profile.set_preference('browser.cache.disk.enable', False)
     profile.set_preference('browser.startup.page', 0)
+    profile.set_preference("general.useragent.override", "Mozilla/5.0 (Android 4.4; Mobile; rv:46.0) Gecko/46.0 Firefox/46.0")
     
     #Check the HTTP(getter) scheme and disable the rest
     if getter_version == 'HTTP1.1':

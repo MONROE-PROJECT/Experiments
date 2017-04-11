@@ -6,6 +6,8 @@ import fileinput
 import datetime
 from dateutil.parser import parse
 import json
+import socket
+import struct
 from pyvirtualdisplay import Display
 from selenium import webdriver
 
@@ -25,7 +27,87 @@ h1s='https://'
 h2='https://'
 current_directory =''
 har_directory =''
+
+def py_traceroute(dest_name):
+    dest_addr = socket.gethostbyname(dest_name)
+    port = 33434
+    max_hops = 30
+    icmp = socket.getprotobyname('icmp')
+    udp = socket.getprotobyname('udp')
+    ttl = 1
+
+    tr_output=""
+    while True:
+        recv_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
+        send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, udp)
+        send_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+        
+        # Build the GNU timeval struct (seconds, microseconds)
+        timeout = struct.pack("ll", 5, 0)
+        
+        # Set the receive timeout so we behave more like regular traceroute
+        recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, timeout)
+        
+        recv_socket.bind(("", port))
+        #sys.stdout.write(" %d  " % ttl)
+        send_socket.sendto("", (dest_name, port))
+        curr_addr = None
+        curr_name = None
+        finished = False
+        tries = 3
+        while not finished and tries > 0:
+            try:
+                _, curr_addr = recv_socket.recvfrom(512)
+                finished = True
+                curr_addr = curr_addr[0]
+                try:
+                    curr_name = socket.gethostbyaddr(curr_addr)[0]
+                except socket.error:
+                    curr_name = curr_addr
+            except socket.error as (errno, errmsg):
+                tries = tries - 1
+                sys.stdout.write("* ")
+        
+        send_socket.close()
+        recv_socket.close()
+        
+        if not finished:
+            pass
+        
+        if curr_addr is not None:
+            curr_host = "%s (%s)" % (curr_name, curr_addr)
+        else:
+            curr_host = ""
+            curr_addr = " "
+        tr_output+=curr_addr+" "
+
+        ttl += 1
+        if curr_addr == dest_addr or ttl > max_hops:
+            break
+    return tr_output
+
 def	performer (url,count):
+
+	    try:
+    		routes=py_traceroute(str(url[:-1]))
+    	except Exception:
+    		print ("tracerouting unsuccessful")
+
+    	try:
+    		response = subprocess.check_output(
+        		['fping', '-I',ifname,'-c', '3', '-q', str(url[:-1])],
+        	stderr=subprocess.STDOUT,  # get all output
+        	universal_newlines=True  # return string not bytes
+    		)
+    		ping_outputs= response.splitlines()[-1].split("=")[-1]
+    		ping_output=ping_outputs.split("/")
+        	ping_min = ping_output[0]
+    		ping_avg = ping_output[1]
+    		ping_max = ping_output[2]
+        	except subprocess.CalledProcessError:
+    			response = None
+	    		print "Ping info is unknown"
+
 		display = Display(visible=0, size=(800, 600))
 		display.start()
 		profile = webdriver.FirefoxProfile()
@@ -97,6 +179,19 @@ def	performer (url,count):
                         obj["time"]=entry["time"]
                         objs.append(obj)
 
+                try:
+       				har_stats["tracedRoutes"]=routes.rstrip().split(" ")
+    			except Exception:
+       				print "traceroute info is not available"
+
+    			try:
+    				har_stats["ping_max"]=ping_max
+        			har_stats["ping_avg"]=ping_avg
+					har_stats["ping_min"]=ping_min
+					har_stats["ping_exp"]=1
+    			except Exception:
+					print("Ping info is not available")
+        			har_stats["ping_exp"]=0
                 har_stats["Objects"]=objs
                 har_stats["PageSize"]=pageSize
                 start=0
