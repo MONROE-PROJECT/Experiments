@@ -1,16 +1,18 @@
-#!/bin/bash
+#!/bin/sh
 export PATH=/usr/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# Cleanup 
-find -L /var/run/netns -type l -delete
-rm /var/run/netns/monroe
+URL_PUBLISHER=$1
 
-URL_NOOP=monroe/noop
+# Cleanup
+find -L /var/run/netns -type l -delete 2> /dev/null
+rm -f /var/run/netns/monroe
+
+sysctl -w net.ipv4.conf.all.arp_ignore=1
 MNS="ip netns exec monroe"
 
 # Fixing DNS for when running ip exec netns monroe, values taken from
 # running docker instance
-mkdir  -p /etc/netns/monroe
+mkdir -p /etc/netns/monroe
 echo "search lan" > /etc/netns/monroe/resolv.conf
 echo "nameserver 8.8.8.8" >> /etc/netns/monroe/resolv.conf
 echo "nameserver 8.8.4.4" >> /etc/netns/monroe/resolv.conf
@@ -22,14 +24,14 @@ MACDOCKER=$(ip link show docker0| awk '$1~/^link\/ether$/{print $2}')
 
 if [ ! -e /var/run/netns/monroe ]; then
   # stop any running containers
-  CID=$(docker ps --no-trunc | grep $URL_NOOP | awk '{print $1}' | head -n 1)
+  CID=$(docker ps --no-trunc | grep $URL_PUBLISHER | awk '{print $1}' | head -n 1)
   if [ ! -z "$CID" ]; then
     docker stop -t 0 $CID;
   fi
 
-  docker pull $URL_NOOP 2> /dev/null;
-  docker run -d --net=bridge $URL_NOOP;
-  CID=$(docker ps --no-trunc | grep $URL_NOOP | awk '{print $1}' | head -n 1)
+  docker pull $URL_PUBLISHER 2> /dev/null
+  docker run -d --net=bridge $URL_PUBLISHER
+  CID=$(docker ps --no-trunc | grep $URL_PUBLISHER | awk '{print $1}' | head -n 1)
   PID=$(docker inspect -f '{{.State.Pid}}' $CID)
   mkdir -p /var/run/netns;
   rm /var/run/netns/monroe 2>/dev/null || true;
@@ -46,8 +48,8 @@ fi
 
 IPMETA=$($MNS ip route | tail -n 1 | awk '{print $NF}')
 ip=$(echo $IPMETA|awk -F. '{print $NF}')
-((ip++))
-INTERFACES="op0 op1 op2 eth0 wlan0";
+ip=$(($ip+1))
+INTERFACES='op0 op1 op2 eth0 wlan0'
 for IF in $INTERFACES; do
   IPADRESS=$(echo $IPMETA|awk -F. '{$NF=""; print $0}'|tr ' ' '.')$ip
   SUBNET=$SUBNETDOCKER
@@ -73,23 +75,14 @@ for IF in $INTERFACES; do
   $MNS ip addr add $IPADRESS/$SUBNET dev $IF
 
   echo "Setting up routing tables for $IF (monroe)"
-  #echo "$MARK $TABLE" >> /etc/iproute2/rt_tables
   $MNS ip rule add from $IPADRESS table $MARK pref 10000
-  #$MNS ip rule add dev $IF table $MARK
   $MNS ip rule add dev lo table $MARK pref 40000
 
-  #Not working
-  #$MSN ip rule add fwmark $MARK table $TABLE
-  #$MNS iptables -A PREROUTING -j CONNMARK --restore-mark
-  #$MNS iptables -A PREROUTING --match mark --mark $MARK -j ACCEPT
-  #$MNS iptables -A PREROUTING -i $IF -j MARK --set-mark $MARK
-  #$MNS iptables -A PREROUTING -j CONNMARK --save-mark
-
-  $MNS ip route del $NETDOCKER/$SUBNETDOCKER dev $IF scope link 
+  $MNS ip route del $NETDOCKER/$SUBNETDOCKER dev $IF scope link
   $MNS ip route add $NETDOCKER/$SUBNETDOCKER dev $IF src $IPADRESS scope link table $MARK
   $MNS ip route add default via $IPDOCKER src $IPADRESS table $MARK
 
   # Prepopulate arp
   $MNS ip neighbor add $IPDOCKER lladdr $MACDOCKER dev $IF
-  ((ip++))
+  ip=$(($ip+1))
 done
