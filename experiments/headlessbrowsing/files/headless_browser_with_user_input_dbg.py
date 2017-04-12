@@ -53,7 +53,7 @@ current_directory =''
 har_directory =''
 
 # Configuration
-DEBUG = False
+DEBUG = True
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -88,11 +88,8 @@ EXPCONFIG = {
 		['soupsoup.tumblr.com']],
         "http_protocols":["h1s","h2"],
         "iterations": 1,
-        "allowed_interfaces": ["op0",
-                               "op1",
-                               "op2",
-							   "eth0"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
+        "allowed_interfaces": ["op0","op1","op2","eth0"],  # Interfaces to run the experiment on
+        "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
 
 def py_traceroute(dest_name):
@@ -243,7 +240,7 @@ def run_exp(meta_info, expconfig, url,count):
         return
     
     time.sleep(5)
-    driver.save_screenshot('screenie.png')
+    driver.save_screenshot(filename+'.png')
 
     #close the firefox driver after HAR is written
     driver.close()
@@ -451,14 +448,15 @@ def check_meta(info, graceperiod, expconfig):
             time.time() - info["Timestamp"] < graceperiod)
 
 
-#def add_manual_metadata_information(info, ifname, expconfig):
-#    """Only used for local interfaces that do not have any metadata information.
-#
-#       Normally eth0 and wlan0.
-#    """
-#    info[expconfig["modeminterfacename"]] = ifname
-#    info["Operator"] = "local"
-#    info["Timestamp"] = time.time()
+def add_manual_metadata_information(info, ifname, expconfig):
+    """Only used for local interfaces that do not have any metadata information.
+
+       Normally eth0 and wlan0.
+    """
+    info[expconfig["modeminterfacename"]] = ifname
+    info["Operator"] = "local"
+    info["Timestamp"] = time.time()
+    info["ipaddress"] ="172.17.0.3"	
 
 
 def create_meta_process(ifname, expconfig):
@@ -549,8 +547,8 @@ if __name__ == '__main__':
         # On these Interfaces we do net get modem information so we hack
         # in the required values by hand whcih will immeditaly terminate
         # metadata loop below
-#        if (check_if(ifname) and ifname in if_without_metadata):
-#            add_manual_metadata_information(meta_info, ifname)
+        if (check_if(ifname) and ifname in if_without_metadata):
+            add_manual_metadata_information(meta_info, ifname,EXPCONFIG)
 #
         # Try to get metadadata
         # if the metadata process dies we retry until the IF_META_GRACE is up
@@ -575,37 +573,6 @@ if __name__ == '__main__':
             continue
 
         # Ok we have some information lets start the experiment script
-
-
-	output_interface=None
-
-        cmd1=["route",
-             "del",
-             "default"]
-        #os.system(bashcommand)
-        try:
-                check_output(cmd1)
-        except CalledProcessError as e:
-                if e.returncode == 28:
-                        print "Time limit exceeded"
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
-        cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-        try:
-                check_output(cmd2)
-        	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-        	output = output.strip(' \t\r\n\0')
-        	output_interface=output.split(" ")[4]
-        	if output_interface==str(ifname):
-                	print "Source interface is set to "+str(ifname)
-		else:
-			continue
-        
-	except CalledProcessError as e:
-                 if e.returncode == 28:
-                        print "Time limit exceeded"
-		 continue
-	
 
         if EXPCONFIG['verbosity'] > 1:
             print "Starting experiment"
@@ -639,9 +606,9 @@ if __name__ == '__main__':
                     			# Similar to what exist in the ping experiment
                     			# However, for now we just abort if we loose the interface
         
-                    		# No modem information hack to add required information
-                    		#if (check_if(ifname) and ifname in if_without_metadata):
-                    		#    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+                    			# No modem information hack to add required information
+                    			if (check_if(ifname) and ifname in if_without_metadata):
+                    		    		add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
         
                     			if not (check_if(ifname) and check_meta(meta_info,
                                                             meta_grace,
