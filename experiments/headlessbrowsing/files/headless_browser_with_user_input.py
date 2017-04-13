@@ -32,6 +32,7 @@ import subprocess
 import socket
 import struct
 import random
+import netifaces as ni
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 
@@ -588,7 +589,13 @@ if __name__ == '__main__':
         except CalledProcessError as e:
                 if e.returncode == 28:
                         print "Time limit exceeded"
-        gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
+        
+        gw_ip="undefined"
+        for g in ni.gateways()[ni.AF_INET]:
+            if g[1] == ifname:
+                gw_ip = g[0]
+                break
+
         cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
         try:
                 check_output(cmd2)
@@ -599,6 +606,7 @@ if __name__ == '__main__':
         	if output_interface==str(ifname):
                 	print "Source interface is set to "+str(ifname)
 		else:
+                	print "Source interface "+output_interface+"is different from "+str(ifname)
 			continue
         
 	except CalledProcessError as e:
