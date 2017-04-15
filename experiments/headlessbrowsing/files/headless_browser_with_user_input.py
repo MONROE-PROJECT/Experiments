@@ -72,8 +72,8 @@ EXPCONFIG = {
         "nodeid": "fake.nodeid",
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
-        "ifup_interval_check": 5,  # Interval to check if interface is up
-        "time_between_experiments": 30,
+        "ifup_interval_check": 6,  # Interval to check if interface is up
+        "time_between_experiments": 10,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
@@ -650,6 +650,13 @@ if __name__ == '__main__':
                     		# No modem information hack to add required information
                     		#if (check_if(ifname) and ifname in if_without_metadata):
                     		#    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+
+                                        if not meta_process.is_alive():
+                                            print "meta_process is not alive - restarting"
+                                            meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
+                                            meta_process.start()
+                                            time.sleep(ifup_interval_check)
+
         
                     			if not (check_if(ifname) and check_meta(meta_info,
                                                             meta_grace,
