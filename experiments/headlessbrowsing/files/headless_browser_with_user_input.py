@@ -514,7 +514,8 @@ if __name__ == '__main__':
 	http_protocols=EXPCONFIG['http_protocols']
         if_without_metadata = EXPCONFIG['interfaces_without_metadata']
         meta_grace = EXPCONFIG['meta_grace']
-        exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
+        #exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
+        exp_grace = EXPCONFIG['exp_grace']
         ifup_interval_check = EXPCONFIG['ifup_interval_check']
         time_between_experiments = EXPCONFIG['time_between_experiments']
         EXPCONFIG['guid']
@@ -655,7 +656,7 @@ if __name__ == '__main__':
                                             print "meta_process is not alive - restarting"
                                             meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
                                             meta_process.start()
-                                            time.sleep(ifup_interval_check)
+                                            time.sleep(3*ifup_interval_check)
 
         
                     			if not (check_if(ifname) and check_meta(meta_info,
