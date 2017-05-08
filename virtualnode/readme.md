@@ -17,9 +17,7 @@ interfaces are directly mapped to the docker bridge (ie wired) interface.
 ## Requirments
 * Windows and Linux [VMWare Player (Free)](https://my.vmware.com/en/web/vmware/free)
 * MAC [VMWare Fusion (30 day trail)](http://www.vmware.com/products/fusion.html)
-
-### Alternative for MAC and Windows users that use [Docker Toolbox](https://www.docker.com/products/docker-toolbox)
-* Caveate: Untested but should work
+* Untested alterntive [Docker Toolbox](https://www.docker.com/products/docker-toolbox)
 
 ## Usage
 1. Clone this repository (git clone https://github.com/MONROE-PROJECT/Experiments.git)
@@ -32,7 +30,7 @@ and launch it (make sure shared folders are enabled).
     1. ./run-container.sh <container> <optional docker commandline options>
         eg. ./run-container.sh monroe/base "-ti --entrypoint bash"
 
-### Alternative if using Docker Toolbox
+### Alternative if using Docker Toolbox (untested but could/should work)
 The MONROE virtual node and docker toolbox are both based on [boot2docker](http://boot2docker.io/).
 Therefore, it should be possible to run the virtual node without vmplayer or fusion.
 Caveate: The script run-virtualnode.sh will alter the network configuration inside the
