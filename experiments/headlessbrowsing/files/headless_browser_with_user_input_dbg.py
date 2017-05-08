@@ -32,7 +32,6 @@ import subprocess
 import socket
 import struct
 import random
-import netifaces as ni
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 
@@ -54,7 +53,7 @@ current_directory =''
 har_directory =''
 
 # Configuration
-DEBUG = False
+DEBUG = True
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -72,38 +71,25 @@ EXPCONFIG = {
         "nodeid": "fake.nodeid",
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
-        "ifup_interval_check": 6,  # Interval to check if interface is up
-        "time_between_experiments": 10,
+        "ifup_interval_check": 5,  # Interval to check if interface is up
+        "time_between_experiments": 30,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-       # "urls": [['facebook.com/telia/'],
-       # ['en.wikipedia.org/wiki/As_Slow_as_Possible'],
-       # ['linkedin.com/company/google'],
-       # ['instagram.com/nike/'],
-       # ['google.com/search?q=iPhone+7'],
-       # ['youtube.com/watch?v=xGJ5a7uIZ1g'],
-       # ['ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html'],
-       # ['nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront'],
-       # ['theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban'],
-       # ['soupsoup.tumblr.com']],
-         "urls": [['facebook.com/telia/', 'facebook.com/LeoMessi/', 'facebook.com/Cristiano/', 'facebook.com/intrepidtravel', 'facebook.com/threadless', 'facebook.com/Nutella', 'facebook.com/zappos', 'facebook.com/toughmudder', 'facebook.com/stjude', 'facebook.com/Adobe/'],
-		 ['en.wikipedia.org/wiki/Timeline_of_the_far_future', 'en.wikipedia.org/wiki/As_Slow_as_Possible', 'en.wikipedia.org/wiki/List_of_political_catchphrases', 'en.wikipedia.org/wiki/1958_Lituya_Bay_megatsunami', 'en.wikipedia.org/wiki/Yonaguni_Monument#Interpretations', 'en.wikipedia.org/wiki/Crypt_of_Civilization', 'en.wikipedia.org/wiki/Mad_scientist', 'en.wikipedia.org/wiki/London_Stone', 'en.wikipedia.org/wiki/Internet', 'en.wikipedia.org/wiki/Stream_Control_Transmission_Protocol'],
-		  ['linkedin.com/company/teliacompany', 'linkedin.com/company/google', 'linkedin.com/company/facebook', 'linkedin.com/company/ericsson', 'linkedin.com/company/microsoft', 'linkedin.com/company/publications-office-of-the-european-union', 'linkedin.com/company/booking.com', 'linkedin.com/company/vodafone', 'linkedin.com/company/bmw', 'linkedin.com/company/t-mobile'],
-		# ['2kindsofpeople.tumblr.com', 'richardturley.tumblr.com', 'radiographista.com', 'doctorswithoutborders.tumblr.com', 'wired.tumblr.com', 'nationalgeographicmagazine.tumblr.com', 'soupsoup.tumblr.com', 'motherjones.tumblr.com', 'psarchives.tumblr.com', 'lastnightsreading.tumblr.com'],
-		 ['instagram.com/leomessi/', 'instagram.com/iamzlatanibrahimovic/', 'instagram.com/nike/', 'instagram.com/adidasoriginals/', 'instagram.com/cristiano/', 'instagram.com/natgeo/', 'instagram.com/fcbarcelona/', 'instagram.com/realmadrid/', 'instagram.com/9gag/', 'instagram.com/adele/'],
-		 ['google.com/search?q=Pok%C3%A9mon+Go', 'google.com/search?q=iPhone+7', 'google.com/search?q=Brexit', 'google.com/#q=stockholm,+sweden', 'google.com/#q=game+of+thrones', 'google.com/#q=Oslo', 'google.com/#q=Paris', 'google.com/#q=Madrid', 'google.com/#q=Rome', 'google.com/#q=the+revenant'],
-		  ['youtube.com/watch?v=544vEgMiMG0', 'youtube.com/watch?v=bcdJgjNDsto', 'youtube.com/watch?v=xGJ5a7uIZ1g', 'youtube.com/watch?v=-Gj4iCZhx7s', 'youtube.com/watch?v=dPTglkp4Lpw', 'youtube.com/watch?v=igEKvkBjMr0', 'youtube.com/watch?v=7-JVmMzGceQ', 'youtube.com/watch?v=ubes1I4Vf4o', 'youtube.com/watch?v=5mmpozjIxKU', 'youtube.com/watch?v=swELkJgTaNQ', 'youtube.com/watch?v=6oX5weDuiVM'],
-		  ['ebay.com/', 'ebay.com/rpp/electronics-en', 'ebay.com/rpp/electronics-en-cameras', 'ebay.com/rpp/sporting-goods-en', 'ebay.com/sch/Cycling-/7294/i.html', 'ebay.com/globaldeals', 'ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html', 'ebay.com/globaldeals/tech/laptops-netbooks', 'ebay.com/rpp/home-and-garden-en', 'ebay.com/sch/Furniture-/3197/i.html'],
-		    ['nytimes.com','nytimes.com/section/science?action=click&pgtype=Homepage&region=TopBar&module=HPMiniNav&contentCollection=Science&WT.nav=page','nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront','nytimes.com/section/science/space?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront', 'nytimes.com/section/health?action=click&contentCollection=science&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront&region=navbar', 'nytimes.com/section/sports?WT.nav=page&action=click&contentCollection=Sports&module=HPMiniNav&pgtype=Homepage&region=TopBar', 'nytimes.com/section/fashion?WT.nav=page&action=click&contentCollection=Style&module=HPMiniNav&pgtype=Homepage&region=TopBar','nytimes.com/pages/dining/index.html?action=click&pgtype=Homepage&region=TopBar&module=HPMiniNav&contentCollection=Food&WT.nav=page', 'cooking.nytimes.com/recipes/1013616-quinoa-and-chard-cakes?action=click&module=RecirculationRibbon&pgType=recipedetails&rank=3', 'nytimes.com/2017/04/10/upshot/how-many-pills-are-too-many.html?rref=collection%2Fsectioncollection%2Fhealth&action=click&contentCollection=health&region=stream&module=stream_unit&version=latest&contentPlacement=6&pgtype=sectionfront&_r=0'],
-		 ['theguardian.com/international','theguardian.com/sport/2017/apr/12/new-gender-neutral-cricket-laws-officially-released-by-mcc','theguardian.com/uk/lifeandstyle','theguardian.com/lifeandstyle/2017/apr/11/vision-thing-how-babies-colour-in-the-world','theguardian.com/us-news/2017/apr/12/charging-bull-new-york-fearless-girl-statue-copyright-claim','theguardian.com/business/live/2017/apr/12/brexit-blow-to-workers-as-real-pay-starts-to-fall-again-business-live','theguardian.com/football','theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban','theguardian.com/uk/technology']],
+        "urls": [['facebook.com/telia/'],
+		['en.wikipedia.org/wiki/As_Slow_as_Possible'],
+		['linkedin.com/company/google'],
+		['instagram.com/nike/'],
+		['google.com/search?q=iPhone+7'],
+		['youtube.com/watch?v=xGJ5a7uIZ1g'],
+		['ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html'],
+		['nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront'],
+		['theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban'],
+		['soupsoup.tumblr.com']],
         "http_protocols":["h1s","h2"],
         "iterations": 1,
-        "allowed_interfaces": ["op0",
-                               "op1",
-                               "op2",
-							   "eth0"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
+        "allowed_interfaces": ["op0","op1","op2","eth0"],  # Interfaces to run the experiment on
+        "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
 
 def py_traceroute(dest_name):
@@ -165,7 +151,7 @@ def py_traceroute(dest_name):
     return tr_output
 
 
-def run_exp(meta_info, expconfig, url,count,no_cache):
+def run_exp(meta_info, expconfig, url,count):
     """Seperate process that runs the experiment and collect the ouput.
 
         Will abort if the interface goes down.
@@ -203,21 +189,10 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     profile.add_extension("har.xpi")
     
     #set firefox preferences
-    if no_cache==1:
-    	profile.set_preference('browser.cache.memory.enable', False)
-    	profile.set_preference('browser.cache.offline.enable', False)
-    	profile.set_preference('browser.cache.disk.enable', False)
-    	profile.set_preference('network.http.use-cache', False)
-    else:
-    	profile.set_preference('browser.cache.memory.enable', True)
-    	profile.set_preference('browser.cache.offline.enable', True)
-    	profile.set_preference('browser.cache.disk.enable', True)
-    	profile.set_preference('network.http.use-cache', True)
-
     profile.set_preference("app.update.enabled", False)
-   # profile.set_preference('browser.cache.memory.enable', False)
-   # profile.set_preference('browser.cache.offline.enable', False)
-   # profile.set_preference('browser.cache.disk.enable', False)
+    profile.set_preference('browser.cache.memory.enable', False)
+    profile.set_preference('browser.cache.offline.enable', False)
+    profile.set_preference('browser.cache.disk.enable', False)
     profile.set_preference('browser.startup.page', 0)
     profile.set_preference("general.useragent.override", "Mozilla/5.0 (Android 4.4; Mobile; rv:46.0) Gecko/46.0 Firefox/46.0")
     
@@ -265,12 +240,10 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         return
     
     time.sleep(5)
-    #driver.save_screenshot('screenie.png')
+    driver.save_screenshot(filename+'.png')
 
     #close the firefox driver after HAR is written
-    driver.quit()
-    display.popen.terminate()
-
+    driver.close()
     display.stop()
     har_stats={}
     objs=[]
@@ -374,6 +347,46 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
     except Exception:
     	print("NWMCCMNC info is not available")
+#    try:
+#    	har_stats["LAC"]=meta_info["LAC"]
+#    except Exception:
+#    	print("LAC info is not available")
+#    try:
+#    	har_stats["CID"]=meta_info["CID"]
+#    except Exception:
+#    	print("CID info is not available")
+#    try:
+#    	har_stats["RSCP"]=meta_info["RSCP"]
+#    except Exception:
+#    	print("RSCP info is not available")
+#    try:
+#    	har_stats["RSSI"]=meta_info["RSSI"]
+#    except Exception:
+#    	print("RSSI info is not available")
+#    try:
+#    	har_stats["RSRQ"]=meta_info["RSRQ"]
+#    except Exception:
+#    	print("RSRQ info is not available")
+#    try:
+#    	har_stats["RSRP"]=meta_info["RSRP"]
+#    except Exception:
+#    	print("RSRP info is not available")
+#    try:
+#    	har_stats["ECIO"]=meta_info["ECIO"]
+#    except Exception:
+#    	print("ECIO info is not available")
+#    try:
+#    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
+#    except Exception:
+#    	print("DeviceMode info is not available")
+#    try:
+#    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
+#    except Exception:
+#    	print("DeviceSubmode info is not available")
+#    try:
+#    	har_stats["DeviceState"]=meta_info["DeviceState"]
+#    except Exception:
+#    	print("DeviceState info is not available")
 #
     har_stats["SequenceNumber"]= count
 
@@ -435,14 +448,15 @@ def check_meta(info, graceperiod, expconfig):
             time.time() - info["Timestamp"] < graceperiod)
 
 
-#def add_manual_metadata_information(info, ifname, expconfig):
-#    """Only used for local interfaces that do not have any metadata information.
-#
-#       Normally eth0 and wlan0.
-#    """
-#    info[expconfig["modeminterfacename"]] = ifname
-#    info["Operator"] = "local"
-#    info["Timestamp"] = time.time()
+def add_manual_metadata_information(info, ifname, expconfig):
+    """Only used for local interfaces that do not have any metadata information.
+
+       Normally eth0 and wlan0.
+    """
+    info[expconfig["modeminterfacename"]] = ifname
+    info["Operator"] = "local"
+    info["Timestamp"] = time.time()
+    info["ipaddress"] ="172.17.0.3"	
 
 
 def create_meta_process(ifname, expconfig):
@@ -453,8 +467,8 @@ def create_meta_process(ifname, expconfig):
     return (meta_info, process)
 
 
-def create_exp_process(meta_info, expconfig,url,count,no_cache):
-    process = Process(target=run_exp, args=(meta_info, expconfig,url,count,no_cache))
+def create_exp_process(meta_info, expconfig,url,count):
+    process = Process(target=run_exp, args=(meta_info, expconfig,url,count))
     process.daemon = True
     return process
 
@@ -497,8 +511,7 @@ if __name__ == '__main__':
 	http_protocols=EXPCONFIG['http_protocols']
         if_without_metadata = EXPCONFIG['interfaces_without_metadata']
         meta_grace = EXPCONFIG['meta_grace']
-        #exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
-        exp_grace = EXPCONFIG['exp_grace']
+        exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
         ifup_interval_check = EXPCONFIG['ifup_interval_check']
         time_between_experiments = EXPCONFIG['time_between_experiments']
         EXPCONFIG['guid']
@@ -510,168 +523,114 @@ if __name__ == '__main__':
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
+    for ifname in allowed_interfaces:
+	if ifname not in open('/proc/net/dev').read():
+		allowed_interfaces.remove(ifname)
 
-    for url_list in urls:
-        random.shuffle(url_list)    
-
-        for ifname in allowed_interfaces:
-	       if ifname not in open('/proc/net/dev').read():
-		      allowed_interfaces.remove(ifname)
-
-        no_cache=1
-        for ifname in allowed_interfaces:
-	    first_run=1 
-            # Interface is not up we just skip that one
-            if not check_if(ifname):
-                if EXPCONFIG['verbosity'] > 1:
-                    print "Interface is not up {}".format(ifname)
-                continue
-            # set the default route
-            
-
-            # Create a process for getting the metadata
-            # (could have used a thread as well but this is true multiprocessing)
-            meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
-            meta_process.start()    
-
+    for ifname in allowed_interfaces:
+        # Interface is not up we just skip that one
+        if not check_if(ifname):
             if EXPCONFIG['verbosity'] > 1:
-                print "Starting Experiment Run on if : {}".format(ifname)   
-
-            # On these Interfaces we do net get modem information so we hack
-            # in the required values by hand whcih will immeditaly terminate
-            # metadata loop below
-    #        if (check_if(ifname) and ifname in if_without_metadata):
-    #            add_manual_metadata_information(meta_info, ifname)
-    #
-            # Try to get metadadata
-            # if the metadata process dies we retry until the IF_META_GRACE is up
-            start_time = time.time()
-            while (time.time() - start_time < meta_grace and
-                   not check_meta(meta_info, meta_grace, EXPCONFIG)):
-                if not meta_process.is_alive():
-                    # This is serious as we will not receive updates
-                    # The meta_info dict may have been corrupt so recreate that one
-                    meta_info, meta_process = create_meta_process(ifname,
-                                                                  EXPCONFIG)
-                    meta_process.start()
-                if EXPCONFIG['verbosity'] > 1:
-                    print "Trying to get metadata"
-                time.sleep(ifup_interval_check) 
-
-            # Ok we did not get any information within the grace period
-            # we give up on that interface
-            if not check_meta(meta_info, meta_grace, EXPCONFIG):
-                if EXPCONFIG['verbosity'] > 1:
-                    print "No Metadata continuing"
-                continue    
-
-            # Ok we have some information lets start the experiment script
-
-
-	    output_interface=None
-
-            cmd1=["route",
-                 "del",
-                 "default"]
-            #os.system(bashcommand)
-            try:
-                    check_output(cmd1)
-            except CalledProcessError as e:
-                    if e.returncode == 28:
-                            print "Time limit exceeded"
+                print "Interface is not up {}".format(ifname)
+            continue
+        # set the default route
             
-            gw_ip="undefined"
-            for g in ni.gateways()[ni.AF_INET]:
-                if g[1] == ifname:
-                    gw_ip = g[0]
-                    break   
 
-            cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-            try:
-                check_output(cmd2)
-            	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-            	output = output.strip(' \t\r\n\0')
-            	output_interface=output.split(" ")[4]
-            	if output_interface==str(ifname):
-                    	print "Source interface is set to "+str(ifname)
-    		else:
-                    	print "Source interface "+output_interface+"is different from "+str(ifname)
-    			continue
-            
-    	    except CalledProcessError as e:
-                     if e.returncode == 28:
-                            print "Time limit exceeded"
-    		     continue
-    	   
+        # Create a process for getting the metadata
+        # (could have used a thread as well but this is true multiprocessing)
+        meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
+        meta_process.start()
 
+        if EXPCONFIG['verbosity'] > 1:
+            print "Starting Experiment Run on if : {}".format(ifname)
+
+        # On these Interfaces we do net get modem information so we hack
+        # in the required values by hand whcih will immeditaly terminate
+        # metadata loop below
+        if (check_if(ifname) and ifname in if_without_metadata):
+            add_manual_metadata_information(meta_info, ifname,EXPCONFIG)
+#
+        # Try to get metadadata
+        # if the metadata process dies we retry until the IF_META_GRACE is up
+        start_time = time.time()
+        while (time.time() - start_time < meta_grace and
+               not check_meta(meta_info, meta_grace, EXPCONFIG)):
+            if not meta_process.is_alive():
+                # This is serious as we will not receive updates
+                # The meta_info dict may have been corrupt so recreate that one
+                meta_info, meta_process = create_meta_process(ifname,
+                                                              EXPCONFIG)
+                meta_process.start()
             if EXPCONFIG['verbosity'] > 1:
-                print "Starting experiment"
+                print "Trying to get metadata"
+            time.sleep(ifup_interval_check)
+
+        # Ok we did not get any information within the grace period
+        # we give up on that interface
+        if not check_meta(meta_info, meta_grace, EXPCONFIG):
+            if EXPCONFIG['verbosity'] > 1:
+                print "No Metadata continuing"
+            continue
+
+        # Ok we have some information lets start the experiment script
+
+        if EXPCONFIG['verbosity'] > 1:
+            print "Starting experiment"
         
+        
+        for url_list in urls:
+	    random.shuffle(url_list)
 	    for url in url_list:	
-            	if first_run ==1:
-	    		no_cache=1
-			first_run=0
-	    	else:
-			no_cache=0
-	        random.shuffle(http_protocols)
-    	    	for protocol in http_protocols:
-    			if protocol == 'h1':
-                			getter = h1
-                			getter_version = 'HTTP1.1'
-            		elif protocol == 'h1s':
-                			getter = h1s
-                			getter_version = 'HTTP1.1/TLS'
-            		elif protocol == 'h2':
-                			getter = h2
-                			getter_version = 'HTTP2'
-            		else:
-                			print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2>' 
-                			sys.exit()	
-                	for run in range(start_count, iterations):
-                    		# Create a experiment process and start it
-                    		start_time_exp = time.time()
-                    		exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, url,run+1, no_cache)
-                    		exp_process.start()
-            
-                    		while (time.time() - start_time_exp < exp_grace and
-                           			exp_process.is_alive()):
-                        			# Here we could add code to handle interfaces going up or down
-                        			# Similar to what exist in the ping experiment
-                        			# However, for now we just abort if we loose the interface
-            
-                        		# No modem information hack to add required information
-                        		#if (check_if(ifname) and ifname in if_without_metadata):
-                        		#    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)    
+	    	for protocol in http_protocols:
+			if protocol == 'h1':
+            			getter = h1
+            			getter_version = 'HTTP1.1'
+        		elif protocol == 'h1s':
+            			getter = h1s
+            			getter_version = 'HTTP1.1/TLS'
+        		elif protocol == 'h2':
+            			getter = h2
+            			getter_version = 'HTTP2'
+        		else:
+            			print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2>' 
+            			sys.exit()	
+            		for run in range(start_count, iterations):
+                		# Create a experiment process and start it
+                		start_time_exp = time.time()
+                		exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, url,run+1)
+                		exp_process.start()
+        
+                		while (time.time() - start_time_exp < exp_grace and
+                       			exp_process.is_alive()):
+                    			# Here we could add code to handle interfaces going up or down
+                    			# Similar to what exist in the ping experiment
+                    			# However, for now we just abort if we loose the interface
+        
+                    			# No modem information hack to add required information
+                    			if (check_if(ifname) and ifname in if_without_metadata):
+                    		    		add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+        
+                    			if not (check_if(ifname) and check_meta(meta_info,
+                                                            meta_grace,
+                                                            EXPCONFIG)):
+                        			if EXPCONFIG['verbosity'] > 0:
+                            				print "Interface went down during a experiment"
+                        			break
+                    			elapsed_exp = time.time() - start_time_exp
+                    			if EXPCONFIG['verbosity'] > 1:
+                        			print "Running Experiment for {} s".format(elapsed_exp)
+                    			time.sleep(ifup_interval_check)
+        
+                		if exp_process.is_alive():
+                    			exp_process.terminate()
+                		if meta_process.is_alive():
+                    			meta_process.terminate()
+        
+                		elapsed = time.time() - start_time
+                		if EXPCONFIG['verbosity'] > 1:
+                    			print "Finished {} after {}".format(ifname, elapsed)
+                		time.sleep(time_between_experiments)
 
-                                            if not meta_process.is_alive():
-                                                print "meta_process is not alive - restarting"
-                                                meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
-                                                meta_process.start()
-                                                time.sleep(3*ifup_interval_check)   
-
-            
-                        		    if not (check_if(ifname) and check_meta(meta_info,
-                                                                meta_grace,
-                                                                EXPCONFIG)):
-                            			if EXPCONFIG['verbosity'] > 0:
-                                			print "Interface went down during a experiment"
-                            			break
-                        		    elapsed_exp = time.time() - start_time_exp
-                        		    if EXPCONFIG['verbosity'] > 1:
-                            				print "Running Experiment for {} s".format(elapsed_exp)
-                        		    time.sleep(ifup_interval_check)
-            
-                    		if exp_process.is_alive():
-                        			exp_process.terminate()
-                    		#if meta_process.is_alive():
-                        	#		meta_process.terminate()
-            
-                    		elapsed = time.time() - start_time
-                    		if EXPCONFIG['verbosity'] > 1:
-                        			print "Finished {} after {}".format(ifname, elapsed)
-                    		time.sleep(time_between_experiments)  
-
-            if EXPCONFIG['verbosity'] > 1:
-                print ("Interfaces {} "
-                   "done, exiting").format(ifname)
+    if EXPCONFIG['verbosity'] > 1:
+        print ("Interfaces {} "
+               "done, exiting").format(allowed_interfaces)
