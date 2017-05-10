@@ -103,7 +103,7 @@ EXPCONFIG = {
                                "op1",
                                "op2",
 							   "eth0"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
+        "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
 
 def py_traceroute(dest_name):
@@ -435,14 +435,14 @@ def check_meta(info, graceperiod, expconfig):
             time.time() - info["Timestamp"] < graceperiod)
 
 
-#def add_manual_metadata_information(info, ifname, expconfig):
-#    """Only used for local interfaces that do not have any metadata information.
-#
-#       Normally eth0 and wlan0.
-#    """
-#    info[expconfig["modeminterfacename"]] = ifname
-#    info["Operator"] = "local"
-#    info["Timestamp"] = time.time()
+def add_manual_metadata_information(info, ifname, expconfig):
+    """Only used for local interfaces that do not have any metadata information.
+
+       Normally eth0 and wlan0.
+    """
+    info[expconfig["modeminterfacename"]] = ifname
+    info["Operator"] = "local"
+    info["Timestamp"] = time.time()
 
 
 def create_meta_process(ifname, expconfig):
@@ -540,8 +540,8 @@ if __name__ == '__main__':
             # On these Interfaces we do net get modem information so we hack
             # in the required values by hand whcih will immeditaly terminate
             # metadata loop below
-    #        if (check_if(ifname) and ifname in if_without_metadata):
-    #            add_manual_metadata_information(meta_info, ifname)
+            if (check_if(ifname) and ifname in if_without_metadata):
+                add_manual_metadata_information(meta_info, ifname)
     #
             # Try to get metadadata
             # if the metadata process dies we retry until the IF_META_GRACE is up
@@ -641,8 +641,8 @@ if __name__ == '__main__':
                         			# However, for now we just abort if we loose the interface
             
                         		# No modem information hack to add required information
-                        		#if (check_if(ifname) and ifname in if_without_metadata):
-                        		#    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)    
+                        		if (check_if(ifname) and ifname in if_without_metadata):
+                        		    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)    
 
                                             if not meta_process.is_alive():
                                                 print "meta_process is not alive - restarting"
