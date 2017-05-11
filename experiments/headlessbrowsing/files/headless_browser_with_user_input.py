@@ -358,10 +358,10 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	har_stats["IPAddress"]=meta_info["IPAddress"]
     except Exception:
     	print("IPAddress info is not available")
-    try:
-    	har_stats["InternalIPAddress"]=meta_info["InternalIPAddress"]
-    except Exception:
-    	print("InternalIPAddress info is not available")
+#    try:
+#    	har_stats["InternalIPAddress"]=meta_info["InternalIPAddress"]
+#    except Exception:
+#    	print("InternalIPAddress info is not available")
     try:
     	har_stats["InterfaceName"]=meta_info["InterfaceName"]
     except Exception:
