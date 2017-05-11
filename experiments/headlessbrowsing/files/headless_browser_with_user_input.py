@@ -77,16 +77,16 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-       # "urls": [['facebook.com/telia/'],
-       # ['en.wikipedia.org/wiki/As_Slow_as_Possible'],
-       # ['linkedin.com/company/google'],
-       # ['instagram.com/nike/'],
-       # ['google.com/search?q=iPhone+7'],
-       # ['youtube.com/watch?v=xGJ5a7uIZ1g'],
-       # ['ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html'],
-       # ['nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront'],
-       # ['theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban'],
-       # ['soupsoup.tumblr.com']],
+        #"urls": [['facebook.com/telia/'],
+        #['en.wikipedia.org/wiki/As_Slow_as_Possible'],
+        #['linkedin.com/company/google'],
+        #['instagram.com/nike/'],
+        #['google.com/search?q=iPhone+7'],
+        #['youtube.com/watch?v=xGJ5a7uIZ1g'],
+        #['ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html'],
+        #['nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront'],
+        #['theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban'],
+        #['uk.sports.yahoo.com']],
          "urls": [['facebook.com/telia/', 'facebook.com/LeoMessi/', 'facebook.com/Cristiano/', 'facebook.com/intrepidtravel', 'facebook.com/threadless', 'facebook.com/Nutella', 'facebook.com/zappos', 'facebook.com/toughmudder', 'facebook.com/stjude', 'facebook.com/Adobe/'],
 		 ['en.wikipedia.org/wiki/Timeline_of_the_far_future', 'en.wikipedia.org/wiki/As_Slow_as_Possible', 'en.wikipedia.org/wiki/List_of_political_catchphrases', 'en.wikipedia.org/wiki/1958_Lituya_Bay_megatsunami', 'en.wikipedia.org/wiki/Yonaguni_Monument#Interpretations', 'en.wikipedia.org/wiki/Crypt_of_Civilization', 'en.wikipedia.org/wiki/Mad_scientist', 'en.wikipedia.org/wiki/London_Stone', 'en.wikipedia.org/wiki/Internet', 'en.wikipedia.org/wiki/Stream_Control_Transmission_Protocol'],
 		  ['linkedin.com/company/teliacompany', 'linkedin.com/company/google', 'linkedin.com/company/facebook', 'linkedin.com/company/ericsson', 'linkedin.com/company/microsoft', 'linkedin.com/company/publications-office-of-the-european-union', 'linkedin.com/company/booking.com', 'linkedin.com/company/vodafone', 'linkedin.com/company/bmw', 'linkedin.com/company/t-mobile'],
@@ -342,14 +342,6 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	har_stats["Operator"]= meta_info["Operator"]
     except Exception:
     	print("Operator info is not available")
-    #try:
-    #	har_stats["IMSI"]=meta_info["IMSI"]
-    #except Exception:
-    #	print("IMSI info is not available")
-    #try:
-    #	har_stats["IMEI"]=meta_info["IMEI"]
-    #except Exception:
-    #	print("IMEI info is not available")
     try:
     	har_stats["InternalInterface"]=meta_info["InternalInterface"]
     except Exception:
@@ -358,10 +350,6 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	har_stats["IPAddress"]=meta_info["IPAddress"]
     except Exception:
     	print("IPAddress info is not available")
-#    try:
-#    	har_stats["InternalIPAddress"]=meta_info["InternalIPAddress"]
-#    except Exception:
-#    	print("InternalIPAddress info is not available")
     try:
     	har_stats["InterfaceName"]=meta_info["InterfaceName"]
     except Exception:
