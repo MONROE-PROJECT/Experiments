@@ -529,7 +529,7 @@ if __name__ == '__main__':
             # in the required values by hand whcih will immeditaly terminate
             # metadata loop below
             if (check_if(ifname) and ifname in if_without_metadata):
-                add_manual_metadata_information(meta_info, ifname)
+                add_manual_metadata_information(meta_info, ifname,EXPCONFIG)
     #
             # Try to get metadadata
             # if the metadata process dies we retry until the IF_META_GRACE is up
