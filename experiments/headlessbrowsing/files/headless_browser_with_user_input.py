@@ -321,14 +321,18 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     har_stats["Objects"]=objs
     har_stats["NumObjects"]=num_of_objects
     har_stats["PageSize"]=pageSize
-    hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
-    hours = int(hours)
-    minutes = int(minutes)
-    seconds = float(seconds)
-    plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
+    try:
+    	hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
+    	hours = int(hours)
+    	minutes = int(minutes)
+    	seconds = float(seconds)
+    	plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
+    	har_stats["Web load time"]=plt_ms
+    except:
+	print "Timing errors in web load time"
+
     har_stats["url"]=url
     har_stats["Protocol"]=getter_version	
-    har_stats["Web load time"]=plt_ms
     #har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
