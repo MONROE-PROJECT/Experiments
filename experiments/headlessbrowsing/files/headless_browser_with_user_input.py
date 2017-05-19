@@ -174,6 +174,8 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
 
     #url=url_list[index]
 
+    print "Starting traceroute ..."
+
     try:
     	routes=py_traceroute(str(url).split("/")[0])
     except Exception:
@@ -195,6 +197,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
 	print "Ping info is unknown"
 
 
+    print "Starting the display ..."
     #count=run+1
     display = Display(visible=0, size=(800, 600))
     display.start()
@@ -255,7 +258,11 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     profile.set_preference(domains + "pageLoadedTimeout", 1000)
     time.sleep(1)
 
+    print "Profile for the Firefox is set"
+
     #create firefox driver
+
+    print "Creating the Firefox driver .."
 
     try:
         driver = webdriver.Firefox(profile)
@@ -265,16 +272,22 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         return
     
     time.sleep(5)
+    print "Quiting the driver.."
     #driver.save_screenshot('screenie.png')
 
     #close the firefox driver after HAR is written
     driver.quit()
+
+    print "Terminating the display .."
+
     display.popen.terminate()
 
     display.stop()
     har_stats={}
     objs=[]
     pageSize=0
+
+    print "Processing the HAR files ..."
 
     try:
     	with open("har/"+filename+".har") as f:
