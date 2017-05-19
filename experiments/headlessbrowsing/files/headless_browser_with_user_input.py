@@ -503,6 +503,7 @@ if __name__ == '__main__':
         print "Missing expconfig variable {}".format(e)
         raise e
 
+    start_time = time.time()
     for url_list in urls:
         random.shuffle(url_list)    
 
@@ -537,7 +538,6 @@ if __name__ == '__main__':
     #
             # Try to get metadadata
             # if the metadata process dies we retry until the IF_META_GRACE is up
-            start_time = time.time()
             while (time.time() - start_time < meta_grace and
                    not check_meta(meta_info, meta_grace, EXPCONFIG)):
                 if not meta_process.is_alive():
