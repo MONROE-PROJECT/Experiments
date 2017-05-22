@@ -24,6 +24,7 @@ from selenium import webdriver
 import datetime
 from dateutil.parser import parse
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import json
 import zmq
 import netifaces
@@ -73,7 +74,7 @@ EXPCONFIG = {
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
         "ifup_interval_check": 6,  # Interval to check if interface is up
-        "time_between_experiments": 10,
+        "time_between_experiments": 5,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
@@ -201,6 +202,12 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     #count=run+1
     display = Display(visible=0, size=(800, 600))
     display.start()
+
+    d = DesiredCapabilities.FIREFOX
+    #d['loggingPrefs'] = {'browser': 'ALL', 'client': 'ALL', 'driver': 'ALL', 'performance': 'ALL', 'server': 'ALL'}
+    
+    d['marionette'] = True
+    d['binary'] = '/usr/bin/firefox'
     profile = webdriver.FirefoxProfile("/opt/monroe/")
     profile.accept_untrusted_certs = True
     profile.add_extension("har.xpi")
@@ -265,8 +272,27 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     print "Creating the Firefox driver .."
 
     try:
-        driver = webdriver.Firefox(profile)
+        driver = webdriver.Firefox(capabilities=d,firefox_profile=profile)
+
+	driver.set_page_load_timeout(100)
+        #driver.manage.timeouts().pageLoadTimeout(100,SECONDS)
+        #driver.manage.timeouts().setScriptTimeout(100,SECONDS)
         driver.get(newurl)
+	
+	navigationStart = driver.execute_script("return window.performance.timing.navigationStart")
+	responseStart = driver.execute_script("return window.performance.timing.responseStart")
+	domComplete = driver.execute_script("return window.performance.timing.domComplete")
+        loadeventEnd= driver.execute_script("return window.performance.timing.loadEventEnd")
+
+	backendPerformance = responseStart - navigationStart
+	frontendPerformance = domComplete - responseStart
+	plt = loadeventEnd - navigationStart
+
+	print "Back End: %s" % backendPerformance
+	print "Front End: %s" % frontendPerformance
+	print "Page load time: %s" % plt
+	#timestr = time.strftime("%Y%m%d-%H%M%S")
+	#driver.save_screenshot(timestr+".png")
     except Exception as e:
         raise WebDriverException("Unable to start webdriver with FF.", e)
         return
@@ -292,31 +318,35 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     try:
     	with open("har/"+filename+".har") as f:
         	msg=json.load(f)
+    		num_of_objects=0
+
+    		start=0
+    		for entry in msg["log"]["entries"]:
+        		try:
+                		obj={}
+                		obj["url"]=entry["request"]["url"]
+               			obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
+                		pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
+				obj["mimeType"]=entry["response"]["content"]["mimeType"]
+				obj["startedDateTime"]=entry["startedDateTime"]
+                		obj["time"]=entry["time"]
+                		obj["timings"]=entry["timings"]
+                		objs.append(obj)
+                		num_of_objects=num_of_objects+1
+                		#if start==0:
+                        	#	start_time=entry["startedDateTime"]
+                        	#	start=1
+                		#end_time=entry["startedDateTime"]
+                		#ms=entry["time"]
+    			except KeyError:
+        			pass
+                
+    		har_stats["Objects"]=objs
+    		har_stats["NumObjects"]=num_of_objects
+    		har_stats["PageSize"]=pageSize
     except IOError:
     	print "har/"+filename+".har doesn't exist"
-        return
-    num_of_objects=0
-
-    start=0
-    for entry in msg["log"]["entries"]:
-        try:
-                obj={}
-                obj["url"]=entry["request"]["url"]
-                obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
-		obj["mimeType"]=entry["response"]["content"]["mimeType"]
-		obj["startedDateTime"]=entry["startedDateTime"]
-                obj["time"]=entry["time"]
-                obj["timings"]=entry["timings"]
-                objs.append(obj)
-                num_of_objects=num_of_objects+1
-                if start==0:
-                        start_time=entry["startedDateTime"]
-                        start=1
-                end_time=entry["startedDateTime"]
-                ms=entry["time"]
-    	except KeyError:
-        	pass
+        
 
     try:
        har_stats["tracedRoutes"]=routes.rstrip().split(" ")
@@ -331,22 +361,20 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except Exception:
 	print("Ping info is not available")
         har_stats["ping_exp"]=0
-    har_stats["Objects"]=objs
-    har_stats["NumObjects"]=num_of_objects
-    har_stats["PageSize"]=pageSize
-    try:
-    	hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
-    	hours = int(hours)
-    	minutes = int(minutes)
-    	seconds = float(seconds)
-    	plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
-    	har_stats["Web load time"]=plt_ms
-    except:
-	print "Timing errors in web load time"
+    #try:
+    #	hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
+    #	hours = int(hours)
+    #	minutes = int(minutes)
+    #	seconds = float(seconds)
+    #	plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
+    #	har_stats["Web load time"]=plt_ms
+    #except:
+    #	print "Timing errors in web load time"
 
     har_stats["url"]=url
     har_stats["Protocol"]=getter_version	
-    #har_stats["Guid"]= expconfig['guid']
+    har_stats["Web load time"]=plt
+    har_stats["ttfb"]=backendPerformance
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
