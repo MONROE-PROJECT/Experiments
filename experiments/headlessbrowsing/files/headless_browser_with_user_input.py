@@ -177,10 +177,10 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
 
     print "Starting traceroute ..."
 
-    try:
-    	routes=py_traceroute(str(url).split("/")[0])
-    except Exception:
-    	print ("tracerouting unsuccessful")
+    #try:
+    #	routes=py_traceroute(str(url).split("/")[0])
+    #except Exception:
+    #	print ("tracerouting unsuccessful")
 
     try:
     	response = subprocess.check_output(
@@ -263,6 +263,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     profile.set_preference(domains + "enableAutoExportToFile", True)
     profile.set_preference(domains + "defaultLogDir", har_directory)
     profile.set_preference(domains + "pageLoadedTimeout", 1000)
+    profile.set_preference('webdriver.load.strategy', 'unstable')
     time.sleep(1)
 
     print "Profile for the Firefox is set"
@@ -274,7 +275,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     try:
         driver = webdriver.Firefox(capabilities=d,firefox_profile=profile)
 
-	driver.set_page_load_timeout(100)
+	driver.set_page_load_timeout(60)
         #driver.manage.timeouts().pageLoadTimeout(100,SECONDS)
         #driver.manage.timeouts().setScriptTimeout(100,SECONDS)
         driver.get(newurl)
@@ -348,10 +349,10 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	print "har/"+filename+".har doesn't exist"
         
 
-    try:
-       har_stats["tracedRoutes"]=routes.rstrip().split(" ")
-    except Exception:
-       print "traceroute info is not available"
+    #try:
+    #   har_stats["tracedRoutes"]=routes.rstrip().split(" ")
+    #except Exception:
+    #   print "traceroute info is not available"
 
     try:
     	har_stats["ping_max"]=ping_max
