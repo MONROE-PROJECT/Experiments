@@ -72,6 +72,7 @@ EXPCONFIG = {
                                         # we will also need to integrate a list of MPDs
         "ifup_interval_check": 5,  # Interval to check if interface is up
         "script": "AStream_MONROE.py",  # Overridden by scheduler
+        "download": DOWNLOAD,
         "allowed_interfaces": ["op0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
@@ -94,7 +95,7 @@ class DashPlayback:
         self.audio = dict()
         self.video = dict()
 
-def start_playback_smart(dash_player, dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
+def start_playback_smart(dash_player, dp_object, domain, playback_type=None, download=False, video_segment_duration=None, ifname=None):
     """ Module that downloads the MPD-FIle and download
         all the representations of the Module to download
         the MPEG-DASH media.
@@ -116,7 +117,7 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
     # dash_player = dash_buffer.DashPlayer(dp_object.playback_duration, video_segment_duration)
     # dash_player.start()
     # A folder to save the segments in
-    file_identifier = id_generator()
+    file_identifier = id_generator(ifname)
     config_dash.LOG.info("The segments are stored in %s" % file_identifier)
     dp_list = defaultdict(defaultdict)
     # Creating a Dictionary of all that has the URLs for each segment and different bitrates
@@ -315,13 +316,13 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
                 start_playback_all(dp_object, domain)
         elif "basic" in playback_type.lower():
             config_dash.LOG.critical("Started Basic-DASH Playback")
-            start_playback_smart(dash_player, dp_object, domain, "BASIC", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "BASIC", download, video_segment_duration, ifname)
         elif "sara" in playback_type.lower():
             config_dash.LOG.critical("Started SARA-DASH Playback")
-            start_playback_smart(dash_player, dp_object, domain, "SMART", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "SMART", download, video_segment_duration, ifname)
         elif "netflix" in playback_type.lower():
             config_dash.LOG.critical("Started Netflix-DASH Playback")
-            start_playback_smart(dash_player, dp_object, domain, "NETFLIX", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "NETFLIX", download, video_segment_duration, ifname)
         else:
             config_dash.LOG.error("Unknown Playback parameter {}".format(playback_type))
             return None
@@ -451,6 +452,7 @@ if __name__ == '__main__':
         EXPCONFIG['verbosity']
         EXPCONFIG['resultdir']
         EXPCONFIG['modeminterfacename']
+        download = EXPCONFIG['download']
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
@@ -513,7 +515,13 @@ if __name__ == '__main__':
         except CalledProcessError as e:
                 if e.returncode == 28:
                          config_dash.LOG.info("Time limit exceeded")
-        gw_ip="192.168."+str(meta_info["IPAddress"].split(".")[2])+".1"
+        #gw_ip="192.168."+str(meta_info["IPAddress"].split(".")[2])+".1"
+        gw_ip="undefined"
+        for g in netifaces.gateways()[netifaces.AF_INET]:
+            if g[1] == ifname:
+                gw_ip = g[0]
+                break
+
         cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
         try:
                 check_output(cmd2)
@@ -553,7 +561,7 @@ if __name__ == '__main__':
             config_dash.LOG.info(bandwidth)
         start_time_exp = time.time()
         #exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
-        exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
+        exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, download, video_segment_duration)
         #exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
         exp_process.start()
 
