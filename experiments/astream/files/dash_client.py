@@ -81,11 +81,12 @@ def get_domain_name(url):
     return domain
 
 
-def id_generator(id_size=6):
+def id_generator(ifname=None):
     """ Module to create a random string with uppercase 
         and digits.
     """
-    return 'TEMP_' + ''.join(random.choice(ascii_letters+digits) for _ in range(id_size))
+    id_size=6
+    return '/monroe/results/TEMP_' + str(ifname) + '_' + ''.join(random.choice(ascii_letters+digits) for _ in range(id_size))
 
 
 def download_segment(segment_url, dash_folder):
