@@ -175,7 +175,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
 
     #url=url_list[index]
 
-    print "Starting traceroute ..."
+    print "Starting ping ..."
 
     #try:
     #	routes=py_traceroute(str(url).split("/")[0])
@@ -334,11 +334,11 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
                 		obj["timings"]=entry["timings"]
                 		objs.append(obj)
                 		num_of_objects=num_of_objects+1
-                		#if start==0:
-                        	#	start_time=entry["startedDateTime"]
-                        	#	start=1
-                		#end_time=entry["startedDateTime"]
-                		#ms=entry["time"]
+                		if start==0:
+                        		start_time=entry["startedDateTime"]
+                        		start=1
+                		end_time=entry["startedDateTime"]
+                		ms=entry["time"]
     			except KeyError:
         			pass
                 
@@ -362,19 +362,19 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except Exception:
 	print("Ping info is not available")
         har_stats["ping_exp"]=0
-    #try:
-    #	hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
-    #	hours = int(hours)
-    #	minutes = int(minutes)
-    #	seconds = float(seconds)
-    #	plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
-    #	har_stats["Web load time"]=plt_ms
-    #except:
-    #	print "Timing errors in web load time"
+    try:
+    	hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
+    	hours = int(hours)
+    	minutes = int(minutes)
+    	seconds = float(seconds)
+    	plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
+    	har_stats["Web load time2"]=plt_ms
+    except:
+    	print "Timing errors in web load time"
 
     har_stats["url"]=url
     har_stats["Protocol"]=getter_version	
-    har_stats["Web load time"]=plt
+    har_stats["Web load time1"]=plt
     har_stats["ttfb"]=backendPerformance
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
