@@ -275,7 +275,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     try:
         driver = webdriver.Firefox(capabilities=d,firefox_profile=profile)
 
-	driver.set_page_load_timeout(60)
+	driver.set_page_load_timeout(100)
         #driver.manage.timeouts().pageLoadTimeout(100,SECONDS)
         #driver.manage.timeouts().setScriptTimeout(100,SECONDS)
         driver.get(newurl)
