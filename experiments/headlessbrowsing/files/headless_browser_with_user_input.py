@@ -702,7 +702,8 @@ if __name__ == '__main__':
                     		if EXPCONFIG['verbosity'] > 1:
                         			print "Finished {} after {}".format(ifname, elapsed)
                     		time.sleep(time_between_experiments)  
-
+	    if meta_process.is_alive():
+		meta_process.terminate()
             if EXPCONFIG['verbosity'] > 1:
                 print ("Interfaces {} "
                    "done, exiting").format(ifname)
