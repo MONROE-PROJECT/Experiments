@@ -15,12 +15,12 @@ except Exception as e:
     def get_asn(ip):
         return None
 
-HEADER_RE = re.compile(r'^traceroute to (?P<target>\S+)\s+(?:\((?P<target_ip>\S+)\))?[\s,]+' +
+HEADER_RE = re.compile(r'^traceroute to (?P<target>\S+?)\s*(?:\((?P<target_ip>\S+)\))?[\s,]+' +
     '(?P<hops_max>\d+)\s+hops max[\s,]+(?P<pkt_size>\d+)\sbyte packets')
 
 HOP_RE = re.compile(r'^\s*(?P<hop>\d+)\s+(?P<probes>.*)$', re.MULTILINE)
 
-PROBE_RE = re.compile(r'(?:(?P<name>[^\s*]+)?\s+)?(?:\((?P<ip>[^\s]+)\)\s+)?(?:\[(?P<asn>[^\s]+)\]\s+)?(?:(?P<rtt>[\d.]+?)\s+ms(?:\s+(?P<annotation>![^\s]*))?|\s*(?P<star>\*)\s*)')
+PROBE_RE = re.compile(r'(?:(?P<name>[^\s*]+)?\s+)?(?:\(\s*(?P<ip>[^\s]+)\s*\)\s+)?(?:\[(?P<asn>[^\s]+)\]\s+)?(?:(?P<rtt>[\d.]+?)\s+ms(?:\s+(?P<annotation>![^\s]*))?|\s*(?P<star>\*)\s*)')
 
 def parse_traceroute(data, asnlookup=True):
     m = HEADER_RE.match(data)
