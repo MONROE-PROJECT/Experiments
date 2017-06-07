@@ -255,6 +255,8 @@ def traceroute(target, interface, outputfile):
         traceroute = parse_traceroute(data)
     except Exception as e:
         traceroute = {'error': 'could not parse traceroute'}
+    if not traceroute:
+        traceroute = {'error': 'no traceroute output'}
     traceroute['time_start'] = time_start
     traceroute['time_end'] = time_end
     traceroute['raw'] = data
