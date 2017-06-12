@@ -576,7 +576,8 @@ if __name__ == '__main__':
     #
             # Try to get metadadata
             # if the metadata process dies we retry until the IF_META_GRACE is up
-            while (time.time() - start_time < meta_grace and
+            start_time_metacheck = time.time()
+            while (time.time() - start_time_metacheck < meta_grace and
                    not check_meta(meta_info, meta_grace, EXPCONFIG)):
                 if not meta_process.is_alive():
                     # This is serious as we will not receive updates
@@ -585,7 +586,7 @@ if __name__ == '__main__':
                                                                   EXPCONFIG)
                     meta_process.start()
                 if EXPCONFIG['verbosity'] > 1:
-                    print "Trying to get metadata"
+                    print "Trying to get metadata. Waited {:0.1f}/{} seconds.".format(time.time() - start_time_metacheck, meta_grace)
                 time.sleep(ifup_interval_check) 
 
             # Ok we did not get any information within the grace period
