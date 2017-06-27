@@ -161,7 +161,7 @@ def run_exp(meta_info, expconfig):
             "Timestamp": expconfig['timestamp'],
             "Iccid": meta_info["ICCID"],
             "Operator": meta_info["Operator"],
-            "SequenceNumber": 1
+            "SequenceNumber": expconfig['sequence_number']
         })
 
         # Add metadata if requested
@@ -349,6 +349,7 @@ if __name__ == '__main__':
         print("Missing expconfig variable {}".format(e))
         raise e
 
+    sequence_number = 0
     tot_start_time = time.time()
     for ifname in netifaces.interfaces():
         # Skip disbaled interfaces
@@ -431,6 +432,9 @@ if __name__ == '__main__':
             if cfg['verbosity'] > 1:
                 print("Starting experiment")
             cfg['timestamp'] = start_time_exp = time.time()
+
+            sequence_number += 1
+            cfg['sequence_number'] = sequence_number
             # Create a experiment process and start it
             exp_process = create_exp_process(meta_info, cfg)
             exp_process.start()
@@ -441,9 +445,7 @@ if __name__ == '__main__':
                 # Similar to what exist in the ping experiment
                 # However, for now we just abort if we loose the interface
 
-                if not (check_if(ifname) and check_meta(meta_info,
-                                                        meta_grace,
-                                                        cfg)):
+                if not check_if(ifname):
                     if cfg['verbosity'] > 0:
                         print("Interface went down during an experiment")
                     break
