@@ -58,8 +58,7 @@ EXPCONFIG = {
         "traceroute_resultdir": "/monroe/results/",     # set to a dir to enable traceroute before rmbt
         "disabled_interfaces": ["lo",
                                 "metadata",
-                                "eth0",
-                                "wlan0"
+                                "eth0"
                                 ],                      # Interfaces to NOT run the experiment on
         #"enabled_interfaces": ["op0"],                 # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0",
