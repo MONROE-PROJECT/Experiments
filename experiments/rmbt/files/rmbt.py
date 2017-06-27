@@ -21,6 +21,8 @@ import netifaces
 import time
 import tempfile
 import shutil
+import traceback
+import tarfile
 from os import path
 from traceroute_parser import parse_traceroute
 from subprocess import Popen, PIPE, STDOUT, call
@@ -84,6 +86,7 @@ EXPCONFIG = {
         "cnf_timeout_s": 30,
         "cnf_tcp_info_sample_rate_us": 10000, # = 10ms / 100Hz
         "multi_config_randomize": False,
+        "tar_additional_results": True
 }
 
 def get_filename(data, postfix, ending, tstamp):
@@ -102,14 +105,14 @@ def move_file(f, t):
         shutil.move(f, t)
         os.chmod(t, 0o644)
     except:
-        pass
+        traceback.print_exc()
 
 def copy_file(f, t):
     try:
         shutil.copyfile(f, t)
         os.chmod(t, 0o644)
     except:
-        pass
+        traceback.print_exc()
 
 def get_config_combinations(config):
     if 'multi_config' not in config or not config['multi_config']:
@@ -281,7 +284,7 @@ def create_exp_process(meta_info, expconfig):
     process.daemon = True
     return process
 
-def traceroute(target, interface, outputdir):
+def traceroute(target, interface):
     cmd = ['traceroute', '-A']
     if (interface):
         cmd.extend(['-i', interface])
@@ -305,7 +308,7 @@ def traceroute(target, interface, outputdir):
     traceroute['time_start'] = time_start
     traceroute['time_end'] = time_end
     traceroute['raw'] = data.decode('ascii', 'replace')
-    with NamedTemporaryFile(mode='w+', prefix='tmptraceroute', suffix='.json', dir=outputdir, delete=False) as f:
+    with NamedTemporaryFile(mode='w+', prefix='tmptraceroute', suffix='.json', delete=False) as f:
         f.write(json.dumps(traceroute))
         return f.name
 
@@ -390,7 +393,7 @@ if __name__ == '__main__':
                     target_set.add(cfg['cnf_server_host'])
             traceroute_targets = {}
             for target in target_set:
-                traceroute_targets[target] = traceroute(target, ifname, EXPCONFIG['traceroute_resultdir'])
+                traceroute_targets[target] = traceroute(target, ifname)
 
         # Try to get metadata
         # if the metadata process dies we retry until the IF_META_GRACE is up
@@ -420,9 +423,9 @@ if __name__ == '__main__':
             temp_flows_json = None
             temp_stats_json = None
             if 'cnf_file_flows' not in EXPCONFIG:
-                cfg['cnf_file_flows'] = temp_flows_json = tempfile.mktemp(prefix='tmpflows', suffix='.json.xz', dir=EXPCONFIG['resultdir'])
+                cfg['cnf_file_flows'] = temp_flows_json = tempfile.mktemp(prefix='tmpflows', suffix='.json.xz')
             if 'cnf_file_stats' not in EXPCONFIG:
-                cfg['cnf_file_stats'] = temp_stats_json = tempfile.mktemp(prefix='tmpstats', suffix='.json.xz', dir=EXPCONFIG['resultdir'])
+                cfg['cnf_file_stats'] = temp_stats_json = tempfile.mktemp(prefix='tmpstats', suffix='.json.xz')
 
             # Ok we have some information lets start the experiment script
             if cfg['verbosity'] > 1:
@@ -454,16 +457,27 @@ if __name__ == '__main__':
             if meta_process.is_alive():
                 meta_process.terminate()
 
-            if temp_flows_json:
-                move_file(temp_flows_json, path.join(cfg['resultdir'], get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp)))
-            if temp_stats_json:
-                move_file(temp_stats_json, path.join(cfg['resultdir'], get_filename(cfg, 'STATS', 'json.xz', start_time_exp)))
-            if traceroute_targets and 'cnf_server_host' in cfg and traceroute_targets[cfg['cnf_server_host']]:
-                temp_traceroute = traceroute_targets[cfg['cnf_server_host']]
-                copy_file(temp_traceroute, path.join(cfg['traceroute_resultdir'], get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp)))
+            if 'tar_additional_results' in cfg and cfg['tar_additional_results']:
+                with tarfile.open(path.join(cfg['resultdir'], get_filename(cfg, None, 'tar', start_time_exp)), mode='w:') as tar:
+                    if temp_flows_json:
+                        tar.add(temp_flows_json, arcname=get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp), recursive=False)
+                        os.remove(temp_flows_json)
+                    if temp_stats_json:
+                        tar.add(temp_stats_json, arcname=get_filename(cfg, 'STATS', 'json.xz', start_time_exp), recursive=False)
+                        os.remove(temp_stats_json)
+                    if traceroute_targets and 'cnf_server_host' in cfg and traceroute_targets[cfg['cnf_server_host']]:
+                        tar.add(traceroute_targets[cfg['cnf_server_host']], arcname=get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp), recursive=False)
+            else:
+                if temp_flows_json:
+                    move_file(temp_flows_json, path.join(cfg['resultdir'], get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp)))
+                if temp_stats_json:
+                    move_file(temp_stats_json, path.join(cfg['resultdir'], get_filename(cfg, 'STATS', 'json.xz', start_time_exp)))
+                if traceroute_targets and 'cnf_server_host' in cfg and traceroute_targets[cfg['cnf_server_host']]:
+                    temp_traceroute = traceroute_targets[cfg['cnf_server_host']]
+                    copy_file(temp_traceroute, path.join(cfg['traceroute_resultdir'], get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp)))
 
         if traceroute_targets:
-            for tmpfile in traceroute_targets.viewvalues():
+            for tmpfile in traceroute_targets.values():
                 os.remove(tmpfile)
 
         elapsed = time.time() - start_time
@@ -471,5 +485,4 @@ if __name__ == '__main__':
             print("Finished {} after {}".format(ifname, elapsed))
         time.sleep(time_between_experiments)
     if EXPCONFIG['verbosity'] > 1:
-        print("Complete experiment took {}"
-               ", now exiting").format(time.time() - tot_start_time)
+        print("Complete experiment took {}, now exiting".format(time.time() - tot_start_time))

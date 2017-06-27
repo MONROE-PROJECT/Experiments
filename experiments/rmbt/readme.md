@@ -58,15 +58,21 @@ The default values are (can be overridden by a /monroe/config):
   "cnf_ul_wait_time_s": 20,             # time to wait for uplink measurement to finish after nominal time
   "cnf_timeout_s": 30,                  # TCP timeout
   "cnf_tcp_info_sample_rate_us": 10000, # = 10ms; how often to collect tcp_info
+  "multi_config_randomize": False,      # Randomize the muliple runs by "multi_config", has no effect without "multi_config" (see below)
+  "tar_additional_results": True        # tar the flows, stats and traceroute output
 }
 ```
 
 Other supported settings are:
 ```
 {
-  # Set "multi_config" to do multiple runs on every interface.
+  # Set "multi_config" to do multiple runs with varying configuration
+  # on every interface.
   # All elements of each sublist are combined with the elements of every other
-  # sublist. The following example does 12 runs on every interface.
+  # sublist. The resulting configurations are then combined with the main
+  # configuration and add or override the entries of the main config.
+  # The traceroute is only done once per server/interface combination.
+  # The following example does 12 runs on every interface.
   # It does 1,3,4,5,7,9 number of flows against server A and B:
   "multi_config": [
     [
@@ -79,16 +85,14 @@ Other supported settings are:
     ],
     [ {"cnf_server_host": "A"}, {"cnf_server_host": "B"}]
   ],
-  "multi_config_randomize": True, # Randomize the muliple runs
-
   "enabled_interfaces": ["op0"],  # Interfaces to run the experiment on
   "require_modem_metadata": {"DeviceMode": 4}, # only run if in LTE (5) or UMTS (4)
-  "cnf_encrypt_debug": False,     # Add TLS debug info to flows file
+  "cnf_encrypt_debug": false,     # Add TLS debug info to flows file
   "cnf_cipherlist": null,         # OpenSSL Cipherlist
   "cnf_token": null,              # RMBT token (mutually exclusive with cnf_secret)
   "cnf_file_summary": "{time}_{id_test}_summary.json",
   "cnf_file_flows": "{time}_{id_test}_flows.json",
-  "cnf_file_stats": "{time}_{id_test}_stats.json",
+  "cnf_file_stats": "{time}_{id_test}_stats.json"
 }
 ```
 
