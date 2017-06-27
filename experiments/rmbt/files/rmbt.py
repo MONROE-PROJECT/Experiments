@@ -27,6 +27,8 @@ from subprocess import Popen, PIPE, STDOUT, call
 from multiprocessing import Process, Manager
 from collections import OrderedDict
 from tempfile import NamedTemporaryFile
+from itertools import product
+from random import shuffle
 
 
 # Configuration
@@ -80,7 +82,8 @@ EXPCONFIG = {
         "cnf_dl_wait_time_s": 20,
         "cnf_ul_wait_time_s": 20,
         "cnf_timeout_s": 30,
-        "cnf_tcp_info_sample_rate_us": 10000, # = 10ms
+        "cnf_tcp_info_sample_rate_us": 10000, # = 10ms / 100Hz
+        "multi_config_randomize": False,
 }
 
 def get_filename(data, postfix, ending, tstamp):
@@ -95,8 +98,41 @@ def save_output(data, msg, postfix=None, ending="json", tstamp=time.time(), outd
     move_file(f.name, outfile)
 
 def move_file(f, t):
-    os.rename(f, t)
-    os.chmod(t, 0644)
+    try:
+        shutil.move(f, t)
+        os.chmod(t, 0o644)
+    except:
+        pass
+
+def copy_file(f, t):
+    try:
+        shutil.copyfile(f, t)
+        os.chmod(t, 0o644)
+    except:
+        pass
+
+def get_config_combinations(config):
+    if 'multi_config' not in config or not config['multi_config']:
+        yield config
+        return
+    mc = config['multi_config']
+    do_rand = config['multi_config_randomize'] if 'multi_config_randomize' in config else False
+    # we need to calculate combinations if there are sublists:
+    if type(mc[0]) is list:
+        cfgs = []
+        for tup in list(product(*mc)):
+            combination = {}
+            for x in tup:
+                combination.update(x)
+            cfgs.append(combination)
+    else:
+        cfgs = mc
+    if do_rand:
+        shuffle(cfgs)
+    for cfg in cfgs:
+        res = config.copy()
+        res.update(cfg)
+        yield res
 
 def run_exp(meta_info, expconfig):
     """Seperate process that runs the experiment and collect the ouput.
@@ -106,11 +142,14 @@ def run_exp(meta_info, expconfig):
     output = None
     try:
         cmd = ["rmbt", "-c", "-"]
+        if expconfig['verbosity'] > 2:
+            print("running '{}' with input: {}".format(cmd, json.dumps(expconfig)))
         p = Popen(cmd, stdin=PIPE, stdout=PIPE)
         output = p.communicate(input=json.dumps(expconfig))[0]
 
         msg = json.loads(output, object_pairs_hook=OrderedDict)
         msg.update({
+            "cnf_server_host": expconfig['cnf_server_host'],
             "ErrorCode": p.returncode,
             "Guid": expconfig['guid'],
             "DataId": expconfig['dataid'],
@@ -121,16 +160,23 @@ def run_exp(meta_info, expconfig):
             "Operator": meta_info["Operator"],
             "SequenceNumber": 1
         })
+
+        # Add metadata if requested
+        if expconfig['add_modem_metadata_to_result']:
+            for k,v in meta_info.items():
+                msg['info_meta_modem_' + k] = v
+
         if expconfig['verbosity'] > 2:
-            print(msg)
+            print("Result: {}".format(msg))
         if not DEBUG:
             save_output(data=expconfig, msg=json.dumps(msg), tstamp=expconfig['timestamp'], outdir=expconfig['resultdir'])
     except Exception as e:
         if expconfig['verbosity'] > 0:
             print ("Execution or parsing failed for "
                    "command : {}, "
+                   "config : {}, "
                    "output : {}, "
-                   "error: {}").format(cmd, output, e)
+                   "error: {}").format(cmd, expconfig, output, e)
 
 
 def metadata(meta_ifinfo, ifname, expconfig):
@@ -235,7 +281,7 @@ def create_exp_process(meta_info, expconfig):
     process.daemon = True
     return process
 
-def traceroute(target, interface, outputfile):
+def traceroute(target, interface, outputdir):
     cmd = ['traceroute', '-A']
     if (interface):
         cmd.extend(['-i', interface])
@@ -258,9 +304,10 @@ def traceroute(target, interface, outputfile):
         traceroute = {'error': 'no traceroute output'}
     traceroute['time_start'] = time_start
     traceroute['time_end'] = time_end
-    traceroute['raw'] = data
-    with open(outputfile, 'w') as f:
+    traceroute['raw'] = data.decode('ascii', 'replace')
+    with NamedTemporaryFile(mode='w+', prefix='tmptraceroute', suffix='.json', dir=outputdir, delete=False) as f:
         f.write(json.dumps(traceroute))
+        return f.name
 
 if __name__ == '__main__':
     """The main thread control the processes (experiment/metadata))."""
@@ -299,14 +346,6 @@ if __name__ == '__main__':
         print("Missing expconfig variable {}".format(e))
         raise e
 
-    # enable flows and stats by default:
-    temp_flows_json = None
-    temp_stats_json = None
-    if 'cnf_file_flows' not in EXPCONFIG:
-        EXPCONFIG['cnf_file_flows'] = temp_flows_json = path.join(EXPCONFIG['resultdir'], "tmpflows.json.xz")
-    if 'cnf_file_stats' not in EXPCONFIG:
-        EXPCONFIG['cnf_file_stats'] = temp_stats_json = path.join(EXPCONFIG['resultdir'], "tmpstats.json.xz")
-
     tot_start_time = time.time()
     for ifname in netifaces.interfaces():
         # Skip disbaled interfaces
@@ -343,10 +382,15 @@ if __name__ == '__main__':
             add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
 
         # Run traceroute if requested
-        temp_traceroute = None
+        traceroute_targets = None
         if EXPCONFIG['traceroute_resultdir']:
-            temp_traceroute = path.join(EXPCONFIG['resultdir'], "tmptraceroute.json")
-            traceroute(EXPCONFIG['cnf_server_host'], ifname, temp_traceroute)
+            target_set = set()
+            for cfg in get_config_combinations(EXPCONFIG):
+                if 'cnf_server_host' in cfg:
+                    target_set.add(cfg['cnf_server_host'])
+            traceroute_targets = {}
+            for target in target_set:
+                traceroute_targets[target] = traceroute(target, ifname, EXPCONFIG['traceroute_resultdir'])
 
         # Try to get metadata
         # if the metadata process dies we retry until the IF_META_GRACE is up
@@ -370,53 +414,57 @@ if __name__ == '__main__':
                 print("No Metadata continuing")
             continue
 
-        # Add metadata if requested
-        if EXPCONFIG['add_modem_metadata_to_result']:
-            if 'cnf_add_to_result' not in EXPCONFIG:
-                EXPCONFIG['cnf_add_to_result'] = {}
-            for k,v in meta_info.items():
-                EXPCONFIG['cnf_add_to_result']['info_meta_modem_' + k] = v
+        for cfg in get_config_combinations(EXPCONFIG):
 
-        # Ok we have some information lets start the experiment script
-        if EXPCONFIG['verbosity'] > 1:
-            print("Starting experiment")
-        EXPCONFIG['timestamp'] = start_time_exp = time.time()
-        # Create a experiment process and start it
-        exp_process = create_exp_process(meta_info, EXPCONFIG)
-        exp_process.start()
+            # enable flows and stats by default:
+            temp_flows_json = None
+            temp_stats_json = None
+            if 'cnf_file_flows' not in EXPCONFIG:
+                cfg['cnf_file_flows'] = temp_flows_json = tempfile.mktemp(prefix='tmpflows', suffix='.json.xz', dir=EXPCONFIG['resultdir'])
+            if 'cnf_file_stats' not in EXPCONFIG:
+                cfg['cnf_file_stats'] = temp_stats_json = tempfile.mktemp(prefix='tmpstats', suffix='.json.xz', dir=EXPCONFIG['resultdir'])
 
-        while (time.time() - start_time_exp < exp_grace and
-               exp_process.is_alive()):
-            # Here we could add code to handle interfaces going up or down
-            # Similar to what exist in the ping experiment
-            # However, for now we just abort if we loose the interface
+            # Ok we have some information lets start the experiment script
+            if cfg['verbosity'] > 1:
+                print("Starting experiment")
+            cfg['timestamp'] = start_time_exp = time.time()
+            # Create a experiment process and start it
+            exp_process = create_exp_process(meta_info, cfg)
+            exp_process.start()
 
-            # No modem information hack to add required information
-            if (check_if(ifname) and ifname in if_without_metadata):
-                add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+            while (time.time() - start_time_exp < exp_grace and
+                   exp_process.is_alive()):
+                # Here we could add code to handle interfaces going up or down
+                # Similar to what exist in the ping experiment
+                # However, for now we just abort if we loose the interface
 
-            if not (check_if(ifname) and check_meta(meta_info,
-                                                    meta_grace,
-                                                    EXPCONFIG)):
-                if EXPCONFIG['verbosity'] > 0:
-                    print("Interface went down during a experiment")
-                break
-            elapsed_exp = time.time() - start_time_exp
-            if EXPCONFIG['verbosity'] > 1:
-                print("Running Experiment for {} s".format(elapsed_exp))
-            time.sleep(ifup_interval_check)
+                if not (check_if(ifname) and check_meta(meta_info,
+                                                        meta_grace,
+                                                        cfg)):
+                    if cfg['verbosity'] > 0:
+                        print("Interface went down during an experiment")
+                    break
+                elapsed_exp = time.time() - start_time_exp
+                if cfg['verbosity'] > 1:
+                    print("Running Experiment for {} s".format(elapsed_exp))
+                time.sleep(ifup_interval_check)
 
-        if exp_process.is_alive():
-            exp_process.terminate()
-        if meta_process.is_alive():
-            meta_process.terminate()
+            if exp_process.is_alive():
+                exp_process.terminate()
+            if meta_process.is_alive():
+                meta_process.terminate()
 
-        if temp_flows_json:
-            move_file(temp_flows_json, path.join(EXPCONFIG['resultdir'], get_filename(EXPCONFIG, 'FLOWS', 'json.xz', start_time_exp)))
-        if temp_stats_json:
-            move_file(temp_stats_json, path.join(EXPCONFIG['resultdir'], get_filename(EXPCONFIG, 'STATS', 'json.xz', start_time_exp)))
-        if temp_traceroute:
-            move_file(temp_traceroute, path.join(EXPCONFIG['resultdir'], get_filename(EXPCONFIG, 'TRACEROUTE', 'json', start_time_exp)))
+            if temp_flows_json:
+                move_file(temp_flows_json, path.join(cfg['resultdir'], get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp)))
+            if temp_stats_json:
+                move_file(temp_stats_json, path.join(cfg['resultdir'], get_filename(cfg, 'STATS', 'json.xz', start_time_exp)))
+            if traceroute_targets and 'cnf_server_host' in cfg and traceroute_targets[cfg['cnf_server_host']]:
+                temp_traceroute = traceroute_targets[cfg['cnf_server_host']]
+                copy_file(temp_traceroute, path.join(cfg['traceroute_resultdir'], get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp)))
+
+        if traceroute_targets:
+            for tmpfile in traceroute_targets.viewvalues():
+                os.remove(tmpfile)
 
         elapsed = time.time() - start_time
         if EXPCONFIG['verbosity'] > 1:

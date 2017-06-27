@@ -64,6 +64,23 @@ The default values are (can be overridden by a /monroe/config):
 Other supported settings are:
 ```
 {
+  # Set "multi_config" to do multiple runs on every interface.
+  # All elements of each sublist are combined with the elements of every other
+  # sublist. The following example does 12 runs on every interface.
+  # It does 1,3,4,5,7,9 number of flows against server A and B:
+  "multi_config": [
+    [
+      { "cnf_dl_num_flows": 1, "cnf_ul_num_flows": 1 },
+      { "cnf_dl_num_flows": 3, "cnf_ul_num_flows": 3 },
+      { "cnf_dl_num_flows": 4, "cnf_ul_num_flows": 4 },
+      { "cnf_dl_num_flows": 5, "cnf_ul_num_flows": 5 },
+      { "cnf_dl_num_flows": 7, "cnf_ul_num_flows": 7 },
+      { "cnf_dl_num_flows": 9, "cnf_ul_num_flows": 9 },
+    ],
+    [ {"cnf_server_host": "A"}, {"cnf_server_host": "B"}]
+  ],
+  "multi_config_randomize": True, # Randomize the muliple runs
+
   "enabled_interfaces": ["op0"],  # Interfaces to run the experiment on
   "require_modem_metadata": {"DeviceMode": 4}, # only run if in LTE (5) or UMTS (4)
   "cnf_encrypt_debug": False,     # Add TLS debug info to flows file
