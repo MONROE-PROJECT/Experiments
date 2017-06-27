@@ -91,7 +91,7 @@ def get_filename(data, postfix, ending, tstamp):
         ("_" + postfix) if postfix else "", ending)
 
 def save_output(data, msg, postfix=None, ending="json", tstamp=time.time(), outdir="/monroe/results/"):
-    f = NamedTemporaryFile(delete=False, dir=outdir)
+    f = NamedTemporaryFile(mode='w+', delete=False, dir=outdir)
     f.write(msg)
     f.close()
     outfile = path.join(outdir, get_filename(data, postfix, ending, tstamp))
@@ -145,9 +145,9 @@ def run_exp(meta_info, expconfig):
         if expconfig['verbosity'] > 2:
             print("running '{}' with input: {}".format(cmd, json.dumps(expconfig)))
         p = Popen(cmd, stdin=PIPE, stdout=PIPE)
-        output = p.communicate(input=json.dumps(expconfig))[0]
+        output = p.communicate(input=json.dumps(expconfig).encode())[0]
 
-        msg = json.loads(output, object_pairs_hook=OrderedDict)
+        msg = json.loads(output.decode(), object_pairs_hook=OrderedDict)
         msg.update({
             "cnf_server_host": expconfig['cnf_server_host'],
             "ErrorCode": p.returncode,
@@ -196,9 +196,9 @@ def metadata(meta_ifinfo, ifname, expconfig):
     socket.setsockopt(zmq.SUBSCRIBE, topic.encode('ASCII'))
     # End Attach
     while True:
-        data = socket.recv()
+        data = socket.recv_string()
         try:
-            (topic, msgdata) = socket.recv().split(' ', 1)
+            (topic, msgdata) = data.split(' ', 1)
             msg = json.loads(msgdata)
             if do_save and not topic.startswith("MONROE.META.DEVICE.CONNECTIVITY."):
                 # Skip all messages that belong to connectivity as they are redundant
@@ -217,7 +217,7 @@ def metadata(meta_ifinfo, ifname, expconfig):
                 if (expconfig["modeminterfacename"] in msg and
                         msg[expconfig["modeminterfacename"]] == ifname):
                     # In place manipulation of the reference variable
-                    for key, value in msg.iteritems():
+                    for key, value in msg.items():
                         meta_ifinfo[key] = value
         except Exception as e:
             if expconfig['verbosity'] > 0:
