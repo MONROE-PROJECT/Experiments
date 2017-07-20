@@ -460,7 +460,7 @@ if __name__ == '__main__':
                 meta_process.terminate()
 
             if 'tar_additional_results' in cfg and cfg['tar_additional_results']:
-                with tarfile.open(path.join(cfg['resultdir'], get_filename(cfg, None, 'tar', start_time_exp)), mode='w:') as tar:
+                with tarfile.open(path.join(cfg['resultdir'], get_filename(cfg, None, 'tar.gz', start_time_exp)), mode='w:gz') as tar:
                     if temp_flows_json:
                         tar.add(temp_flows_json, arcname=get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp), recursive=False)
                         os.remove(temp_flows_json)
