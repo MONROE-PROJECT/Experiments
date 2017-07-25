@@ -142,44 +142,47 @@ def run_exp(meta_info, expconfig):
 
         Will abort if the interface goes down.
     """
+    cfg = expconfig.copy()
     output = None
     try:
-        cmd = ["rmbt", "-c", "-"]
-        if expconfig['verbosity'] > 2:
-            print("running '{}' with input: {}".format(cmd, json.dumps(expconfig)))
-        p = Popen(cmd, stdin=PIPE, stdout=PIPE)
-        output = p.communicate(input=json.dumps(expconfig).encode())[0]
-
-        msg = json.loads(output.decode(), object_pairs_hook=OrderedDict)
-        msg.update({
-            "cnf_server_host": expconfig['cnf_server_host'],
-            "ErrorCode": p.returncode,
-            "Guid": expconfig['guid'],
-            "DataId": expconfig['dataid'],
-            "DataVersion": expconfig['dataversion'],
-            "NodeId": expconfig['nodeid'],
-            "Timestamp": expconfig['timestamp'],
+        if 'cnf_add_to_result' not in cfg:
+            cfg['cnf_add_to_result'] = {}
+        cfg['cnf_add_to_result'].update({
+            "cnf_server_host": cfg['cnf_server_host'],
+            "Guid": cfg['guid'],
+            "DataId": cfg['dataid'],
+            "DataVersion": cfg['dataversion'],
+            "NodeId": cfg['nodeid'],
+            "Timestamp": cfg['timestamp'],
             "Iccid": meta_info["ICCID"],
             "Operator": meta_info["Operator"],
-            "SequenceNumber": expconfig['sequence_number']
+            "SequenceNumber": cfg['sequence_number']
         })
-
         # Add metadata if requested
-        if expconfig['add_modem_metadata_to_result']:
+        if cfg['add_modem_metadata_to_result']:
             for k,v in meta_info.items():
-                msg['info_meta_modem_' + k] = v
+                cfg['cnf_add_to_result']['info_meta_modem_' + k] = v
 
-        if expconfig['verbosity'] > 2:
+        cmd = ["rmbt", "-c", "-"]
+        if cfg['verbosity'] > 2:
+            print("running '{}' with input: {}".format(cmd, json.dumps(cfg)))
+        p = Popen(cmd, stdin=PIPE, stdout=PIPE)
+        output = p.communicate(input=json.dumps(cfg).encode())[0]
+
+        msg = json.loads(output.decode(), object_pairs_hook=OrderedDict)
+        msg["ErrorCode"] = p.returncode
+
+        if cfg['verbosity'] > 2:
             print("Result: {}".format(msg))
         if not DEBUG:
-            save_output(data=expconfig, msg=json.dumps(msg), tstamp=expconfig['timestamp'], outdir=expconfig['resultdir'])
+            save_output(data=cfg, msg=json.dumps(msg), tstamp=cfg['timestamp'], outdir=cfg['resultdir'])
     except Exception as e:
-        if expconfig['verbosity'] > 0:
+        if cfg['verbosity'] > 0:
             print ("Execution or parsing failed for "
                    "command : {}, "
                    "config : {}, "
                    "output : {}, "
-                   "error: {}").format(cmd, expconfig, output, e)
+                   "error: {}").format(cmd, cfg, output, e)
 
 
 def metadata(meta_ifinfo, ifname, expconfig):
