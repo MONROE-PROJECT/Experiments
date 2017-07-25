@@ -116,7 +116,7 @@ def copy_file(f, t):
 
 def get_config_combinations(config):
     if 'multi_config' not in config or not config['multi_config']:
-        yield config
+        yield config.copy()
         return
     mc = config['multi_config']
     do_rand = config['multi_config_randomize'] if 'multi_config_randomize' in config else False
