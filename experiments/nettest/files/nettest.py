@@ -7,7 +7,7 @@
 # Developed for use by the EU H2020 MONROE project
 
 """
-Simple wrapper to run rmbt-client.
+Simple wrapper to run the nettest client.
 
 The script will execute one experiment for each of the allowed_interfaces.
 All default values are configurable from the scheduler.
@@ -58,8 +58,8 @@ EXPCONFIG = {
         #"require_modem_metadata": {"DeviceMode": 4},   # only run if in LTE (5) or UMTS (4)
         "save_metadata_topic": "MONROE.META",
         "save_metadata_resultdir": None,                # set to a dir to enable saving of metadata
-        "add_modem_metadata_to_result": False,          # set to True to add one captured modem metadata to rmbt result
-        "traceroute_resultdir": "/monroe/results/",     # set to a dir to enable traceroute before rmbt
+        "add_modem_metadata_to_result": False,          # set to True to add one captured modem metadata to nettest result
+        "traceroute_resultdir": "/monroe/results/",     # set to a dir to enable traceroute before nettest
         "disabled_interfaces": ["lo",
                                 "metadata",
                                 "eth0"
@@ -69,7 +69,7 @@ EXPCONFIG = {
                                         "wlan0"],       # Manual metadata on these IF
 
         # These values are specic for this experiment
-        # rmbt defaults:
+        # nettest defaults:
         #"cnf_server_host": "", # REQUIRED PARAMETER
         #"cnf_server_port": ,   # REQUIRED PARAMETER
         "cnf_secret": "",

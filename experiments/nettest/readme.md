@@ -1,9 +1,9 @@
-# Experiment rmbt
-Runs rmbt client (throughput measurement).
+# Experiment nettest
+Runs nettest client (throughput measurement).
 
-The experiment will run the rmbt client.
+The experiment will run the nettest client.
 
-For the rmbt client source code see https://github.com/lwimmer/rmbt-client.
+For the nettest client source code see https://github.com/lwimmer/rmbt-client.
 
 The minimum required configuration is (via /monroe/config):
 ```
@@ -32,8 +32,8 @@ The default values are (can be overridden by a /monroe/config):
   "modeminterfacename": "InternalInterface",
   "save_metadata_topic": "MONROE.META",
   "save_metadata_resultdir": None,                # set to a dir to enable saving of metadata
-  "add_modem_metadata_to_result": False,          # set to True to add one captured modem metadata to rmbt result
-  "traceroute_resultdir": "/monroe/results/",     # set to a dir to enable traceroute before rmbt
+  "add_modem_metadata_to_result": False,          # set to True to add one captured modem metadata to nettest result
+  "traceroute_resultdir": "/monroe/results/",     # set to a dir to enable traceroute before nettest
   "disabled_interfaces": ["lo",
                           "metadata",
                           "eth0",
@@ -113,7 +113,7 @@ The experiment will produce a single line JSON object similar to this (pretty pr
   "Operator": "Operator",             # meta_info["Operator"]
   "NodeId" : "9",                     # exp_config["nodeid"]
   "DataVersion": 2,
-  "ErrorCode": 0                      # rmbt command error code.
+  "ErrorCode": 0                      # nettest command error code.
   "DataId": "MONROE.EXP.RMBT",
   "SequenceNumber": 1,
   "res_id_test": "e6147214-86f4-47cb-8e7c-623c9b3305c4",
