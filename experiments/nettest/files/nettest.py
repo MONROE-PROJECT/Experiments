@@ -46,7 +46,7 @@ EXPCONFIG = {
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
         "dataversion": 2,
-        "dataid": "MONROE.EXP.RMBT",
+        "dataid": "MONROE.EXP.NETTEST",
         "nodeid": "fake.nodeid",
         "meta_grace": 120,                              # Grace period to wait for interface metadata
         "exp_grace": 300,                               # Grace period before killing experiment

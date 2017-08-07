@@ -8,8 +8,8 @@ For the nettest client source code see https://github.com/lwimmer/rmbt-client.
 The minimum required configuration is (via /monroe/config):
 ```
 {
-  "cnf_server_host": "<hostname or ip of the RMBT server to use>",
-  "cnf_server_port": <port of the RMBT server to use>
+  "cnf_server_host": "<hostname or ip of the nettest server to use>",
+  "cnf_server_port": <port of the nettest server to use>
 }
 ```
 
@@ -21,7 +21,7 @@ The default values are (can be overridden by a /monroe/config):
   "zmqport": "tcp://172.17.0.1:5556",
   "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
   "dataversion": 2,
-  "dataid": "MONROE.EXP.RMBT",
+  "dataid": "MONROE.EXP.NETTEST",
   "nodeid": "fake.nodeid",
   "meta_grace": 120,                              # Grace period to wait for interface metadata
   "exp_grace": 300,                               # Grace period before killing experiment
@@ -45,7 +45,7 @@ The default values are (can be overridden by a /monroe/config):
   # These values are specic for this experiment; defaults:
   #"cnf_server_host": "",               # REQUIRED PARAMETER; Host/IP to connect to
   #"cnf_server_port": ,                 # REQUIRED PARAMETER; Port to connect to
-  "cnf_secret": "",                     # RMBT server secret (can be empty if server does not check tokens)
+  "cnf_secret": "",                     # nettest server secret (can be empty if server does not check tokens)
   "cnf_encrypt": False,                 # use TLS if True
   "cnf_dl_num_flows": 5,                # number of TCP flows to use for downlink
   "cnf_ul_num_flows": 5,                # number of TCP flows to use for uplink
@@ -89,7 +89,7 @@ Other supported settings are:
   "require_modem_metadata": {"DeviceMode": 4}, # only run if in LTE (5) or UMTS (4)
   "cnf_encrypt_debug": false,     # Add TLS debug info to flows file
   "cnf_cipherlist": null,         # OpenSSL Cipherlist
-  "cnf_token": null,              # RMBT token (mutually exclusive with cnf_secret)
+  "cnf_token": null,              # token (mutually exclusive with cnf_secret)
   "cnf_file_summary": "{time}_{id_test}_summary.json",
   "cnf_file_flows": "{time}_{id_test}_flows.json",
   "cnf_file_stats": "{time}_{id_test}_stats.json"
@@ -114,8 +114,9 @@ The experiment will produce a single line JSON object similar to this (pretty pr
   "NodeId" : "9",                     # exp_config["nodeid"]
   "DataVersion": 2,
   "ErrorCode": 0                      # nettest command error code.
-  "DataId": "MONROE.EXP.RMBT",
+  "DataId": "MONROE.EXP.NETTEST",
   "SequenceNumber": 1,
+  "cnf_server_host": "192.0.2.1",
   "res_id_test": "e6147214-86f4-47cb-8e7c-623c9b3305c4",
   "res_time_start_s": 1496394081,
   "res_time_end_s": 1496394110,
