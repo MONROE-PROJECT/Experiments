@@ -9,10 +9,10 @@
 """
 Simple wrapper to run the nettest client.
 
-The script will execute one experiment for each of the allowed_interfaces.
+The script will execute one experiment for each of the enabled_interfaces.
 All default values are configurable from the scheduler.
-The output will be formated into a json object suitable for storage in the
-MONROE db.
+The output will be formated into a JSON object suitable for storage in the
+MONROE database.
 """
 import os
 import json
@@ -68,7 +68,7 @@ EXPCONFIG = {
         "interfaces_without_metadata": ["eth0",
                                         "wlan0"],       # Manual metadata on these IF
 
-        # These values are specic for this experiment
+        # These values are specific for this experiment
         # nettest defaults:
         #"cnf_server_host": "", # REQUIRED PARAMETER
         #"cnf_server_port": ,   # REQUIRED PARAMETER

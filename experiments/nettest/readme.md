@@ -102,8 +102,8 @@ Other supported settings are:
 
 These directories and files must exist and be read/writable by the user/process
 running the container.
-/opt/monroe/config
-"resultdir" (from /opt/monroe/config see defaults above)
+/monroe/config
+"resultdir" (from /monroe/config, see defaults above)
 
 ## Sample output
 The experiment will produce a single line JSON object similar to this (pretty printed and added comments here for readability)
@@ -126,7 +126,7 @@ The experiment will produce a single line JSON object similar to this (pretty pr
   "res_status_msg": null,
   "res_version_client": "v1.0-10-geb3d4eacf",
   "res_version_server": "RMBTv0.3",
-  "res_server_ip": "10.10.10.10",
+  "res_server_ip": "192.0.2.1",
   "res_server_port": 10080,
   "res_encrypt": false,
   "res_chunksize": 4096,
