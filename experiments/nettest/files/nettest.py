@@ -154,11 +154,18 @@ def run_exp(meta_info, expconfig):
             "DataVersion": cfg['dataversion'],
             "NodeId": cfg['nodeid'],
             "Timestamp": cfg['timestamp'],
-            "Iccid": meta_info["ICCID"],
-            "Operator": meta_info["Operator"],
             "SequenceNumber": cfg['sequence_number']
         })
-        # Add metadata if requested
+        if 'ICCID' in meta_info:
+            cfg['cnf_add_to_result']['Iccid'] = meta_info["ICCID"]
+        if 'Operator' in meta_info:
+            cfg['cnf_add_to_result']['Operator'] = meta_info["Operator"]
+        if 'IMSIMCCMNC' in meta_info:
+            cfg['cnf_add_to_result']['IMSIMCCMNC'] = meta_info["IMSIMCCMNC"]
+        if 'NWMCCMNC' in meta_info:
+            cfg['cnf_add_to_result']['NWMCCMNC'] = meta_info["NWMCCMNC"]
+
+        # Add all metadata if requested
         if cfg['add_modem_metadata_to_result']:
             for k,v in meta_info.items():
                 cfg['cnf_add_to_result']['info_meta_modem_' + k] = v
@@ -271,6 +278,8 @@ def add_manual_metadata_information(info, ifname, expconfig):
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["ICCID"] = "local"
+    info["IMSIMCCMNC"] = "local"
+    info["NWMCCMNC"] = "local"
     info["Timestamp"] = time.time()
 
 
