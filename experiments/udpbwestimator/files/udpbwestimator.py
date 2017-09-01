@@ -70,7 +70,7 @@ def run_exp(expconfig,ip):
     cmd=["./UDPbwEstimatorRcvr","-c","50","-b","3","-l","1400","-s",ip,"-o",
 	   "8000",
             "-d", 
-	   "193.10.227.23",
+	   "193.10.227.44",
 	   "-p", 
 	   "8080"]
 
@@ -329,6 +329,7 @@ if __name__ == '__main__':
         # Create a experiment process and start it
         start_time_exp = time.time()
 	iface_ip= str(ni.ifaddresses(ifname)[AF_INET][0]['addr'])
+	print iface_ip
         exp_process = exp_process = create_exp_process(EXPCONFIG,iface_ip)
         exp_process.start()
         
