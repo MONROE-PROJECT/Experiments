@@ -201,6 +201,7 @@ void network_loop_udp(int32_t udp_sock_fd, int16_t num_packets, int16_t num_burs
                         estimated_bandwidth);
 		    printf("%.2f ",estimated_bandwidth);
                 new_session=1;
+		fputs("\n", output_file);
                 total_number_bytes=0;
              }
                 }

@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+
+from __future__ import division
 # Author: Mohammad Rajiullah (Used general experiment logic from 
 # Jonas Karlsson)
 # Date: October 2016
@@ -15,6 +17,9 @@ packets in the beginning of each second. The receiver tells the server about
   bandwidth using packet arrival times and payloads.
 """
 
+import datetime
+import dateutil.relativedelta
+
 import sys, getopt
 import time, os
 import fileinput
@@ -28,6 +33,14 @@ from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
 import netifaces as ni
+
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
 
 # Configuration
 DEBUG = False
@@ -72,7 +85,9 @@ def run_exp(expconfig,ip):
             "-d", 
 	   "193.10.227.44",
 	   "-p", 
-	   "8080"]
+	   "8080",
+	   "-w",
+	   "test"]
 
     output=None
      
@@ -84,7 +99,41 @@ def run_exp(expconfig,ip):
         if error.returncode == 28:
 	    print "Time limit exceeded"
     
+    logfile=open("test","r")
+    num_packets=0
+
+    first=0
+    total_bytes=0
+    count=0
+    bw=""
+    while True:
+    	line=logfile.readline()
+    	if line =='\n' or line == "":
+        	count+=1
+        	first=0
+        	duration=float(tstamp)-float(start)
+        	print ((total_bytes*8)/(1024*1024))
+        	print duration, sizeof_fmt(total_bytes), ((total_bytes*8)/(1024*1024))/duration
+    		bw+=str(((total_bytes*8)/(1024*1024))/duration)
+		bw+=" "
+        	total_bytes=0
+        	if count==3:
+            		break
+    	else:
+        	line = line.strip().split(' ')
+        	num_packets=num_packets+1
+        	if first==0:
+            		start, numbytes=line[0], int(line[1])
+            		total_bytes+=numbytes
+            		first=1
+        	else:
+            		tstamp, numbytes=line[0], int(line[1])
+            		total_bytes+=numbytes
+
+    print num_packets
+    logfile.close()
     har_stats["bw"]=output
+    har_stats["bw1"]=bw
     har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
