@@ -1,4 +1,4 @@
-FROM monroe/base:staging
+FROM monroe/base
 
 MAINTAINER jonas.karlsson@kau.se
 
@@ -14,6 +14,10 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     linux-image-amd64 \
     grub2 \
     sysvinit-core \
+    ifupdown \
+    irqbalance \
+    udev \
+    isc-dhcp-client \ 
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup
@@ -23,5 +27,9 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 
 ############## Tweaks  ####################
 RUN echo "root:toor"| chpasswd \
-    && sed -i s/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/g /etc/default/grub \
-    && sed -i 's,# By default this script does nothing.,# By default this script does nothing.\n/opt/monroe/experiment.sh || exit 1,g' /etc/rc.local
+    && echo "blacklist vga16fb" > /etc/modprobe.d/blacklist-framebuffer.conf \
+    && sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames=0 biosdevname=0 fbcon=map:99 text"/g' /etc/default/grub \
+    && sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0 fbcon=map:99 text"/g' /etc/default/grub \
+    && sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/g' /etc/default/grub \
+    && sed -i 's/#GRUB_TERMINAL=console/GRUB_TERMINAL=console/g' /etc/default/grub \
+    && sed -i 's,# By default this script does nothing.,# By default this script does nothing.\n/opt/monroe/experiment.sh || exit 1,g' /etc/rc.local \
