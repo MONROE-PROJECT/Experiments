@@ -21,6 +21,9 @@ TAPNUMX=$(ip netns monroe cat /sys/class/net/macvtapX/ifindex)
 
 exec {FDX}<>/dev/tap${TAPNUMX}
 kvm -curses -m 1048 -hda image.qcow2 -device virtio-net-pci,netdev=netX,mac=${MACaddrX} -netdev tap,id=netX,fd=$FDX
+
+ip netns monroe ip link del macvtapX
+
 op 1 inet 172.18.21.2/24 scope global op1
       
 14: op0   inet 172.18.1.2/24 
@@ -43,5 +46,9 @@ exec {FD0}<>/dev/tap${TAPNUM0}
 exec {FD1}<>/dev/tap${TAPNUM1}
 
 kvm -curses -m 1048 -hda image.qcow2 -device virtio-net-pci,netdev=net0,mac=${MACaddr0} -netdev tap,id=net0,fd=${FD0} -device virtio-net-pci,netdev=net1,mac=${MACaddr1} -netdev tap,id=net1,fd=${FD1}
+
+when done: 
+ip link del macvtap0
+
 TODO:
 routing in the virtual machine and "semi automatic IP assigmnet" via guestfish  
