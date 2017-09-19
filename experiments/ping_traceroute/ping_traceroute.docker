@@ -1,0 +1,17 @@
+FROM monroe/base
+
+MAINTAINER leonhard@simula.no
+
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y --force-yes --no-install-recommends --no-install-suggests \
+  iputils-ping \
+  && apt-get purge -y --force-yes $BUILD_DEPS \
+  && apt-get clean -y --force-yes clean \
+  && apt-get -y --force-yes autoremove \
+  && rm -rf /var/lib/apt/lists/* /tmp/*
+
+# allow -i option to traceroute for non-root users:
+RUN setcap cap_net_raw+ep /usr/bin/traceroute.db
+
+COPY files/* /opt/monroe/
+
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/ping_traceroute.py"]

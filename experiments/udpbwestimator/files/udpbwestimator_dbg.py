@@ -51,10 +51,10 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "allowed_interfaces": ["eth0",
+        "allowed_interfaces": ["enp0s25",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ "eth0" ]  # Manual metadata on these IF
+        "interfaces_without_metadata": [ "enp0s25" ]  # Manual metadata on these IF
         }
 
 
@@ -153,7 +153,7 @@ def add_manual_metadata_information(info, ifname, expconfig):
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["Timestamp"] = time.time()
-    info["InternalIPAddress"]="172.17.0.5"
+    info["InternalIPAddress"]="130.243.26.22"
 
 
 def create_meta_process(ifname, expconfig):
