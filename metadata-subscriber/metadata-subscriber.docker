@@ -5,4 +5,4 @@ MAINTAINER jonas.karlsson@kau.se
 COPY files/* /opt/monroe/
 
 # Default cmd to run
-ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/metadata_subscriber.py"]
+ENTRYPOINT ["dumb-init", "--", "/bin/sh", "/opt/monroe/run.sh"]
