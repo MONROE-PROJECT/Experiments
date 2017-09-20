@@ -33,23 +33,41 @@ except Exception as e:
     print "Cannot retrive config {}".format(e)
     sys.exit(1)
 
-# Attach to the ZeroMQ socket as a subscriber and start listen to
-# MONROE messages
-context = zmq.Context()
-socket = context.socket(zmq.SUB)
-socket.connect(CONFIG['zmqport'])
-socket.setsockopt(zmq.SUBSCRIBE, CONFIG['metadata_topic'])
-# End Attach
+def create_socket(topic, port):
+    """Attach to a ZMQ socket as a subscriber"""
+    if CONFIG['verbosity'] > 1:
+        print("Trying to create a new socket on {}", port)
+    context = zmq.Context()
+    socket = context.socket(zmq.SUB)
+    socket.connect(port)
+    socket.setsockopt(zmq.SUBSCRIBE, topic)
+    if CONFIG['verbosity'] > 1:
+        print("New socket created listening on topic : {}", topic)
+    return socket
 
-# Parse incomming messages forever
+# Fail hard if we cannot connect to the socket
+socket = create_socket(CONFIG['metadata_topic'], CONFIG['zmqport'])
+
+# Parse incomming messages forever or until a error
 while True:
     # If not correct msg, skip and wait for next message
     try:
         (topic, msgdata) = socket.recv().split(' ', 1)
-    except:
+    except zmq.ContextTerminated:
+        # The context is terminated, lets try to open another socket
+        # If that fails, abort
         if CONFIG['verbosity'] > 0:
-            print ("Error: Invalid zmq msg")
+            print ("Error: ContextTerminated")
+        if CONFIG['verbosity'] > 1:
+            print("Sleeping 30s before trying to create a new socket")
+        time.sleep(30)
+        socket = create_socket(CONFIG['metadata_topic'], CONFIG['zmqport'])
         continue
+    except zmq.ZMQError as e:
+        # Other zmq Error just log and quit
+        if CONFIG['verbosity'] > 0:
+            print ("Error: ZMQ failed with : {}", str(e))
+        raise
 
     # Skip all messages that belong to connectivity as they are redundant
     # as we save the modem messages.
@@ -72,7 +90,7 @@ while True:
     except:
         if CONFIG['verbosity'] > 0:
             print ("Error: Recived invalid JSON msg with topic {} from "
-                   "metadata-multicaster : {}").format(topic, msg)
+                   "metadata-publisher : {}").format(topic, msgdata)
         continue
     if CONFIG['verbosity'] > 2:
         print msg
