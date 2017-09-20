@@ -31,23 +31,27 @@ try:
     with open(CONFIGFILE) as configfd:
         CONFIG.update(json.load(configfd))
 except Exception as e:
-    print "Cannot retrive config {}".format(e)
+    print("Cannot retrive config {}".format(e))
     sys.exit(1)
 
-def create_socket(topic, port):
+print ("I am running in verbosity level {}".format(CONFIG['verbosity']))
+
+def create_socket(topic, port, verbosity):
     """Attach to a ZMQ socket as a subscriber"""
-    if CONFIG['verbosity'] > 1:
-        print("Trying to create a new socket on {}", port)
+    if verbosity > 1:
+        print("Trying to create a new socket on {}".format(port))
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect(port)
     socket.setsockopt(zmq.SUBSCRIBE, topic)
-    if CONFIG['verbosity'] > 1:
-        print("New socket created listening on topic : {}", topic)
+    if verbosity > 1:
+        print("New socket created listening on topic : {}".format(topic))
     return socket
 
 # Fail hard if we cannot connect to the socket
-socket = create_socket(CONFIG['metadata_topic'], CONFIG['zmqport'])
+socket = create_socket(CONFIG['metadata_topic'],
+                       CONFIG['zmqport'],
+                       CONFIG['verbosity'])
 
 # Parse incomming messages forever or until a error
 while True:
@@ -62,12 +66,15 @@ while True:
         if CONFIG['verbosity'] > 1:
             print("Sleeping 30s before trying to create a new socket")
         time.sleep(30)
-        socket = create_socket(CONFIG['metadata_topic'], CONFIG['zmqport'])
+        socket = create_socket(CONFIG['metadata_topic'],
+                               CONFIG['zmqport'],
+                               CONFIecstatic_poitrasG['verbosity'])
+
         continue
     except zmq.ZMQError as e:
         # Other zmq Error just log and quit
         if CONFIG['verbosity'] > 0:
-            print ("Error: ZMQ failed with : {}", str(e))
+            print("Error: ZMQ failed with : {}".format(e))
         raise
 
     # Skip all messages that belong to connectivity as they are redundant
@@ -94,5 +101,5 @@ while True:
                    "metadata-publisher : {}").format(topic, msgdata)
         continue
     if CONFIG['verbosity'] > 2:
-        print msg
+        print(msg)
     monroe_exporter.save_output(msg, CONFIG['resultdir'])
