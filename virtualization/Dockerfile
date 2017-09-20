@@ -4,8 +4,16 @@ MAINTAINER jonas.karlsson@kau.se
 
 ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
 
-COPY files/* /opt/monroe/
+# This is the experiment that should run once the vm is started
+COPY files/experiment.sh /opt/monroe/
 RUN chmod ugo+x /opt/monroe/experiment.sh
+
+# These files are from http://multipath-tcp.org/pmwiki.php/Users/ConfigureRouting
+COPY files/mptcp_up /etc/network/if-up.d/
+COPY files/mptcp_down /etc/network/if-post-down.d/
+RUN chmod ugo+x /etc/network/if-up.d/mptcp_up
+RUN chmod ugo+x /etc/network/if-post-down.d/mptcp_down
+
 
 ############## Main Installation (and cleanup) ####################
 RUN export DEBIAN_FRONTEND=noninteractive \
@@ -17,7 +25,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     ifupdown \
     irqbalance \
     udev \
-    isc-dhcp-client \ 
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup
