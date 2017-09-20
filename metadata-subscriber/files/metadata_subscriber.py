@@ -11,6 +11,7 @@
 import zmq
 import json
 import sys
+import time
 import monroe_exporter
 
 CONFIGFILE = '/monroe/config'
