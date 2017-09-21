@@ -13,10 +13,10 @@
     a possible hanged socket.
 """
 DEBUG = False
+
 import zmq
 import json
 import sys
-import time
 if not DEBUG:
     import monroe_exporter
 
@@ -30,7 +30,7 @@ CONFIG = {
         "metadata_topic": "MONROE.META",
         "verbosity": 1,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
-        "socketwait": 10  # Number of seconds to wait for data on the socket
+        "socketwait": 60  # Number of seconds to wait for data on the socket
         }
 
 if not DEBUG:
@@ -44,10 +44,11 @@ else:
     CONFIG['zmqport'] = "tcp://localhost:5556"
     CONFIG['metadata_topic'] = ""
     CONFIG['verbosity'] = 3
+    CONFIG['socketwait'] = 10
 
 print (("I am running in verbosity level {} "
-        "and are waiting {} on the socket").format(CONFIG['verbosity'],
-                                                  CONFIG['socketwait']))
+        "and are waiting {}s on the socket").format(CONFIG['verbosity'],
+                                                    CONFIG['socketwait']))
 
 def create_socket(topic, port, verbosity):
     """Attach to a ZMQ socket as a subscriber"""
@@ -80,10 +81,6 @@ while True:
         if CONFIG['verbosity'] > 0:
             print (("Error: We did not get any data for "
                     "{} seconds").format(CONFIG['socketwait']))
-        if CONFIG['verbosity'] > 1:
-            print(("Sleeping {} before trying to create "
-                   "a new socket").format(CONFIG['socketwait']))
-        time.sleep(CONFIG['socketwait'])
         socket = create_socket(CONFIG['metadata_topic'],
                                CONFIG['zmqport'],
                                CONFIG['verbosity'])
@@ -99,10 +96,6 @@ while True:
         # If that fails, abort
         if CONFIG['verbosity'] > 0:
             print ("Error: ContextTerminated")
-        if CONFIG['verbosity'] > 1:
-            print(("Sleeping {} before trying to create "
-                   "a new socket").format(CONFIG['socketwait']))
-        time.sleep(CONFIG['socketwait'])
         socket = create_socket(CONFIG['metadata_topic'],
                                CONFIG['zmqport'],
                                CONFIG['verbosity'])
