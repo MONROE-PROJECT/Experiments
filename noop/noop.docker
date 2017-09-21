@@ -3,4 +3,4 @@ FROM monroe/base
 MAINTAINER thomas.hirsch@celerway.com 
 
 # Default cmd to run
-ENTRYPOINT ["/bin/sh", "/opt/monroe/noop.sh"]
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/noop.sh"]
