@@ -6,16 +6,21 @@
 # License: GNU General Public License v3
 # Developed for use by the EU H2020 MONROE project
 
-"""Subscribes to all MONROE.META events and stores them in JSON files."""
+"""
+    Subscribes to all MONROE.META events and stores them in JSON files.
 
+    This is the workaround version where I am using pollers to overcome
+    a possible hanged socket.
+"""
+DEBUG = False
 import zmq
 import json
 import sys
 import time
-import monroe_exporter
+if not DEBUG:
+    import monroe_exporter
 
 CONFIGFILE = '/monroe/config'
-
 UPDATECACHE = set()
 
 # Default values (overwritable from the CONFIGFILE)
@@ -25,16 +30,24 @@ CONFIG = {
         "metadata_topic": "MONROE.META",
         "verbosity": 1,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
+        "socketwait": 10  # Number of seconds to wait for data on the socket
         }
 
-try:
-    with open(CONFIGFILE) as configfd:
-        CONFIG.update(json.load(configfd))
-except Exception as e:
-    print("Cannot retrive config {}".format(e))
-    sys.exit(1)
+if not DEBUG:
+    try:
+        with open(CONFIGFILE) as configfd:
+            CONFIG.update(json.load(configfd))
+    except Exception as e:
+        print("Cannot retrive config {}".format(e))
+        sys.exit(1)
+else:
+    CONFIG['zmqport'] = "tcp://localhost:5556"
+    CONFIG['metadata_topic'] = ""
+    CONFIG['verbosity'] = 3
 
-print ("I am running in verbosity level {}".format(CONFIG['verbosity']))
+print (("I am running in verbosity level {} "
+        "and are waiting {} on the socket").format(CONFIG['verbosity'],
+                                                  CONFIG['socketwait']))
 
 def create_socket(topic, port, verbosity):
     """Attach to a ZMQ socket as a subscriber"""
@@ -48,28 +61,53 @@ def create_socket(topic, port, verbosity):
         print("New socket created listening on topic : {}".format(topic))
     return socket
 
+
 # Fail hard if we cannot connect to the socket
 socket = create_socket(CONFIG['metadata_topic'],
                        CONFIG['zmqport'],
                        CONFIG['verbosity'])
 
+# Initialize poll set
+poller = zmq.Poller()
+poller.register(socket, zmq.POLLIN)
+
+
 # Parse incomming messages forever or until a error
 while True:
-    # If not correct msg, skip and wait for next message
+    socks = dict(poller.poll(CONFIG['socketwait']*1000))
+    if not (socket in socks and socks[socket] == zmq.POLLIN):
+        # Something strange happend lets try to reconnect and try again
+        if CONFIG['verbosity'] > 0:
+            print (("Error: We did not get any data for "
+                    "{} seconds").format(CONFIG['socketwait']))
+        if CONFIG['verbosity'] > 1:
+            print(("Sleeping {} before trying to create "
+                   "a new socket").format(CONFIG['socketwait']))
+        time.sleep(CONFIG['socketwait'])
+        socket = create_socket(CONFIG['metadata_topic'],
+                               CONFIG['zmqport'],
+                               CONFIG['verbosity'])
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
+        continue
+
+    # We should have a good working socket
     try:
-        (topic, msgdata) = socket.recv().split(' ', 1)
+        (topic, msgdata) = socket.recv(zmq.DONTWAIT).split(' ', 1)
     except zmq.ContextTerminated:
         # The context is terminated, lets try to open another socket
         # If that fails, abort
         if CONFIG['verbosity'] > 0:
             print ("Error: ContextTerminated")
         if CONFIG['verbosity'] > 1:
-            print("Sleeping 30s before trying to create a new socket")
-        time.sleep(30)
+            print(("Sleeping {} before trying to create "
+                   "a new socket").format(CONFIG['socketwait']))
+        time.sleep(CONFIG['socketwait'])
         socket = create_socket(CONFIG['metadata_topic'],
                                CONFIG['zmqport'],
-                               CONFIecstatic_poitrasG['verbosity'])
-
+                               CONFIG['verbosity'])
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
         continue
     except zmq.ZMQError as e:
         # Other zmq Error just log and quit
@@ -92,9 +130,12 @@ while True:
 
     # If not correct JSON, skip and wait for next message
     try:
-        msg = json.loads(msgdata)
-        # Some zmq messages do not have nodeid information so I set it here
-        msg['NodeId'] = CONFIG['nodeid']
+        if not DEBUG:
+            msg = json.loads(msgdata)
+            # Some zmq messages do not have nodeid information so I set it here
+            msg['NodeId'] = CONFIG['nodeid']
+        else:
+            msg = msgdata
     except:
         if CONFIG['verbosity'] > 0:
             print ("Error: Recived invalid JSON msg with topic {} from "
@@ -102,4 +143,5 @@ while True:
         continue
     if CONFIG['verbosity'] > 2:
         print(msg)
-    monroe_exporter.save_output(msg, CONFIG['resultdir'])
+    if not DEBUG:
+        monroe_exporter.save_output(msg, CONFIG['resultdir'])
