@@ -23,7 +23,7 @@ COPY system_files/dig /opt/monroe/bin/
 COPY system_files/paris-traceroute /usr/sbin/
 RUN chmod +x /usr/sbin/paris-traceroute
 RUN chmod +x /opt/monroe/bin/dig
-
+RUN chmod +x /opt/monroe/noop.sh
 
 ############## Installation of prerequisites ####################
 RUN sed -i -e 's/main/main non-free/g' /etc/apt/sources.list
@@ -103,6 +103,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     jq \
     dnsutils \
     libjson-c3 \
+    # From Incremental updates
+    scamper \
     # Dumb init
     && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
     && dpkg -i dumb-init.deb \
