@@ -8,6 +8,10 @@ ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-
 COPY files/experiment.sh /opt/monroe/
 RUN chmod ugo+x /opt/monroe/experiment.sh
 
+#Net device template
+COPY files/netdev-template /etc/network/
+RUN mkdir -p /etc/network/interfaces.d/
+
 # These files are from http://multipath-tcp.org/pmwiki.php/Users/ConfigureRouting
 COPY files/mptcp_up /etc/network/if-up.d/
 COPY files/mptcp_down /etc/network/if-post-down.d/
