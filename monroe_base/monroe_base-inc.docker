@@ -3,7 +3,11 @@ FROM monroe/base
 MAINTAINER jonas.karlsson@kau.se
 
 # This files is used to create intermediate updates of monroe/base
-# For full list of all packages see monroe_base.docker and is only addition
+# For full list of all packages see monroe_base.docker 
+
+
+# FireFox
+ENV FF_VER 52.4.0esr
 
 #APT OPTS
 ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
@@ -16,6 +20,10 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install ${APT_OPTS} \
     scamper \
+    # Headless Firefox
+    && curl -L -o firefox.tbz2 "https://download.mozilla.org/?product=firefox-${FF_VER}&os=linux64&lang=en-US" \
+    && tar -C /opt -jxf firefox.tbz2 \
+    && ln -s /opt/firefox/firefox /usr/bin/firefox \
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup

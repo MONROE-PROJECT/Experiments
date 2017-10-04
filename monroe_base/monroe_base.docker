@@ -2,8 +2,10 @@ FROM debian:stretch
 
 MAINTAINER jonas.karlsson@kau.se
 
-# FireFox
+# FireFox F
 ENV FF_VER 52.3.0esr
+# FireFox Inc
+ENV FF_VER 52.4.0esr
 # DumbInit
 ENV DI_VER 1.2.0
 # Gecko Driver
