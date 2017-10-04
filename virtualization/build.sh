@@ -6,7 +6,9 @@ image=${DIR##*/}
 
 filesystem_image="image.tar"
 disk_image="image.qcow2"
-disk_size="3G"
+# We make the disk_image 500 MB larger than necessary
+# Will be allocated on demand
+disk_size="+500M"
 
 if [ ! -f $disk_image ]; then
   echo "$(date): Rebuilding the image"
@@ -21,7 +23,6 @@ if [ ! -f $disk_image ]; then
   docker export ${container_id} > ${filesystem_image}
 
   echo "$(date): Creating new QCOW2 disk image"
-  #TODO make size depend on image.tar
   virt-make-fs \
   --size=${disk_size} \
   --format=qcow2 \
