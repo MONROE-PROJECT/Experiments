@@ -49,4 +49,5 @@ when done:
 ip link del macvtap0
 
 TODO:
-routing in the virtual machine and "semi automatic IP assigmnet" via guestfish  
+Routing : delete default gw 
+Mount the files and folders as we do in the docker container  

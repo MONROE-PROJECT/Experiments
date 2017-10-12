@@ -11,6 +11,8 @@ RUN chmod ugo+x /opt/monroe/experiment.sh
 #Net device template
 COPY files/netdev-template /etc/network/
 RUN mkdir -p /etc/network/interfaces.d/
+COPY files/persistent-net.rules-template /etc/network/
+RUN mkdir -p /etc/udev/rules.d/
 
 # These files are from http://multipath-tcp.org/pmwiki.php/Users/ConfigureRouting
 COPY files/mptcp_up /etc/network/if-up.d/
