@@ -6,12 +6,6 @@ BASEDIR="."
 SCHEDID="test"
 
 VTAPPREFIX=macvtap
-#declare -a IP
-#declare -a NAME
-# We make the disk_image 500 MB larger than necessary
-# Will be allocated on demand
-disk_size="+500M"
-filesystem_image="image.tar"
 disk_image="image.qcow2"
 
 # Enumerate the interfaces and:

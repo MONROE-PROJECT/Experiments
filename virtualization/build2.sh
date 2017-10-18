@@ -31,4 +31,3 @@ virt-make-fs \
 echo "$(date): Deleting intermediate image"
 rm -f $filesystem_image
 
-echo "$(date): Modyfying the image with guestfs"
