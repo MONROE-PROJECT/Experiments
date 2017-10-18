@@ -6,8 +6,8 @@ BASEDIR="."
 SCHEDID="test"
 
 VTAPPREFIX=macvtap
-declare -a IP
-declare -a NAME
+#declare -a IP
+#declare -a NAME
 # We make the disk_image 500 MB larger than necessary
 # Will be allocated on demand
 disk_size="+500M"
@@ -29,7 +29,7 @@ for IFNAME in $($MNS basename -a /sys/class/net/*); do
 
   echo "Doing ${IFNAME} -> ${VTAPNAME}"
   $MNS ip link add link ${IFNAME} name ${VTAPNAME} type macvtap mode bridge
-  sleep 2
+  #sleep 2
   $MNS ip link set dev ${VTAPNAME} up
 
   IFIP=$($MNS ip -f inet addr show ${IFNAME} | grep -Po 'inet \K[\d.]+')
@@ -55,19 +55,21 @@ sh \"/usr/bin/sed -e 's/##MAC##/${MAC}/g' -e 's/##NAME##/${NAME}/g' /etc/network
   i=$((i + 1))
 done
 
-# TODO : Fix the mount points
 # Add the mounts, these must correspond betwen vm and kvm cmd line
 declare -A mounts=( [results]=$BASEDIR/$SCHEDID [config-dir]=$BASEDIR/$SCHEDID-conf/ )
 for m in "${!mounts[@]}"; do
+  OPT=",readonly"
   p=${mounts[$m]}
+  if [[ "${m}" == "results" ]]; then
+    OPT=""
+  fi
   KVMDEV="$KVMDEV \
-         -fsdev local,security_model=mapped,id=${m},path=${p} \
+         -fsdev local,security_model=mapped,id=${m},path=${p}${OPT} \
          -device virtio-9p-pci,fsdev=${m},mount_tag=${m}"
   GUESTFISHDEV="$GUESTFISHDEV
 sh \"/bin/echo '${m} /monroe/${m} 9p trans=virtio 0 0' >> /etc/fstab\"
 sh \"/usr/bin/mkdir -p /monroe/${m}\""
 done
-#mount -t 9p -o trans=virtio test_mount /tmp/shared/ -oversion=9p2000.L,posixacl,cache=loose
 
 
 # Modify the vm image to reflect the current interface setup
