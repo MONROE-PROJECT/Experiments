@@ -57,20 +57,16 @@ done
 
 # TODO : Fix the mount points
 # Add the mounts, these must correspond betwen vm and kvm cmd line
-# KVMDEV="$KVMDEV \
-#         -fsdevice local,security_model=mapped,id=results,path=$BASEDIR/$SCHEDID \
-#         -device virtio-9p-pci,fsdev=results,mount_tag=results"
-# KVMDEV="$KVMDEV \
-#         -fsdevice local,security_model=mapped,id=outdir,path=$BASEDIR/$SCHEDID \
-#         -device virtio-9p-pci,fsdev=outdir,mount_tag=outdir"
-# KVMDEV="$KVMDEV \
-#         -fsdevice local,security_model=mapped,id=config,path=$BASEDIR/$SCHEDID.conf,readonly \
-#         -device virtio-9p-pci,fsdev=config,mount_tag=config"
-# KVMDEV="$KVMDEV \
-#         -fsdevice local,security_model=mapped,id=nodeid,path=/etc/nodeid,readonly \
-#         -device virtio-9p-pci,fsdev=nodeid,mount_tag=nodeid"
-#GUESTFISHDEV="$GUESTFISHDEV
-#sh \"/usr/bin/sed -e 's/##NAME##/${NAME}/g' /etc/network/netdev-template > /etc/network/interfaces.d/${IFNAME}\""
+declare -A mounts=( [results]=$BASEDIR/$SCHEDID [config-dir]=$BASEDIR/$SCHEDID-conf/ )
+for m in "${!mounts[@]}"; do
+  p=${mounts[$m]}
+  KVMDEV="$KVMDEV \
+         -fsdev local,security_model=mapped,id=${m},path=${p} \
+         -device virtio-9p-pci,fsdev=${m},mount_tag=${m}"
+  GUESTFISHDEV="$GUESTFISHDEV
+sh \"/bin/echo '${m} /monroe/${m} 9p trans=virtio 0 0' >> /etc/fstab\"
+sh \"/usr/bin/mkdir -p /monroe/${m}\""
+done
 #mount -t 9p -o trans=virtio test_mount /tmp/shared/ -oversion=9p2000.L,posixacl,cache=loose
 
 
@@ -79,6 +75,9 @@ guestfish -x <<-EOF
 add ${disk_image}
 run
 mount /dev/sda1 /
+sh "/bin/echo 9p >> /etc/initramfs-tools/modules"
+sh "/bin/echo 9pnet >> /etc/initramfs-tools/modules"
+sh "/bin/echo 9pnet_virtio >> /etc/initramfs-tools/modules"
 sh "/usr/sbin/update-initramfs -u"
 sh "/usr/sbin/grub-install --recheck --no-floppy /dev/sda"
 sh "/usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg"
