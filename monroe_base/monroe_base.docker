@@ -1,14 +1,17 @@
-FROM debian:jessie
+FROM debian:stretch
 
 MAINTAINER jonas.karlsson@kau.se
 
-# FireFox
-#ENV FF_VER 46.0.1
-ENV FF_VER 45.8.0esr
+# FireFox F
+ENV FF_VER 52.3.0esr
+# FireFox Inc
+ENV FF_VER 52.4.0esr
 # DumbInit
 ENV DI_VER 1.2.0
 # Gecko Driver
-ENV GD_VER 0.14.0
+ENV GD_VER 0.18.0
+#APT OPTS
+ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
 
 ############## Create Common directories and files ##############
 RUN mkdir -p /opt/monroe/lib
@@ -22,13 +25,17 @@ COPY system_files/dig /opt/monroe/bin/
 COPY system_files/paris-traceroute /usr/sbin/
 RUN chmod +x /usr/sbin/paris-traceroute
 RUN chmod +x /opt/monroe/bin/dig
+RUN chmod +x /opt/monroe/noop.sh
+
+############## Installation of prerequisites ####################
+RUN sed -i -e 's/main/main non-free/g' /etc/apt/sources.list
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
+    && apt-get ${APT_OPTS} upgrade \
+    && apt-get ${APT_OPTS} install \
+    gnupg
 
 ############## Add 3: party repositories ########################
-# Flent
-ADD http://download.opensuse.org/repositories/home:tohojo:flent/Debian_8.0/Release.key flent.key
-RUN echo 'deb http://download.opensuse.org/repositories/home:/tohojo:/flent/Debian_8.0/ /' > /etc/apt/sources.list.d/flent.list \
-    && apt-key add flent.key \
-    && rm flent.key
 # OML (per Turin F2F workshop 2016-01-28)
 ADD http://download.opensuse.org/repositories/devel:tools:mytestbed:stable/Debian_7.0/Release.key oml2.key
 RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:/stable/Debian_7.0/ /' > /etc/apt/sources.list.d/oml2.list \
@@ -37,9 +44,9 @@ RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:
 
 
 ############## Main Installation and cleanup ####################
-RUN export DEBIAN_FRONTEND=noninteractive && \
-    apt-get update && apt-get upgrade -y --force-yes \
-    && apt-get install -y --force-yes --no-install-recommends --no-install-suggests \
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
+    && apt-get install ${APT_OPTS} \
     ca-certificates \
     python \
     python-zmq \
@@ -48,12 +55,16 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     python-netifaces \
     python-rrdtool \
     python-pip \
+    python-setuptools \
+    python-wheel \
     python3 \
     python3-netifaces \
     python3-zmq \
     python3-six \
-    # No python3-scapy or python3-rrdtool in jessie
+    python3-scapy \
+    # no python3-rrdtool in debian:strech \
     # Needed for headless firefox
+    #firefox-esr \ we want a specific version of firefox to ensure compatbility with selenium gecko driver
     xvfb \
     xauth \
     libgtk-3-0 \
@@ -63,6 +74,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     libgtk2.0-0 \
     libgtk2.0-common \
     # Common tools
+    flent \
+    findutils \
     tshark \
     bzip2 \
     traceroute \
@@ -91,6 +104,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     default-jre-headless \
     jq \
     dnsutils \
+    libjson-c3 \
+    # From Incremental updates
+    scamper \
     # Dumb init
     && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
     && dpkg -i dumb-init.deb \
@@ -101,10 +117,10 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     && curl -L -o geckodriver.tgz "https://github.com/mozilla/geckodriver/releases/download/v${GD_VER}/geckodriver-v${GD_VER}-linux64.tar.gz" \
     && tar -C /usr/bin -zxf geckodriver.tgz \
     && pip install pyvirtualdisplay selenium python-dateutil \
-    #  && apt-get -y --force-yes remove python-pip
+    && apt-get remove ${APT_OPTS} python-pip \
     # Fix missing packages
-    && apt-get update -y --force-yes --fix-missing \
+    && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup
-    && apt-get clean -y --force-yes clean \
-    && apt-get -y --force-yes autoremove \
+    && apt-get clean ${APT_OPTS} \
+    && apt-get autoremove ${APT_OPTS} \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 geckodriver.tgz dumb-init.deb

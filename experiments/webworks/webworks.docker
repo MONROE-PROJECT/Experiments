@@ -1,0 +1,7 @@
+FROM monroe/base
+
+MAINTAINER mohammad.rajiullah@kau.se
+
+COPY files/* /opt/monroe/
+
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]

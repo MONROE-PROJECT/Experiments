@@ -29,7 +29,6 @@ import config_dash
 from dash_buffer import *
 from adaptation import basic_dash, basic_dash2, weighted_dash, netflix_dash
 from adaptation.adaptation import WeightedMean
-from time import strftime
 
 # Constants
 DEFAULT_PLAYBACK = 'BASIC'
@@ -72,17 +71,12 @@ EXPCONFIG = {
         "time_between_experiments": 30, # if we want to streem different videos in the same run 
                                         # we will also need to integrate a list of MPDs
         "ifup_interval_check": 5,  # Interval to check if interface is up
-        "script": None,  # Overridden by scheduler
-        "disabled_interfaces": ["lo",
-                                "metadata",
-                                "eth0",
-                                "wlan0"
-                                ],
+        "script": "AStream_MONROE.py",  # Overridden by scheduler
+        "download": DOWNLOAD,
         "allowed_interfaces": ["op0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": ["eth0",
-                                        "wlan0"],  # Manual metadata on these IF
+        "interfaces_without_metadata": [],  # Manual metadata on these IF
         # AEL -- params for astream -- the MPD, number of segments etc.
         "mpd_file": MPD, # ASTREAM-specific params
         "segment_limit": SEGMENT_LIMIT, 
@@ -101,7 +95,7 @@ class DashPlayback:
         self.audio = dict()
         self.video = dict()
 
-def start_playback_smart(dash_player, dp_object, domain, playback_type=None, download=False, video_segment_duration=None):
+def start_playback_smart(dash_player, dp_object, domain, playback_type=None, download=False, video_segment_duration=None, ifname=None):
     """ Module that downloads the MPD-FIle and download
         all the representations of the Module to download
         the MPEG-DASH media.
@@ -123,7 +117,7 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
     # dash_player = dash_buffer.DashPlayer(dp_object.playback_duration, video_segment_duration)
     # dash_player.start()
     # A folder to save the segments in
-    file_identifier = id_generator()
+    file_identifier = id_generator(ifname)
     config_dash.LOG.info("The segments are stored in %s" % file_identifier)
     dp_list = defaultdict(defaultdict)
     # Creating a Dictionary of all that has the URLs for each segment and different bitrates
@@ -156,7 +150,6 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
     # Netflix Variables
     average_segment_sizes = netflix_rate_map = None
     netflix_state = "INITIAL"
-    #down_rate = 0
     # Start playback of all the segments
     for segment_number, segment in enumerate(dp_list, dp_object.video[current_bitrate].start):
         config_dash.LOG.info(" {}: Processing the segment {}".format(playback_type.upper(), segment_number))
@@ -207,7 +200,6 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
                             segment_download_rate = segment_size / segment_download_time
                         else:
                             segment_download_rate = 0
-                        #down_rate = segment_download_rate # AEL -- adding the "download rate" to the segment info
                         current_bitrate, netflix_rate_map, netflix_state = netflix_dash.netflix_dash(
                             bitrates, dash_player, segment_download_rate, current_bitrate, average_segment_sizes,
                             netflix_rate_map, netflix_state)
@@ -250,11 +242,8 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
         segment_name = os.path.split(segment_url)[1]
         if "segment_info" not in config_dash.JSON_HANDLE:
             config_dash.JSON_HANDLE["segment_info"] = list()
-        config_dash.JSON_HANDLE["segment_info"].append({"segment_name":segment_name, 
-                                                        "bitrate":current_bitrate, 
-                                                        "segment_size":segment_size,
-                                                        "segment_download_time":segment_download_time})
-                                                        #"segment_download_rate":segment_download_rate})
+        config_dash.JSON_HANDLE["segment_info"].append((segment_name, current_bitrate, segment_size,
+                                                        segment_download_time))
         total_downloaded += segment_size
         config_dash.LOG.info("{} : The total downloaded = {}, segment_size = {}, segment_number = {}".format(
             playback_type.upper(),
@@ -283,7 +272,7 @@ def start_playback_smart(dash_player, dp_object, domain, playback_type=None, dow
     # waiting for the player to finish playing
     while dash_player.playback_state not in dash_buffer.EXIT_STATES:
         time.sleep(1)
-    # write_json(config_dash.JSON_HANDLE, config_dash.JSON_LOG)
+    write_json()
     if not download:
         clean_files(file_identifier)
 
@@ -297,16 +286,9 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
         
     """
     ifname = meta_info[expconfig["modeminterfacename"]]
-    config_dash.IFNAME = ifname
 
     try:
         config_dash.LOG.info("Initializing the DASH buffer...")
-        # AEL -- added here a different buffer log file for each interface
-        config_dash.BUFFER_LOG="_".join((expconfig['nodeid'], config_dash.BUFFER_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.log')))
-        config_dash.JSON_LOG="_".join((expconfig['nodeid'], config_dash.JSON_LOG_FILE, config_dash.IFNAME, strftime('%Y-%m-%d.%H_%M_%S.json')))
-        config_dash.LOG.info("Configured buffer log file: {}".format(config_dash.BUFFER_LOG))
-        config_dash.LOG.info("Configured json log file: {}".format(config_dash.JSON_LOG))
-
         dash_player = dash_buffer.DashPlayer(dp_object.playback_duration, video_segment_duration)
         dash_player.start()
         # AEL: adding meta-info to dash json output -- tracking "played" segments
@@ -319,10 +301,9 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
             "DataId": dataid,
             "DataVersion": dataversion,
             "NodeId": expconfig['nodeid'],
-            "Timestamp": time.time(), # time just before we trigger the player on the interface
+            "Timestamp": time.time(),
             "Iccid": meta_info["ICCID"], 
             "NWMCCMNC": meta_info["NWMCCMNC"], # modify to MCCMNC from SIM
-            "IMSIMCCMNC": meta_info["IMSIMCCMNC"],
             "InterfaceName": ifname,
             "Operator": meta_info["Operator"],
             "SequenceNumber": 1
@@ -335,19 +316,18 @@ def run_exp(meta_info, expconfig, mpd_file, dp_object, domain, playback_type=Non
                 start_playback_all(dp_object, domain)
         elif "basic" in playback_type.lower():
             config_dash.LOG.critical("Started Basic-DASH Playback")
-            start_playback_smart(dash_player, dp_object, domain, "BASIC", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "BASIC", download, video_segment_duration, ifname)
         elif "sara" in playback_type.lower():
             config_dash.LOG.critical("Started SARA-DASH Playback")
-            start_playback_smart(dash_player, dp_object, domain, "SMART", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "SMART", download, video_segment_duration, ifname)
         elif "netflix" in playback_type.lower():
             config_dash.LOG.critical("Started Netflix-DASH Playback")
-            start_playback_smart(dash_player, dp_object, domain, "NETFLIX", download, video_segment_duration)
+            start_playback_smart(dash_player, dp_object, domain, "NETFLIX", download, video_segment_duration, ifname)
         else:
             config_dash.LOG.error("Unknown Playback parameter {}".format(playback_type))
             return None
         while dash_player.playback_state not in dash_buffer.EXIT_STATES:
             time.sleep(1)
-        write_json(config_dash.JSON_HANDLE, config_dash.JSON_LOG)
 
         if ifname != meta_info['InternalInterface']:
             config_dash.LOG.info("Error: Interface has changed during the astream experiment, abort")
@@ -449,8 +429,8 @@ if __name__ == '__main__':
             with open(CONFIGFILE) as configfd:
                 EXPCONFIG.update(json.load(configfd))
         except Exception as e:
-            print "Cannot retrive expconfig {}. Working with default values.".format(e)
-            #sys.exit(1)
+            print "Cannot retrive expconfig {}".format(e)
+            sys.exit(1)
     else:
         # We are in debug state always put out all information
         EXPCONFIG['verbosity'] = 3
@@ -458,7 +438,6 @@ if __name__ == '__main__':
     # Short hand variables and check so we have all variables we need
     try:
         allowed_interfaces = EXPCONFIG['allowed_interfaces']
-        disabled_interfaces = EXPCONFIG['disabled_interfaces']
         if_without_metadata = EXPCONFIG['interfaces_without_metadata']
         meta_grace = EXPCONFIG['meta_grace']
         exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
@@ -473,6 +452,7 @@ if __name__ == '__main__':
         EXPCONFIG['verbosity']
         EXPCONFIG['resultdir']
         EXPCONFIG['modeminterfacename']
+        download = EXPCONFIG['download']
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
@@ -481,27 +461,14 @@ if __name__ == '__main__':
     configure_log_file(playback_type=PLAYBACK.lower(), log_file = config_dash.LOG_FILENAME) 
     config_dash.JSON_HANDLE['playback_type'] = PLAYBACK.lower()
     config_dash.LOG.info("Starting AStream container")
-    print netifaces.interfaces()
-    for ifname in allowed_interfaces:
-        # Skip disbaled interfaces
-        if ifname in disabled_interfaces:
-            if EXPCONFIG['verbosity'] > 1:
-                print "Interface is disabled skipping, {}".format(ifname)
-            continue
 
+    for ifname in allowed_interfaces:
         # Interface is not up we just skip that one
         if not check_if(ifname):
             if EXPCONFIG['verbosity'] > 1:
-                print "Interface is not up {}".format(ifname)
+                config_dash.LOG.info("Interface is not up {}".format(ifname))
             continue
-
-    # for ifname in allowed_interfaces:
-    #     # Interface is not up we just skip that one
-    #     if not check_if(ifname):
-    #         if EXPCONFIG['verbosity'] > 1:
-    #             config_dash.LOG.info("Interface is not up {}".format(ifname))
-    #         continue
-    #     # set the default route
+        # set the default route
         # Create a process for getting the metadata
         # (could have used a thread as well but this is true multiprocessing)
         meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
@@ -548,8 +515,13 @@ if __name__ == '__main__':
         except CalledProcessError as e:
                 if e.returncode == 28:
                          config_dash.LOG.info("Time limit exceeded")
-        gw_ip = meta_info["IPAddress"]
-        #gw_ip="192.168."+str(meta_info["InternalIPAddress"].split(".")[2])+".1"
+        #gw_ip="192.168."+str(meta_info["IPAddress"].split(".")[2])+".1"
+        gw_ip="undefined"
+        for g in netifaces.gateways()[netifaces.AF_INET]:
+            if g[1] == ifname:
+                gw_ip = g[0]
+                break
+
         cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
         try:
                 check_output(cmd2)
@@ -589,7 +561,7 @@ if __name__ == '__main__':
             config_dash.LOG.info(bandwidth)
         start_time_exp = time.time()
         #exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
-        exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
+        exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, download, video_segment_duration)
         #exp_process = create_exp_process(meta_info, EXPCONFIG, dp_object, mpd_file, domain, playback_type, DOWNLOAD, video_segment_duration)
         exp_process.start()
 
@@ -624,5 +596,5 @@ if __name__ == '__main__':
             config_dash.LOG.info("Finished {} after {}".format(ifname, elapsed))
         time.sleep(time_between_experiments)
 
-        if EXPCONFIG['verbosity'] > 1:
-            config_dash.LOG.info(("Interfaces {} done, exiting").format(allowed_interfaces))
+    if EXPCONFIG['verbosity'] > 1:
+        config_dash.LOG.info(("Interfaces {} done, exiting").format(allowed_interfaces))

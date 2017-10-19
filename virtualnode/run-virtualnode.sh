@@ -1,15 +1,13 @@
-#!/bin/bash
-export PATH=/usr/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+#!/bin/sh
+URL_PUBLISHER=metadata-publisher
 
-./build.sh
-URL_NOOP=monroe/noop
-URL_VIRTUAL=virtualnode
+cd ${URL_PUBLISHER}
+./build.sh ${URL_PUBLISHER}
+cd ..
 
-CIDNOOP=$(docker ps --no-trunc | grep $URL_NOOP | awk '{print $1}' | head -n 1)
+#Do the netconfig
+scripts/net-config.sh ${URL_PUBLISHER}
 
-CID=$(docker ps --no-trunc | grep $URL_VIRTUAL | awk '{print $1}' | head -n 1)
-if [ ! -z "$CID" ]; then
-  docker stop -t 0 $CID;
-fi
-
-docker run -d --net=container:$CIDNOOP virtualnode
+echo "To run and test you container do :"
+echo "./run-container.sh <container> <optional docker commandline options>"
+echo 'For example : ./run-container.sh monroe/base "-ti --entrypoint bash"'
