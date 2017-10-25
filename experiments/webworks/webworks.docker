@@ -2,6 +2,12 @@ FROM monroe/base
 
 MAINTAINER mohammad.rajiullah@kau.se
 
+#RUN wget https://ftp.mozilla.org/pub/firefox/releases/46.0/linux-x86_64/en-US/firefox-46.0.tar.bz2
+#RUN tar -xjf firefox-46.0.tar.bz2
+#RUN mv firefox /opt/firefox46
+#RUN ln -s /opt/firefox46/firefox /usr/bin/firefox
+
+
 COPY files/* /opt/monroe/
 
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]

@@ -279,11 +279,11 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
 	navigationStart = driver.execute_script("return window.performance.timing.navigationStart")
 	responseStart = driver.execute_script("return window.performance.timing.responseStart")
 	domComplete = driver.execute_script("return window.performance.timing.domComplete")
-        loadeventEnd= driver.execute_script("return window.performance.timing.loadEventEnd")
+        loadeventStart= driver.execute_script("return window.performance.timing.loadEventStart")
 
 	backendPerformance = responseStart - navigationStart
 	frontendPerformance = domComplete - responseStart
-	plt = loadeventEnd - navigationStart
+	plt = loadeventStart - navigationStart
 
 	print "Back End: %s" % backendPerformance
 	print "Front End: %s" % frontendPerformance
@@ -299,14 +299,22 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     #driver.save_screenshot('screenie.png')
 
     #close the firefox driver after HAR is written
-    driver.quit()
+    driver.close()
 
     print "Terminating the display .."
 
     display.popen.terminate()
 
     display.stop()
+
+    print "Killing geckodriver explicitely .."
+    try:
+	output=check_output("kill $(ps aux | pgrep -fla geckodriver| awk '{print $1}')",shell=True)
+    except CalledProcessError as e:
+	if e.returncode == 28:
+		print "Time limit exceeded"
     har_stats={}
+    
     objs=[]
     pageSize=0
 

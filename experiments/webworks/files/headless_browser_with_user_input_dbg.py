@@ -24,6 +24,7 @@ from selenium import webdriver
 import datetime
 from dateutil.parser import parse
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import json
 import zmq
 import netifaces
@@ -32,6 +33,7 @@ import subprocess
 import socket
 import struct
 import random
+import netifaces as ni
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 
@@ -71,21 +73,21 @@ EXPCONFIG = {
         "nodeid": "fake.nodeid",
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
-        "ifup_interval_check": 5,  # Interval to check if interface is up
-        "time_between_experiments": 30,
+        "ifup_interval_check": 6,  # Interval to check if interface is up
+        "time_between_experiments": 5,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "urls": [['facebook.com/telia/'],
-		['en.wikipedia.org/wiki/As_Slow_as_Possible'],
-		['linkedin.com/company/google'],
-		['instagram.com/nike/'],
-		['google.com/search?q=iPhone+7'],
-		['youtube.com/watch?v=xGJ5a7uIZ1g'],
-		['ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html'],
-		['nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront'],
-		['theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban'],
-		['soupsoup.tumblr.com']],
+        "urls": [['facebook.com/telia/']],
+                 #['en.wikipedia.org/wiki/As_Slow_as_Possible'],
+                 #['linkedin.com/company/google'],
+                 #['instagram.com/nike/'],
+                 #['google.com/search?q=iPhone+7'],
+                 #['youtube.com/watch?v=xGJ5a7uIZ1g'],
+                 #['ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html'],
+                 #['nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront'],
+                 #['theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban'],
+                 #['soupsoup.tumblr.com']],
         "http_protocols":["h1s","h2"],
         "iterations": 1,
         "allowed_interfaces": ["op0","op1","op2","eth0"],  # Interfaces to run the experiment on
@@ -151,7 +153,7 @@ def py_traceroute(dest_name):
     return tr_output
 
 
-def run_exp(meta_info, expconfig, url,count):
+def run_exp(meta_info, expconfig, url,count,no_cache):
     """Seperate process that runs the experiment and collect the ouput.
 
         Will abort if the interface goes down.
@@ -160,10 +162,12 @@ def run_exp(meta_info, expconfig, url,count):
 
     #url=url_list[index]
 
-    try:
-    	routes=py_traceroute(str(url).split("/")[0])
-    except Exception:
-    	print ("tracerouting unsuccessful")
+    print "Starting ping ..."
+
+    #try:
+    #	routes=py_traceroute(str(url).split("/")[0])
+    #except Exception:
+    #	print ("tracerouting unsuccessful")
 
     try:
     	response = subprocess.check_output(
@@ -181,18 +185,38 @@ def run_exp(meta_info, expconfig, url,count):
 	print "Ping info is unknown"
 
 
+    print "Starting the display ..."
     #count=run+1
+    st=time.time()
     display = Display(visible=0, size=(800, 600))
     display.start()
+    print "Display started in {} seconds.".format(time.time()-st)
+
+    d = DesiredCapabilities.FIREFOX
+    #d['loggingPrefs'] = {'browser': 'ALL', 'client': 'ALL', 'driver': 'ALL', 'performance': 'ALL', 'server': 'ALL'}
+    
+    d['marionette'] = True
+    d['binary'] = '/usr/bin/firefox'
     profile = webdriver.FirefoxProfile("/opt/monroe/")
     profile.accept_untrusted_certs = True
     profile.add_extension("har.xpi")
     
     #set firefox preferences
+    if no_cache==1:
+    	profile.set_preference('browser.cache.memory.enable', False)
+    	profile.set_preference('browser.cache.offline.enable', False)
+    	profile.set_preference('browser.cache.disk.enable', False)
+    	profile.set_preference('network.http.use-cache', False)
+    else:
+    	profile.set_preference('browser.cache.memory.enable', True)
+    	profile.set_preference('browser.cache.offline.enable', True)
+    	profile.set_preference('browser.cache.disk.enable', True)
+    	profile.set_preference('network.http.use-cache', True)
+
     profile.set_preference("app.update.enabled", False)
-    profile.set_preference('browser.cache.memory.enable', False)
-    profile.set_preference('browser.cache.offline.enable', False)
-    profile.set_preference('browser.cache.disk.enable', False)
+   # profile.set_preference('browser.cache.memory.enable', False)
+   # profile.set_preference('browser.cache.offline.enable', False)
+   # profile.set_preference('browser.cache.disk.enable', False)
     profile.set_preference('browser.startup.page', 0)
     profile.set_preference("general.useragent.override", "Mozilla/5.0 (Android 4.4; Mobile; rv:46.0) Gecko/46.0 Firefox/46.0")
     
@@ -228,60 +252,107 @@ def run_exp(meta_info, expconfig, url,count):
     profile.set_preference(domains + "enableAutoExportToFile", True)
     profile.set_preference(domains + "defaultLogDir", har_directory)
     profile.set_preference(domains + "pageLoadedTimeout", 1000)
+    profile.set_preference('webdriver.load.strategy', 'unstable')
     time.sleep(1)
+
+    print "Profile for the Firefox is set"
 
     #create firefox driver
 
+    print "Creating the Firefox driver .."
+
     try:
-        driver = webdriver.Firefox(profile)
+        st=time.time()
+        driver = webdriver.Firefox(capabilities=d,firefox_profile=profile)
+        print "Driver started in {} seconds.".format(time.time()-st)
+
+	driver.set_page_load_timeout(100)
+        #driver.manage.timeouts().pageLoadTimeout(100,SECONDS)
+        #driver.manage.timeouts().setScriptTimeout(100,SECONDS)
+        st=time.time()
         driver.get(newurl)
+        print "Driver.get returned in {} seconds.".format(time.time()-st)
+	
+	navigationStart = driver.execute_script("return window.performance.timing.navigationStart")
+	responseStart = driver.execute_script("return window.performance.timing.responseStart")
+	domComplete = driver.execute_script("return window.performance.timing.domComplete")
+        loadeventStart= driver.execute_script("return window.performance.timing.loadEventStart")
+
+	backendPerformance = responseStart - navigationStart
+	frontendPerformance = domComplete - responseStart
+	plt = loadeventStart - navigationStart
+
+	print "Back End: %s" % backendPerformance
+	print "Front End: %s" % frontendPerformance
+	print "Page load time: %s" % plt
+	#timestr = time.strftime("%Y%m%d-%H%M%S")
+	#driver.save_screenshot(timestr+".png")
     except Exception as e:
         raise WebDriverException("Unable to start webdriver with FF.", e)
         return
     
     time.sleep(5)
-    driver.save_screenshot(filename+'.png')
+    print "Quiting the driver.."
+    #driver.save_screenshot('screenie.png')
 
     #close the firefox driver after HAR is written
     driver.close()
+
+    print "Terminating the display .."
+
+    display.popen.terminate()
+
     display.stop()
+    print "Killing geckodriver explicitely .."
+    try:
+        output=check_output("kill $(ps aux | pgrep -fla geckodriver| awk '{print $1}')",shell=True)
+    except CalledProcessError as e:
+        if e.returncode == 28:
+                print "Time limit exceeded"
+
     har_stats={}
     objs=[]
     pageSize=0
 
+    print "Processing the HAR files ..."
+
     try:
     	with open("har/"+filename+".har") as f:
         	msg=json.load(f)
+    		num_of_objects=0
+
+    		start=0
+    		for entry in msg["log"]["entries"]:
+        		try:
+                		obj={}
+                		obj["url"]=entry["request"]["url"]
+               			obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
+                		pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
+				obj["mimeType"]=entry["response"]["content"]["mimeType"]
+				obj["startedDateTime"]=entry["startedDateTime"]
+                		obj["time"]=entry["time"]
+                		obj["timings"]=entry["timings"]
+                		objs.append(obj)
+                		num_of_objects=num_of_objects+1
+                		if start==0:
+                        		start_time=entry["startedDateTime"]
+                        		start=1
+                		end_time=entry["startedDateTime"]
+                		ms=entry["time"]
+    			except KeyError:
+        			pass
+                
+    		har_stats["Objects"]=objs
+    		har_stats["NumObjects"]=num_of_objects
+    		har_stats["PageSize"]=pageSize
     except IOError:
     	print "har/"+filename+".har doesn't exist"
-        return
-    num_of_objects=0
+        
 
-    start=0
-    for entry in msg["log"]["entries"]:
-        try:
-                obj={}
-                obj["url"]=entry["request"]["url"]
-                obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
-		obj["mimeType"]=entry["response"]["content"]["mimeType"]
-		obj["startedDateTime"]=entry["startedDateTime"]
-                obj["time"]=entry["time"]
-                obj["timings"]=entry["timings"]
-                objs.append(obj)
-                num_of_objects=num_of_objects+1
-                if start==0:
-                        start_time=entry["startedDateTime"]
-                        start=1
-                end_time=entry["startedDateTime"]
-                ms=entry["time"]
-    	except KeyError:
-        	pass
-
-    try:
-       har_stats["tracedRoutes"]=routes.rstrip().split(" ")
-    except Exception:
-       print "traceroute info is not available"
+    #try:
+    #   har_stats["tracedRoutes"]=routes.rstrip().split(" ")
+    #except Exception:
+    #   print "traceroute info is not available"
 
     try:
     	har_stats["ping_max"]=ping_max
@@ -291,18 +362,20 @@ def run_exp(meta_info, expconfig, url,count):
     except Exception:
 	print("Ping info is not available")
         har_stats["ping_exp"]=0
-    har_stats["Objects"]=objs
-    har_stats["NumObjects"]=num_of_objects
-    har_stats["PageSize"]=pageSize
-    hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
-    hours = int(hours)
-    minutes = int(minutes)
-    seconds = float(seconds)
-    plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
+    try:
+    	hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
+    	hours = int(hours)
+    	minutes = int(minutes)
+    	seconds = float(seconds)
+    	plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
+    	har_stats["Web load time2"]=plt_ms
+    except:
+    	print "Timing errors in web load time"
+
     har_stats["url"]=url
     har_stats["Protocol"]=getter_version	
-    har_stats["Web load time"]=plt_ms
-    #har_stats["Guid"]= expconfig['guid']
+    har_stats["Web load time1"]=plt
+    har_stats["ttfb"]=backendPerformance
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
@@ -347,46 +420,6 @@ def run_exp(meta_info, expconfig, url,count):
     	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
     except Exception:
     	print("NWMCCMNC info is not available")
-#    try:
-#    	har_stats["LAC"]=meta_info["LAC"]
-#    except Exception:
-#    	print("LAC info is not available")
-#    try:
-#    	har_stats["CID"]=meta_info["CID"]
-#    except Exception:
-#    	print("CID info is not available")
-#    try:
-#    	har_stats["RSCP"]=meta_info["RSCP"]
-#    except Exception:
-#    	print("RSCP info is not available")
-#    try:
-#    	har_stats["RSSI"]=meta_info["RSSI"]
-#    except Exception:
-#    	print("RSSI info is not available")
-#    try:
-#    	har_stats["RSRQ"]=meta_info["RSRQ"]
-#    except Exception:
-#    	print("RSRQ info is not available")
-#    try:
-#    	har_stats["RSRP"]=meta_info["RSRP"]
-#    except Exception:
-#    	print("RSRP info is not available")
-#    try:
-#    	har_stats["ECIO"]=meta_info["ECIO"]
-#    except Exception:
-#    	print("ECIO info is not available")
-#    try:
-#    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
-#    except Exception:
-#    	print("DeviceMode info is not available")
-#    try:
-#    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
-#    except Exception:
-#    	print("DeviceSubmode info is not available")
-#    try:
-#    	har_stats["DeviceState"]=meta_info["DeviceState"]
-#    except Exception:
-#    	print("DeviceState info is not available")
 #
     har_stats["SequenceNumber"]= count
 
@@ -456,7 +489,7 @@ def add_manual_metadata_information(info, ifname, expconfig):
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["Timestamp"] = time.time()
-    info["ipaddress"] ="172.17.0.3"	
+    info["ipaddress"] ="172.17.0.2"	
 
 
 def create_meta_process(ifname, expconfig):
@@ -467,8 +500,8 @@ def create_meta_process(ifname, expconfig):
     return (meta_info, process)
 
 
-def create_exp_process(meta_info, expconfig,url,count):
-    process = Process(target=run_exp, args=(meta_info, expconfig,url,count))
+def create_exp_process(meta_info, expconfig,url,count,no_cache):
+    process = Process(target=run_exp, args=(meta_info, expconfig,url,count,no_cache))
     process.daemon = True
     return process
 
@@ -511,7 +544,8 @@ if __name__ == '__main__':
 	http_protocols=EXPCONFIG['http_protocols']
         if_without_metadata = EXPCONFIG['interfaces_without_metadata']
         meta_grace = EXPCONFIG['meta_grace']
-        exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
+        #exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
+        exp_grace = EXPCONFIG['exp_grace']
         ifup_interval_check = EXPCONFIG['ifup_interval_check']
         time_between_experiments = EXPCONFIG['time_between_experiments']
         EXPCONFIG['guid']
@@ -523,114 +557,170 @@ if __name__ == '__main__':
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
-    for ifname in allowed_interfaces:
-	if ifname not in open('/proc/net/dev').read():
-		allowed_interfaces.remove(ifname)
 
-    for ifname in allowed_interfaces:
-        # Interface is not up we just skip that one
-        if not check_if(ifname):
-            if EXPCONFIG['verbosity'] > 1:
-                print "Interface is not up {}".format(ifname)
-            continue
-        # set the default route
+    start_time = time.time()
+    for url_list in urls:
+        random.shuffle(url_list)    
+
+        for ifname in allowed_interfaces:
+	       if ifname not in open('/proc/net/dev').read():
+		      allowed_interfaces.remove(ifname)
+
+        no_cache=1
+        for ifname in allowed_interfaces:
+	    first_run=1 
+            # Interface is not up we just skip that one
+            if not check_if(ifname):
+                if EXPCONFIG['verbosity'] > 1:
+                    print "Interface is not up {}".format(ifname)
+                continue
+            # set the default route
             
 
-        # Create a process for getting the metadata
-        # (could have used a thread as well but this is true multiprocessing)
-        meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
-        meta_process.start()
+            # Create a process for getting the metadata
+            # (could have used a thread as well but this is true multiprocessing)
+            meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
+            meta_process.start()    
 
-        if EXPCONFIG['verbosity'] > 1:
-            print "Starting Experiment Run on if : {}".format(ifname)
-
-        # On these Interfaces we do net get modem information so we hack
-        # in the required values by hand whcih will immeditaly terminate
-        # metadata loop below
-        if (check_if(ifname) and ifname in if_without_metadata):
-            add_manual_metadata_information(meta_info, ifname,EXPCONFIG)
-#
-        # Try to get metadadata
-        # if the metadata process dies we retry until the IF_META_GRACE is up
-        start_time = time.time()
-        while (time.time() - start_time < meta_grace and
-               not check_meta(meta_info, meta_grace, EXPCONFIG)):
-            if not meta_process.is_alive():
-                # This is serious as we will not receive updates
-                # The meta_info dict may have been corrupt so recreate that one
-                meta_info, meta_process = create_meta_process(ifname,
-                                                              EXPCONFIG)
-                meta_process.start()
             if EXPCONFIG['verbosity'] > 1:
-                print "Trying to get metadata"
-            time.sleep(ifup_interval_check)
+                print "Starting Experiment Run on if : {}".format(ifname)   
 
-        # Ok we did not get any information within the grace period
-        # we give up on that interface
-        if not check_meta(meta_info, meta_grace, EXPCONFIG):
+            # On these Interfaces we do net get modem information so we hack
+            # in the required values by hand whcih will immeditaly terminate
+            # metadata loop below
+            if (check_if(ifname) and ifname in if_without_metadata):
+                add_manual_metadata_information(meta_info, ifname,EXPCONFIG)
+    #
+            # Try to get metadadata
+            # if the metadata process dies we retry until the IF_META_GRACE is up
+            start_time_metacheck = time.time()
+            while (time.time() - start_time_metacheck < meta_grace and
+                   not check_meta(meta_info, meta_grace, EXPCONFIG)):
+                if not meta_process.is_alive():
+                    # This is serious as we will not receive updates
+                    # The meta_info dict may have been corrupt so recreate that one
+                    meta_info, meta_process = create_meta_process(ifname,
+                                                                  EXPCONFIG)
+                    meta_process.start()
+                if EXPCONFIG['verbosity'] > 1:
+                    print "Trying to get metadata. Waited {:0.1f}/{} seconds.".format(time.time() - start_time_metacheck, meta_grace)
+                time.sleep(ifup_interval_check) 
+
+            # Ok we did not get any information within the grace period
+            # we give up on that interface
+            if not check_meta(meta_info, meta_grace, EXPCONFIG):
+                if EXPCONFIG['verbosity'] > 1:
+                    print "No Metadata continuing"
+                continue    
+
+            # Ok we have some information lets start the experiment script
+
+
+	    #output_interface=None
+
+            #cmd1=["route",
+            #     "del",
+            #     "default"]
+            #os.system(bashcommand)
+           # try:
+            #        check_output(cmd1)
+            #except CalledProcessError as e:
+             #       if e.returncode == 28:
+              #              print "Time limit exceeded"
+            
+           # gw_ip="undefined"
+           # for g in ni.gateways()[ni.AF_INET]:
+           #     if g[1] == ifname:
+            #        gw_ip = g[0]
+             #       break   
+
+           # cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
+           # try:
+            #    check_output(cmd2)
+            #	cmd3=["ip", "route", "get", "8.8.8.8"]
+             #   output=check_output(cmd3)
+            #	output = output.strip(' \t\r\n\0')
+            #	output_interface=output.split(" ")[4]
+            #	if output_interface==str(ifname):
+             #       	print "Source interface is set to "+str(ifname)
+    	#	else:
+         #           	print "Source interface "+output_interface+"is different from "+str(ifname)
+    	#		continue
+            
+    	 #   except CalledProcessError as e:
+          #           if e.returncode == 28:
+           #                 print "Time limit exceeded"
+    	#	     continue
+    	   
+
             if EXPCONFIG['verbosity'] > 1:
-                print "No Metadata continuing"
-            continue
-
-        # Ok we have some information lets start the experiment script
-
-        if EXPCONFIG['verbosity'] > 1:
-            print "Starting experiment"
+                print "Starting experiment"
         
-        
-        for url_list in urls:
-	    random.shuffle(url_list)
 	    for url in url_list:	
-	    	for protocol in http_protocols:
-			if protocol == 'h1':
-            			getter = h1
-            			getter_version = 'HTTP1.1'
-        		elif protocol == 'h1s':
-            			getter = h1s
-            			getter_version = 'HTTP1.1/TLS'
-        		elif protocol == 'h2':
-            			getter = h2
-            			getter_version = 'HTTP2'
-        		else:
-            			print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2>' 
-            			sys.exit()	
-            		for run in range(start_count, iterations):
-                		# Create a experiment process and start it
-                		start_time_exp = time.time()
-                		exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, url,run+1)
-                		exp_process.start()
-        
-                		while (time.time() - start_time_exp < exp_grace and
-                       			exp_process.is_alive()):
-                    			# Here we could add code to handle interfaces going up or down
-                    			# Similar to what exist in the ping experiment
-                    			# However, for now we just abort if we loose the interface
-        
-                    			# No modem information hack to add required information
-                    			if (check_if(ifname) and ifname in if_without_metadata):
-                    		    		add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
-        
-                    			if not (check_if(ifname) and check_meta(meta_info,
-                                                            meta_grace,
-                                                            EXPCONFIG)):
-                        			if EXPCONFIG['verbosity'] > 0:
-                            				print "Interface went down during a experiment"
-                        			break
-                    			elapsed_exp = time.time() - start_time_exp
-                    			if EXPCONFIG['verbosity'] > 1:
-                        			print "Running Experiment for {} s".format(elapsed_exp)
-                    			time.sleep(ifup_interval_check)
-        
-                		if exp_process.is_alive():
-                    			exp_process.terminate()
-                		if meta_process.is_alive():
-                    			meta_process.terminate()
-        
-                		elapsed = time.time() - start_time
-                		if EXPCONFIG['verbosity'] > 1:
-                    			print "Finished {} after {}".format(ifname, elapsed)
-                		time.sleep(time_between_experiments)
+            	if first_run ==1:
+	    		no_cache=1
+			first_run=0
+	    	else:
+			no_cache=0
+	        random.shuffle(http_protocols)
+    	    	for protocol in http_protocols:
+    			if protocol == 'h1':
+                			getter = h1
+                			getter_version = 'HTTP1.1'
+            		elif protocol == 'h1s':
+                			getter = h1s
+                			getter_version = 'HTTP1.1/TLS'
+            		elif protocol == 'h2':
+                			getter = h2
+                			getter_version = 'HTTP2'
+            		else:
+                			print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2>' 
+                			sys.exit()	
+                	for run in range(start_count, iterations):
+                    		# Create a experiment process and start it
+                    		start_time_exp = time.time()
+                    		exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, url,run+1, no_cache)
+                    		exp_process.start()
+            
+                    		while (time.time() - start_time_exp < exp_grace and
+                           			exp_process.is_alive()):
+                        			# Here we could add code to handle interfaces going up or down
+                        			# Similar to what exist in the ping experiment
+                        			# However, for now we just abort if we loose the interface
+            
+                        		# No modem information hack to add required information
+                        		if (check_if(ifname) and ifname in if_without_metadata):
+                        		    add_manual_metadata_information(meta_info, ifname, EXPCONFIG)    
 
-    if EXPCONFIG['verbosity'] > 1:
-        print ("Interfaces {} "
-               "done, exiting").format(allowed_interfaces)
+                                            if not meta_process.is_alive():
+                                                print "meta_process is not alive - restarting"
+                                                meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
+                                                meta_process.start()
+                                                time.sleep(3*ifup_interval_check)   
+
+            
+                        		    if not (check_if(ifname) and check_meta(meta_info,
+                                                                meta_grace,
+                                                                EXPCONFIG)):
+                            			if EXPCONFIG['verbosity'] > 0:
+                                			print "Interface went down during a experiment"
+                            			break
+                        		    elapsed_exp = time.time() - start_time_exp
+                        		    if EXPCONFIG['verbosity'] > 1:
+                            				print "Running Experiment for {} s".format(elapsed_exp)
+                        		    time.sleep(ifup_interval_check)
+            
+                    		if exp_process.is_alive():
+                        			exp_process.terminate()
+                    		#if meta_process.is_alive():
+                        	#		meta_process.terminate()
+            
+                    		elapsed = time.time() - start_time
+                    		if EXPCONFIG['verbosity'] > 1:
+                        			print "Finished {} after {}".format(ifname, elapsed)
+                    		time.sleep(time_between_experiments)  
+	    if meta_process.is_alive():
+		meta_process.terminate()
+            if EXPCONFIG['verbosity'] > 1:
+                print ("Interfaces {} "
+                   "done, exiting").format(ifname)
