@@ -197,7 +197,16 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     
     d['marionette'] = True
     d['binary'] = '/usr/bin/firefox'
-    profile = webdriver.FirefoxProfile("/opt/monroe/")
+    print "Creating Firefox profile .."
+    try:
+    	profile = webdriver.FirefoxProfile("/opt/monroe/")
+    except Exception as e:
+	raise WebDriverException("Unable to set FF profile in  webdriver.", e)
+        return
+
+    print "Setting different Firefox profile .."
+    #set firefox preferences
+
     profile.accept_untrusted_certs = True
     profile.add_extension("har.xpi")
     
@@ -560,11 +569,19 @@ if __name__ == '__main__':
 
     start_time = time.time()
     for url_list in urls:
+	print "Randomizing the url lists .."
+
         random.shuffle(url_list)    
 
-        for ifname in allowed_interfaces:
-	       if ifname not in open('/proc/net/dev').read():
-		      allowed_interfaces.remove(ifname)
+        try:
+		for ifname in allowed_interfaces:
+	       		if ifname not in open('/proc/net/dev').read():
+		      		allowed_interfaces.remove(ifname)
+    	except Exception as e:
+        	print "Cannot remove nonexisting interface {}".format(e)
+        	raise e
+		continue
+	
 
         no_cache=1
         for ifname in allowed_interfaces:

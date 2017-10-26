@@ -200,11 +200,19 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     
     d['marionette'] = True
     d['binary'] = '/usr/bin/firefox'
-    profile = webdriver.FirefoxProfile("/opt/monroe/")
+    print "Creating Firefox profile .."
+    try:
+    	profile = webdriver.FirefoxProfile("/opt/monroe/")
+    except Exception as e:
+	raise WebDriverException("Unable to set FF profile in  webdriver.", e)
+        return
+
+    print "Setting different Firefox profile .."
+    #set firefox preferences
+
     profile.accept_untrusted_certs = True
     profile.add_extension("har.xpi")
     
-    #set firefox preferences
     if no_cache==1:
     	profile.set_preference('browser.cache.memory.enable', False)
     	profile.set_preference('browser.cache.offline.enable', False)
@@ -217,9 +225,6 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	profile.set_preference('network.http.use-cache', True)
 
     profile.set_preference("app.update.enabled", False)
-   # profile.set_preference('browser.cache.memory.enable', False)
-   # profile.set_preference('browser.cache.offline.enable', False)
-   # profile.set_preference('browser.cache.disk.enable', False)
     profile.set_preference('browser.startup.page', 0)
     profile.set_preference("general.useragent.override", "Mozilla/5.0 (Android 4.4; Mobile; rv:46.0) Gecko/46.0 Firefox/46.0")
     
@@ -510,7 +515,7 @@ if __name__ == '__main__':
         print 'HTTP Archive Directory Exists!'
     else:
         os.mkdir(har_directory)
-        print "HTTP Archive Directory created successfully in %s ..\n" % (har_directory)
+        print "HTTP Archive Directory created successfully in %s .." % (har_directory)
 
 
 
@@ -551,11 +556,19 @@ if __name__ == '__main__':
 
     start_time = time.time()
     for url_list in urls:
+	print "Randomizing the url lists .."
+
         random.shuffle(url_list)    
 
-        for ifname in allowed_interfaces:
-	       if ifname not in open('/proc/net/dev').read():
-		      allowed_interfaces.remove(ifname)
+        try:
+		for ifname in allowed_interfaces:
+	       		if ifname not in open('/proc/net/dev').read():
+		      		allowed_interfaces.remove(ifname)
+    	except Exception as e:
+        	print "Cannot remove nonexisting interface {}".format(e)
+        	raise e
+		continue
+	
 
         no_cache=1
         for ifname in allowed_interfaces:
