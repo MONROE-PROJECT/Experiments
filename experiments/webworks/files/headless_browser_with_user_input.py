@@ -248,8 +248,8 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         filename = "h2-"+url.split("/")[0]+"."+str(count)
     
     
-    profile.set_preference('network.prefetch-next', False)
-    profile.set_preference('network.http.spdy.enabled.v3-1', False)
+    #profile.set_preference('network.prefetch-next', False)
+    #profile.set_preference('network.http.spdy.enabled.v3-1', False)
     
     newurl = getter+url
     
