@@ -7,10 +7,15 @@ SCHEDID="test"
 VTAPPREFIX=macvtap
 disk_image="image.qcow2"
 
+if [ ! -f "${disk_image}" ]; then
+        echo "Missing disk image (${disk_image}), exiting"
+        exit 1
+  fi
 # Enumerate the interfaces and:
 # 1. Create the vtap interfaces
 # 2. Create the kvm cmd line to connect to said interfaces
 # 3. Create the guestfish cmd line to modify the vm to reflect the interfaces
+
 i=0
 KVMDEV=""
 GUESTFISHDEV=""
@@ -44,7 +49,6 @@ sh \"/usr/bin/sed -i -e 's/##IP##/${IP}/g' /etc/network/interfaces.d/${IFNAME}\"
 sh \"/usr/bin/sed -i -e 's/##NM##/${NM}/g' /etc/network/interfaces.d/${IFNAME}\"
 sh \"/usr/bin/sed -i -e 's/##GW##/${GW}/g' /etc/network/interfaces.d/${IFNAME}\"
 sh \"/usr/bin/sed -e 's/##MAC##/${MAC}/g' -e 's/##NAME##/${NAME}/g' /etc/network/persistent-net.rules-template >> /etc/udev/rules.d/70-persistent-net.rules\""
-  #ip link del ${VTAPNAME}
   i=$((i + 1))
 done
 
@@ -53,6 +57,10 @@ declare -A mounts=( [results]=$BASEDIR/$SCHEDID [config-dir]=$BASEDIR/$SCHEDID-c
 for m in "${!mounts[@]}"; do
   OPT=",readonly"
   p=${mounts[$m]}
+  if [ ! -d "${p}" ]; then
+  	echo "Missing ${m} directory (${p}), exiting"
+	exit 1
+  fi
   if [[ "${m}" == "results" ]]; then
     OPT=""
   fi
@@ -80,4 +88,4 @@ ${GUESTFISHDEV}
 EOF
 echo ${KVMDEV}
 sleep 5
-kvm -curses -m 1048 -hda image.qcow2 ${KVMDEV}
+kvm -curses -m 1048 -hda ${disk_image} ${KVMDEV}
