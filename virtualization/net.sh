@@ -1,7 +1,6 @@
 #!/bin/bash
 #set -x
-#MNS=ip netns exec monroe
-MNS=""
+MNS="ip netns exec monroe"
 BASEDIR="."
 SCHEDID="test"
 
@@ -15,7 +14,7 @@ disk_image="image.qcow2"
 i=0
 KVMDEV=""
 GUESTFISHDEV=""
-for IFNAME in $($MNS basename -a /sys/class/net/*); do
+for IFNAME in $($MNS ls /sys/class/net/); do
   if [[ ${IFNAME} == "lo" ]]; then
     continue
   fi

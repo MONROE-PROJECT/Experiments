@@ -12,7 +12,7 @@ echo "$(date): Pulling the image"
 docker pull ${image}
 
 echo "$(date): Running a container from '${image}' image"
-container_id=$(docker run -d ${image} ls)
+container_id=$(docker run -d --net=none ${image} ls)
 
 echo "$(date): Exporting image content to a tar archive"
 docker export ${container_id} > ${filesystem_image}
