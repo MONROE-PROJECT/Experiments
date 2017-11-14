@@ -31,6 +31,7 @@ import netifaces
 import time
 import subprocess
 import socket
+import shutil
 import struct
 import random
 import netifaces as ni
@@ -164,6 +165,18 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     ifname = meta_info[expconfig["modeminterfacename"]]
 
     #url=url_list[index]
+    print "Deleting old profiles from the temp dir.."
+
+    root="/tmp/"
+    try:
+        for item in os.listdir(root):
+            if os.path.isdir(os.path.join(root, item)):
+                print "/tmp/"+item
+                if "tmp" in item or "rust" in item:
+                    print item
+                    shutil.rmtree("/tmp/"+item)
+    except OSError, e:  ## if failed, report it back to the user ##
+        print ("Error: %s - %s." % (e.filename,e.strerror))
 
     print "Starting ping ..."
 
@@ -433,6 +446,9 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         os.remove("/opt/monroe/har/"+filename+".har")
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
+
+    
+
     
     
 
