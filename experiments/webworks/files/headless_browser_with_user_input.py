@@ -571,6 +571,8 @@ if __name__ == '__main__':
         raise e
 
     start_time = time.time()
+    
+    random.shuffle(urls)    
     for url_list in urls:
 	print "Randomizing the url lists .."
 
