@@ -81,7 +81,9 @@ def run_exp(expconfig,ip):
     ifname = meta_info[expconfig["modeminterfacename"]]
 
     har_stats={}
-    cmd=["./UDPbwEstimatorRcvr","-c","300","-b","10","-l","1400","-s",ip,"-o",
+    burst_sz="300"
+    no_bursts="10"
+    cmd=["./UDPbwEstimatorRcvr","-c",burst_sz,"-b",no_bursts,"-l","1400","-s",ip,"-o",
 	   "8000",
             "-d", 
 	   "193.10.227.44",
@@ -133,6 +135,8 @@ def run_exp(expconfig,ip):
 
     print num_packets
     logfile.close()
+    har_stats["burst_sz"]=burst_sz
+    har_stats["no_bursts"]=no_bursts
     har_stats["bw"]=output
     har_stats["bw1"]=bw
     har_stats["Guid"]= expconfig['guid']
