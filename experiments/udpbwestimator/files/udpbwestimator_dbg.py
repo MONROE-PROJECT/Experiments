@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+
+from __future__ import division
 # Author: Mohammad Rajiullah (Used general experiment logic from 
 # Jonas Karlsson)
 # Date: October 2016
@@ -15,9 +17,13 @@ packets in the beginning of each second. The receiver tells the server about
   bandwidth using packet arrival times and payloads.
 """
 
+import datetime
+import dateutil.relativedelta
+
 import sys, getopt
 import time, os
 import fileinput
+import subprocess
 
 import json
 import zmq
@@ -25,7 +31,16 @@ import netifaces
 import time
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
+from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
+import netifaces as ni
 
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
 
 # Configuration
 DEBUG = True
@@ -51,14 +66,14 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "allowed_interfaces": ["enp0s25",
+        "allowed_interfaces": ["op0",
                                "op1",
                                "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ "enp0s25" ]  # Manual metadata on these IF
+        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
         }
 
 
-def run_exp(meta_info, expconfig, ip):
+def run_exp(expconfig,ip):
     """Seperate process that runs the experiment and collect the ouput.
 
         Will abort if the interface goes down.
@@ -66,12 +81,14 @@ def run_exp(meta_info, expconfig, ip):
     ifname = meta_info[expconfig["modeminterfacename"]]
 
     har_stats={}
-    cmd=["./UDPbwEstimatorRcvr","-c","50","-b","3","-l","1400","-s",ip,"-o",
+    cmd=["./UDPbwEstimatorRcvr","-c","300","-b","10","-l","1400","-s",ip,"-o",
 	   "8000",
             "-d", 
-	   "193.10.227.23",
+	   "193.10.227.44",
 	   "-p", 
-	   "8080"]
+	   "8080",
+	   "-w",
+	   "test"]
 
     output=None
      
@@ -83,16 +100,119 @@ def run_exp(meta_info, expconfig, ip):
         if error.returncode == 28:
 	    print "Time limit exceeded"
     
+    logfile=open("test","r")
+    num_packets=0
+
+    first=0
+    total_bytes=0
+    count=0
+    bw=""
+    while True:
+    	line=logfile.readline()
+    	if line =='\n' or line == "":
+        	count+=1
+        	first=0
+        	duration=float(tstamp)-float(start)
+        	print ((total_bytes*8)/(1024*1024))
+        	print duration, sizeof_fmt(total_bytes), ((total_bytes*8)/(1024*1024))/duration
+    		bw+=str(((total_bytes*8)/(1024*1024))/duration)
+		bw+=" "
+        	total_bytes=0
+        	if count==3:
+            		break
+    	else:
+        	line = line.strip().split(' ')
+        	num_packets=num_packets+1
+        	if first==0:
+            		start, numbytes=line[0], int(line[1])
+            		total_bytes+=numbytes
+            		first=1
+        	else:
+            		tstamp, numbytes=line[0], int(line[1])
+            		total_bytes+=numbytes
+
+    print num_packets
+    logfile.close()
     har_stats["bw"]=output
-   
-    print har_stats
+    har_stats["bw1"]=bw
     har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
     har_stats["Timestamp"]= time.time()
-    har_stats["Iccid"]= meta_info["ICCID"]
-    har_stats["Operator"]= meta_info["Operator"]
+    try:
+    	har_stats["Iccid"]= meta_info["ICCID"]
+    except Exception:
+    	print("ICCID info is not available")
+    try:
+    	har_stats["Operator"]= meta_info["Operator"]
+    except Exception:
+    	print("Operator info is not available")
+    try:
+    	har_stats["IMSI"]=meta_info["IMSI"]
+    except Exception:
+    	print("IMSI info is not available")
+    try:
+    	har_stats["IMEI"]=meta_info["IMEI"]
+    except Exception:
+    	print("IMEI info is not available")
+    try:
+    	har_stats["InternalInterface"]=meta_info["InternalInterface"]
+    except Exception:
+    	print("InternalInterface info is not available")
+    try:
+    	har_stats["IPAddress"]=meta_info["IPAddress"]
+    except Exception:
+    	print("IPAddress info is not available")
+    try:
+    	har_stats["InternalIPAddress"]=meta_info["InternalIPAddress"]
+    except Exception:
+    	print("InternalIPAddress info is not available")
+    try:
+    	har_stats["InterfaceName"]=meta_info["InterfaceName"]
+    except Exception:
+    	print("InterfaceName info is not available")
+    try:
+    	har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
+    except Exception:
+    	print("IMSIMCCMNC info is not available")
+    try:
+    	har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
+    except Exception:
+    	print("NWMCCMNC info is not available")
+    try:
+    	har_stats["LAC"]=meta_info["LAC"]
+    except Exception:
+    	print("LAC info is not available")
+    try:
+    	har_stats["CID"]=meta_info["CID"]
+    except Exception:
+    	print("CID info is not available")
+    try:
+    	har_stats["RSCP"]=meta_info["RSCP"]
+    except Exception:
+    	print("RSCP info is not available")
+    try:
+    	har_stats["RSSI"]=meta_info["RSSI"]
+    except Exception:
+    	print("RSSI info is not available")
+    try:
+    	har_stats["ECIO"]=meta_info["ECIO"]
+    except Exception:
+    	print("ECIO info is not available")
+    try:
+    	har_stats["DeviceMode"]=meta_info["DeviceMode"]
+    except Exception:
+    	print("DeviceMode info is not available")
+    try:
+    	har_stats["DeviceSubmode"]=meta_info["DeviceSubmode"]
+    except Exception:
+    	print("DeviceSubmode info is not available")
+    try:
+    	har_stats["DeviceState"]=meta_info["DeviceState"]
+    except Exception:
+    	print("DeviceState info is not available")
+    har_stats["SequenceNumber"]= 1
   
     
     if expconfig['verbosity'] > 2:
@@ -164,8 +284,8 @@ def create_meta_process(ifname, expconfig):
     return (meta_info, process)
 
 
-def create_exp_process(meta_info, expconfig,ip):
-    process = Process(target=run_exp, args=(meta_info, expconfig,ip))
+def create_exp_process(expconfig,ip):
+    process = Process(target=run_exp, args=(expconfig,ip))
     process.daemon = True
     return process
 
@@ -288,7 +408,9 @@ if __name__ == '__main__':
         
         # Create a experiment process and start it
         start_time_exp = time.time()
-        exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, meta_info["InternalIPAddress"])
+	iface_ip= str(ni.ifaddresses(ifname)[AF_INET][0]['addr'])
+	print iface_ip
+        exp_process = exp_process = create_exp_process(EXPCONFIG,iface_ip)
         exp_process.start()
         
         while (time.time() - start_time_exp < exp_grace and

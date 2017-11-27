@@ -80,7 +80,7 @@ def run_exp(expconfig,ip):
     """
 
     har_stats={}
-    cmd=["./UDPbwEstimatorRcvr","-c","50","-b","3","-l","1400","-s",ip,"-o",
+    cmd=["./UDPbwEstimatorRcvr","-c","300","-b","10","-l","1400","-s",ip,"-o",
 	   "8000",
             "-d", 
 	   "193.10.227.44",
