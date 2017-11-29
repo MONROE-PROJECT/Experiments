@@ -68,8 +68,8 @@ EXPCONFIG = {
         "modeminterfacename": "InternalInterface",
         "allowed_interfaces": ["op0",
                                "op1",
-                               "op2"],  # Interfaces to run the experiment on
-        "interfaces_without_metadata": [ ]  # Manual metadata on these IF
+                               "op2","eth0"],  # Interfaces to run the experiment on
+        "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
 
 
@@ -78,7 +78,6 @@ def run_exp(expconfig,ip):
 
         Will abort if the interface goes down.
     """
-    ifname = meta_info[expconfig["modeminterfacename"]]
 
     har_stats={}
     burst_sz="300"
@@ -116,8 +115,8 @@ def run_exp(expconfig,ip):
         	first=0
         	duration=float(tstamp)-float(start)
         	print ((total_bytes*8)/(1024*1024))
-        	print duration, sizeof_fmt(total_bytes), ((total_bytes*8)/(1024*1024))/duration
-    		bw+=str(((total_bytes*8)/(1024*1024))/duration)
+        	print duration, sizeof_fmt(total_bytes), ((total_bytes*8)/(1000))/duration
+    		bw+=str(((total_bytes*8)/(1000))/duration)
 		bw+=" "
         	total_bytes=0
         	if count==3:
@@ -137,8 +136,8 @@ def run_exp(expconfig,ip):
     logfile.close()
     har_stats["burst_sz"]=burst_sz
     har_stats["no_bursts"]=no_bursts
-    har_stats["bw"]=output
-    har_stats["bw1"]=bw
+    #har_stats["bw"]=output
+    har_stats["dl_throughput_kbps"]=bw
     har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
@@ -277,7 +276,7 @@ def add_manual_metadata_information(info, ifname, expconfig):
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["Timestamp"] = time.time()
-    info["InternalIPAddress"]="130.243.26.22"
+    info["InternalIPAddress"]="172.17.0.5"
 
 
 def create_meta_process(ifname, expconfig):
