@@ -73,7 +73,7 @@ EXPCONFIG = {
         "zmqport": "tcp://172.17.0.1:5556",
         "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
         "dataversion": 1,
-        "dataid": "MONROE.EXP.FIREFOX.HEADLESS.BROWSERTIME",
+        "dataid": "MONROE.EXP.HEADLESS.BROWSERTIME",
         "nodeid": "fake.nodeid",
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "exp_grace": 120,  # Grace period before killing experiment
@@ -129,6 +129,17 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
             
     if not os.path.exists('web-res'):
         os.makedirs('web-res')
+    print "Clearing temp directories.."
+    root="/tmp/"
+    try:
+        for item in os.listdir(root):
+            if os.path.isdir(os.path.join(root, item)):
+                print "/tmp/"+item
+                if "tmp" in item:
+                    print "Deleting {}".format(item)
+                    shutil.rmtree("/tmp/"+item)
+    except OSError, e:  ## if failed, report it back to the user ##
+        print ("Error: %s - %s." % (e.filename,e.strerror))
 
     if no_cache==1:
     	if getter_version == 'HTTP1.1/TLS':
