@@ -31,6 +31,7 @@ import netifaces
 import time
 import subprocess
 import socket
+import shutil
 import struct
 import random
 import netifaces as ni
@@ -164,6 +165,18 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     ifname = meta_info[expconfig["modeminterfacename"]]
 
     #url=url_list[index]
+    print "Deleting old profiles from the temp dir.."
+
+    root="/tmp/"
+    try:
+        for item in os.listdir(root):
+            if os.path.isdir(os.path.join(root, item)):
+                print "/tmp/"+item
+                if "tmp" in item or "rust" in item:
+                    print item
+                    shutil.rmtree("/tmp/"+item)
+    except OSError, e:  ## if failed, report it back to the user ##
+        print ("Error: %s - %s." % (e.filename,e.strerror))
 
     print "Starting ping ..."
 
@@ -200,11 +213,19 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     
     d['marionette'] = True
     d['binary'] = '/usr/bin/firefox'
-    profile = webdriver.FirefoxProfile("/opt/monroe/")
+    print "Creating Firefox profile .."
+    try:
+    	profile = webdriver.FirefoxProfile("/opt/monroe/")
+    except Exception as e:
+	raise WebDriverException("Unable to set FF profile in  webdriver.", e)
+        return
+
+    print "Setting different Firefox profile .."
+    #set firefox preferences
+
     profile.accept_untrusted_certs = True
     profile.add_extension("har.xpi")
     
-    #set firefox preferences
     if no_cache==1:
     	profile.set_preference('browser.cache.memory.enable', False)
     	profile.set_preference('browser.cache.offline.enable', False)
@@ -217,9 +238,6 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	profile.set_preference('network.http.use-cache', True)
 
     profile.set_preference("app.update.enabled", False)
-   # profile.set_preference('browser.cache.memory.enable', False)
-   # profile.set_preference('browser.cache.offline.enable', False)
-   # profile.set_preference('browser.cache.disk.enable', False)
     profile.set_preference('browser.startup.page', 0)
     profile.set_preference("general.useragent.override", "Mozilla/5.0 (Android 4.4; Mobile; rv:46.0) Gecko/46.0 Firefox/46.0")
     
@@ -243,8 +261,8 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         filename = "h2-"+url.split("/")[0]+"."+str(count)
     
     
-    profile.set_preference('network.prefetch-next', False)
-    profile.set_preference('network.http.spdy.enabled.v3-1', False)
+    #profile.set_preference('network.prefetch-next', False)
+    #profile.set_preference('network.http.spdy.enabled.v3-1', False)
     
     newurl = getter+url
     
@@ -279,11 +297,11 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
 	navigationStart = driver.execute_script("return window.performance.timing.navigationStart")
 	responseStart = driver.execute_script("return window.performance.timing.responseStart")
 	domComplete = driver.execute_script("return window.performance.timing.domComplete")
-        loadeventEnd= driver.execute_script("return window.performance.timing.loadEventEnd")
+        loadeventStart= driver.execute_script("return window.performance.timing.loadEventStart")
 
 	backendPerformance = responseStart - navigationStart
 	frontendPerformance = domComplete - responseStart
-	plt = loadeventEnd - navigationStart
+	plt = loadeventStart - navigationStart
 
 	print "Back End: %s" % backendPerformance
 	print "Front End: %s" % frontendPerformance
@@ -299,14 +317,22 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     #driver.save_screenshot('screenie.png')
 
     #close the firefox driver after HAR is written
-    driver.quit()
+    driver.close()
 
     print "Terminating the display .."
 
     display.popen.terminate()
 
     display.stop()
+
+    print "Killing geckodriver explicitely .."
+    try:
+	output=check_output("kill $(ps aux | pgrep -fla geckodriver| awk '{print $1}')",shell=True)
+    except CalledProcessError as e:
+	if e.returncode == 28:
+		print "Time limit exceeded"
     har_stats={}
+    
     objs=[]
     pageSize=0
 
@@ -420,6 +446,9 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         os.remove("/opt/monroe/har/"+filename+".har")
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
+
+    
+
     
     
 
@@ -502,7 +531,7 @@ if __name__ == '__main__':
         print 'HTTP Archive Directory Exists!'
     else:
         os.mkdir(har_directory)
-        print "HTTP Archive Directory created successfully in %s ..\n" % (har_directory)
+        print "HTTP Archive Directory created successfully in %s .." % (har_directory)
 
 
 
@@ -542,12 +571,22 @@ if __name__ == '__main__':
         raise e
 
     start_time = time.time()
+    
+    random.shuffle(urls)    
     for url_list in urls:
+	print "Randomizing the url lists .."
+
         random.shuffle(url_list)    
 
-        for ifname in allowed_interfaces:
-	       if ifname not in open('/proc/net/dev').read():
-		      allowed_interfaces.remove(ifname)
+        try:
+		for ifname in allowed_interfaces:
+	       		if ifname not in open('/proc/net/dev').read():
+		      		allowed_interfaces.remove(ifname)
+    	except Exception as e:
+        	print "Cannot remove nonexisting interface {}".format(e)
+        	raise e
+		continue
+	
 
         no_cache=1
         for ifname in allowed_interfaces:

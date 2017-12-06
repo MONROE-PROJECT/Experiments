@@ -1,0 +1,11 @@
+.DS_Store
+node_modules
+npm-debug.log
+chromedriver.log
+doc/sequence-diagrams/*.png
+*.log
+*.iml
+.vscode
+/browsertime-results/
+.tern-project
+package-lock.json

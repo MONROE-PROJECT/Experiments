@@ -194,10 +194,10 @@ void network_loop_udp(int32_t udp_sock_fd, int16_t num_packets, int16_t num_burs
                 data_interval = (t1.tv_sec - t0.tv_sec) + 
                     ((t1.tv_nsec - t0.tv_nsec)/1000000000.0);
                     estimated_bandwidth = 
-                        ((total_number_bytes / 1000000.0) * 8) / data_interval;
+                        ((total_number_bytes / 1000.0) * 8) / data_interval;
                     //Computations?
                     fprintf(stderr, "Received %zd bytes in %.8f seconds. Estimated " 
-                        "bandwidth %.2f Mbit/s\n", total_number_bytes, data_interval, 
+                        "bandwidth %.2f kbit/s\n", total_number_bytes, data_interval, 
                         estimated_bandwidth);
 		    printf("%.2f ",estimated_bandwidth);
                 new_session=1;

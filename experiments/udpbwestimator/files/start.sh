@@ -5,7 +5,7 @@ cd /opt/monroe/
 
 echo "Experiment starts ..."
 
-make
+#make
 
 
 python udpbwestimator.py 

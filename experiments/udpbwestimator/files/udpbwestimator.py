@@ -80,7 +80,9 @@ def run_exp(expconfig,ip):
     """
 
     har_stats={}
-    cmd=["./UDPbwEstimatorRcvr","-c","50","-b","3","-l","1400","-s",ip,"-o",
+    burst_sz="300"
+    no_bursts="10"
+    cmd=["./UDPbwEstimatorRcvr","-c",burst_sz,"-b",no_bursts,"-l","1400","-s",ip,"-o",
 	   "8000",
             "-d", 
 	   "193.10.227.44",
@@ -113,8 +115,8 @@ def run_exp(expconfig,ip):
         	first=0
         	duration=float(tstamp)-float(start)
         	print ((total_bytes*8)/(1024*1024))
-        	print duration, sizeof_fmt(total_bytes), ((total_bytes*8)/(1024*1024))/duration
-    		bw+=str(((total_bytes*8)/(1024*1024))/duration)
+        	print duration, sizeof_fmt(total_bytes), ((total_bytes*8)/(1000))/duration
+    		bw+=str(((total_bytes*8)/(1000))/duration)
 		bw+=" "
         	total_bytes=0
         	if count==3:
@@ -132,8 +134,10 @@ def run_exp(expconfig,ip):
 
     print num_packets
     logfile.close()
-    har_stats["bw"]=output
-    har_stats["bw1"]=bw
+    har_stats["burst_sz"]=burst_sz
+    har_stats["no_bursts"]=no_bursts
+    #har_stats["bw"]=output
+    har_stats["dl_throughput_kbps"]=bw
     har_stats["Guid"]= expconfig['guid']
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
