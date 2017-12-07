@@ -97,6 +97,26 @@ EXPCONFIG = {
 							   "eth0"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
+def add_dns(interface):
+    str = ""
+    try:
+        with open('/dns') as dnsfile:
+            dnsdata = dnsfile.readlines()
+	    print dnsdata
+            dnslist = [ x.strip() for x in dnsdata ]
+            for item in dnslist:
+                if interface in item:
+                    str += item.split('@')[0].replace("server=",
+"nameserver ")
+                    str += "\n"
+        with open("/etc/resolv.conf", "w") as f:
+            f.write(str)
+    except:
+        print("Could not find DNS file")
+    print str
+    #return str
+
+
 
 def py_traceroute(dest_name):
     dest_addr = socket.gethostbyname(dest_name)
@@ -372,9 +392,9 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         
 
     #try:
-    #   har_stats["tracedRoutes"]=routes.rstrip().split(" ")
+    #    har_stats["dns"]=add_dns(str(ifname))
     #except Exception:
-    #   print "traceroute info is not available"
+    #   print "dns info is not available"
 
     try:
     	har_stats["ping_max"]=ping_max
@@ -673,7 +693,11 @@ if __name__ == '__main__':
                      if e.returncode == 28:
                             print "Time limit exceeded"
     		     continue
-    	   
+	    if "eth"  not in str(ifname):
+    	    	print "Creating operator specific dns.."
+	    	add_dns(str(ifname)) 
+
+	    
 
             if EXPCONFIG['verbosity'] > 1:
                 print "Starting experiment"
