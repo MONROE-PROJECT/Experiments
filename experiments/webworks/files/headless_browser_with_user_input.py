@@ -27,9 +27,11 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import json
 import zmq
+import re
 import netifaces
 import time
 import subprocess
+import shlex
 import socket
 import shutil
 import struct
@@ -114,7 +116,7 @@ def add_dns(interface):
     except:
         print("Could not find DNS file")
     print str
-    #return str
+    return str
 
 
 
@@ -663,7 +665,6 @@ if __name__ == '__main__':
             cmd1=["route",
                  "del",
                  "default"]
-            #os.system(bashcommand)
             try:
                     check_output(cmd1)
             except CalledProcessError as e:
@@ -695,7 +696,28 @@ if __name__ == '__main__':
     		     continue
 	    if "eth"  not in str(ifname):
     	    	print "Creating operator specific dns.."
-	    	add_dns(str(ifname)) 
+	    	dns_list=""
+		dns_list=add_dns(str(ifname))
+		
+		print "Checking the dns setting..."
+                cmd=["dig",
+                 "www.google.com",
+                 "+noquestion", "+nocomments", "+noanswer"]
+		ops_dns_used=0
+            	try:
+                    out=check_output(cmd)
+		    data=dns_list.replace("\n"," ")
+		    for line in out.splitlines():
+			for ip in re.findall(r'(?:\d{1,3}\.)+(?:\d{1,3})',data):
+				if ip in line:
+					ops_dns_used=1
+					print line
+            	except CalledProcessError as e:
+                    if e.returncode == 28:
+                            print "Time limit exceeded"
+		if ops_dns_used==1:
+			print "Operators dns is set properly"
+		  
 
 	    
 
