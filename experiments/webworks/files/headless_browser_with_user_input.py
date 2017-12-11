@@ -200,12 +200,14 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
 
-    print "Starting ping ..."
+    print "Starting tracerouting ..."
 
-    #try:
-    #	routes=py_traceroute(str(url).split("/")[0])
-    #except Exception:
-    #	print ("tracerouting unsuccessful")
+    try:
+    	routes=py_traceroute(str(url).split("/")[0])
+    except Exception:
+    	print ("tracerouting unsuccessful")
+    
+    print "Starting ping ..."
 
     try:
     	response = subprocess.check_output(
@@ -393,10 +395,10 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	print "har/"+filename+".har doesn't exist"
         
 
-    #try:
-    #    har_stats["dns"]=add_dns(str(ifname))
-    #except Exception:
-    #   print "dns info is not available"
+    try:
+        har_stats["route"]=routes
+    except Exception:
+       print "traceroute info is not available"
 
     try:
     	har_stats["ping_max"]=ping_max
