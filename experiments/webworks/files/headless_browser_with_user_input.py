@@ -694,17 +694,17 @@ if __name__ == '__main__':
                      if e.returncode == 28:
                             print "Time limit exceeded"
     		     continue
-	    if "eth"  not in str(ifname):
-    	    	print "Creating operator specific dns.."
-	    	dns_list=""
-		dns_list=add_dns(str(ifname))
+	    #if "eth"  not in str(ifname):
+    	    print "Creating operator specific dns.."
+	    dns_list=""
+	    dns_list=add_dns(str(ifname))
 		
-		print "Checking the dns setting..."
-                cmd=["dig",
+	    print "Checking the dns setting..."
+            cmd=["dig",
                  "www.google.com",
                  "+noquestion", "+nocomments", "+noanswer"]
-		ops_dns_used=0
-            	try:
+	    ops_dns_used=0
+            try:
                     out=check_output(cmd)
 		    data=dns_list.replace("\n"," ")
 		    for line in out.splitlines():
@@ -712,10 +712,10 @@ if __name__ == '__main__':
 				if ip in line:
 					ops_dns_used=1
 					print line
-            	except CalledProcessError as e:
+            except CalledProcessError as e:
                     if e.returncode == 28:
                             print "Time limit exceeded"
-		if ops_dns_used==1:
+	    if ops_dns_used==1:
 			print "Operators dns is set properly"
 		  
 
