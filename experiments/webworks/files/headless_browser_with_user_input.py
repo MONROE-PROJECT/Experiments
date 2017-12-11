@@ -462,9 +462,11 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         json.dump(har_stats, outfile)
     
     if expconfig['verbosity'] > 2:
-            print har_stats
+            #print har_stats
+            print("Done with  Node: {}, HTTP protocol: {}, url: {}, Operator: {}, ping_max: {}, traceroute: {}, PLT: {}".format(har_stats["NodeId"], har_stats["Protocol"],har_stats["url"],har_stats["Operator"], har_stats["ping_max"], har_stats["route"],har_stats["Web load time2"]))
     if not DEBUG:
-	    print har_stats
+	    #print har_stats
+            print("Done with  Node: {}, HTTP protocol: {}, url: {}, Operator: {}, ping_max: {}, traceroute: {}, PLT: {}".format(har_stats["NodeId"], har_stats["Protocol"],har_stats["url"],har_stats["Operator"], har_stats["ping_max"], har_stats["route"],har_stats["Web load time2"]))
             monroe_exporter.save_output(har_stats, expconfig['resultdir'])
     try:
         os.remove("/opt/monroe/har/"+filename+".har")
