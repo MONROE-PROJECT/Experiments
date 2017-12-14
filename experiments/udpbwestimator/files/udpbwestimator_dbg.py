@@ -66,11 +66,75 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
+        "burst_size":"300",
+	"no_bursts":"10",
+	"server_ip":"193.10.227.44",	
+	"server_name":"",	
+	"packet_size":"1400",
         "allowed_interfaces": ["op0",
                                "op1",
                                "op2","eth0"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
+
+def py_traceroute(dest_name):
+    dest_addr = socket.gethostbyname(dest_name)
+    port = 33434
+    max_hops = 30
+    icmp = socket.getprotobyname('icmp')
+    udp = socket.getprotobyname('udp')
+    ttl = 1
+
+    tr_output=""
+    while True:
+        recv_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, icmp)
+        send_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, udp)
+        send_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, ttl)
+        
+        # Build the GNU timeval struct (seconds, microseconds)
+        timeout = struct.pack("ll", 5, 0)
+        
+        # Set the receive timeout so we behave more like regular traceroute
+        recv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, timeout)
+        
+        recv_socket.bind(("", port))
+        #sys.stdout.write(" %d  " % ttl)
+        send_socket.sendto("", (dest_name, port))
+        curr_addr = None
+        curr_name = None
+        finished = False
+        tries = 3
+        while not finished and tries > 0:
+            try:
+                _, curr_addr = recv_socket.recvfrom(512)
+                finished = True
+                curr_addr = curr_addr[0]
+                try:
+                    curr_name = socket.gethostbyaddr(curr_addr)[0]
+                except socket.error:
+                    curr_name = curr_addr
+            except socket.error as (errno, errmsg):
+                tries = tries - 1
+                sys.stdout.write("* ")
+        
+        send_socket.close()
+        recv_socket.close()
+        
+        if not finished:
+            pass
+        
+        if curr_addr is not None:
+            curr_host = "%s (%s)" % (curr_name, curr_addr)
+        else:
+            curr_host = ""
+            curr_addr = " "
+        tr_output+=curr_addr+" "
+
+        ttl += 1
+        if curr_addr == dest_addr or ttl > max_hops:
+            break
+    return tr_output
+
 
 
 def run_exp(expconfig,ip):
@@ -80,12 +144,23 @@ def run_exp(expconfig,ip):
     """
 
     har_stats={}
-    burst_sz="300"
-    no_bursts="10"
-    cmd=["./UDPbwEstimatorRcvr","-c",burst_sz,"-b",no_bursts,"-l","1400","-s",ip,"-o",
+    if expconfig["server_name"]:
+    	print "Starting tracerouting ..."
+    	try:
+    		routes=py_traceroute(expconfig["server_name"])
+		har_stats["server_name"]=expconfig["server_name"]
+		har_stats["route"]=routes
+    	except Exception:
+    		print ("tracerouting unsuccessful")
+
+    cmd=["./UDPbwEstimatorRcvr","-c",
+	    expconfig["burst_size"],
+            "-b",
+            expconfig["no_bursts"],
+            "-l",expconfig["packet_size"],"-s",ip,"-o",
 	   "8000",
-            "-d", 
-	   "193.10.227.44",
+            "-d",
+	    expconfig["server_ip"], 	 
 	   "-p", 
 	   "8080",
 	   "-w",
@@ -134,8 +209,10 @@ def run_exp(expconfig,ip):
 
     print num_packets
     logfile.close()
-    har_stats["burst_sz"]=burst_sz
-    har_stats["no_bursts"]=no_bursts
+    har_stats["burst_size"]=expconfig["burst_size"]
+    har_stats["no_bursts"]=expconfig["no_bursts"]
+    har_stats["udp_server"]=expconfig["server_ip"]
+    har_stats["packet_size"]=expconfig["packet_size"]
     #har_stats["bw"]=output
     har_stats["dl_throughput_kbps"]=bw
     har_stats["Guid"]= expconfig['guid']
@@ -276,7 +353,7 @@ def add_manual_metadata_information(info, ifname, expconfig):
     info[expconfig["modeminterfacename"]] = ifname
     info["Operator"] = "local"
     info["Timestamp"] = time.time()
-    info["InternalIPAddress"]="172.17.0.5"
+    info["InternalIPAddress"]="172.17.0.3"
 
 
 def create_meta_process(ifname, expconfig):
