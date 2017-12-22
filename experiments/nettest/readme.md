@@ -5,7 +5,7 @@ The experiment will run the nettest client.
 
 For the nettest client source code see https://github.com/lwimmer/rmbt-client.
 
-The server code can be found here: https://github.com/alladin-IT/open-rmbt.
+For server installation instruction see [Server installation](https://github.com/lwimmer/rmbt-client/blob/master/README.md#server-installation).
 
 The minimum required configuration is (via /monroe/config):
 ```
