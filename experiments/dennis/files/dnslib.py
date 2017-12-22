@@ -29,7 +29,11 @@ def set_defaultroute(interface):
     for route in routes:
         if route.startswith("default") and interface in route:
             
-            print (subprocess.check_output(['ip','route','del','default']))
+            try:
+                print (subprocess.check_output(['ip','route','del','default']))
+            except:
+                # In case no default was set, just let it pass.
+                pass
 
             # Reuse the info from the route output when setting the new default:
             # route="default via 172.18.1.1 dev op0 table 10000"
