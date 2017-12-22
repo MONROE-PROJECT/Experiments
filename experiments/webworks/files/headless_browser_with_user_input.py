@@ -200,12 +200,14 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
 
-    print "Starting ping ..."
+    print "Starting tracerouting ..."
 
-    #try:
-    #	routes=py_traceroute(str(url).split("/")[0])
-    #except Exception:
-    #	print ("tracerouting unsuccessful")
+    try:
+    	routes=py_traceroute(str(url).split("/")[0])
+    except Exception:
+    	print ("tracerouting unsuccessful")
+    
+    print "Starting ping ..."
 
     try:
     	response = subprocess.check_output(
@@ -393,10 +395,10 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	print "har/"+filename+".har doesn't exist"
         
 
-    #try:
-    #    har_stats["dns"]=add_dns(str(ifname))
-    #except Exception:
-    #   print "dns info is not available"
+    try:
+        har_stats["route"]=routes
+    except Exception:
+       print "traceroute info is not available"
 
     try:
     	har_stats["ping_max"]=ping_max
@@ -460,9 +462,11 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         json.dump(har_stats, outfile)
     
     if expconfig['verbosity'] > 2:
-            print har_stats
+            #print har_stats
+            print("Done with  Node: {}, HTTP protocol: {}, url: {}, Operator: {}".format(har_stats["NodeId"], har_stats["Protocol"],har_stats["url"],har_stats["Operator"]))
     if not DEBUG:
-	    print har_stats
+	    #print har_stats
+            print("Done with  Node: {}, HTTP protocol: {}, url: {}, Operator: {}".format(har_stats["NodeId"], har_stats["Protocol"],har_stats["url"],har_stats["Operator"]))
             monroe_exporter.save_output(har_stats, expconfig['resultdir'])
     try:
         os.remove("/opt/monroe/har/"+filename+".har")
@@ -694,17 +698,17 @@ if __name__ == '__main__':
                      if e.returncode == 28:
                             print "Time limit exceeded"
     		     continue
-	    if "eth"  not in str(ifname):
-    	    	print "Creating operator specific dns.."
-	    	dns_list=""
-		dns_list=add_dns(str(ifname))
+	    #if "eth"  not in str(ifname):
+    	    print "Creating operator specific dns.."
+	    dns_list=""
+	    dns_list=add_dns(str(ifname))
 		
-		print "Checking the dns setting..."
-                cmd=["dig",
+	    print "Checking the dns setting..."
+            cmd=["dig",
                  "www.google.com",
                  "+noquestion", "+nocomments", "+noanswer"]
-		ops_dns_used=0
-            	try:
+	    ops_dns_used=0
+            try:
                     out=check_output(cmd)
 		    data=dns_list.replace("\n"," ")
 		    for line in out.splitlines():
@@ -712,10 +716,10 @@ if __name__ == '__main__':
 				if ip in line:
 					ops_dns_used=1
 					print line
-            	except CalledProcessError as e:
+            except CalledProcessError as e:
                     if e.returncode == 28:
                             print "Time limit exceeded"
-		if ops_dns_used==1:
+	    if ops_dns_used==1:
 			print "Operators dns is set properly"
 		  
 
