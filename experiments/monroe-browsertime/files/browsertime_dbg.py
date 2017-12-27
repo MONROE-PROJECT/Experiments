@@ -135,7 +135,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
         for item in os.listdir(root):
             if os.path.isdir(os.path.join(root, item)):
                 print "/tmp/"+item
-                if "tmp" in item:
+                if "tmp" in item or "Chrome" in item:
                     print "Deleting {}".format(item)
                     shutil.rmtree("/tmp/"+item)
     except OSError, e:  ## if failed, report it back to the user ##

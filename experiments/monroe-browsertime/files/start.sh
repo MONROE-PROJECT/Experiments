@@ -40,7 +40,7 @@ date
 
 #ifconfig op0 mtu 1430
 
-python browsertime.py
+python browsertime_v2.py
 
 
 STOP=$(date +%s)

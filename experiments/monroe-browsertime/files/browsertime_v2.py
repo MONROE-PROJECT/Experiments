@@ -40,6 +40,8 @@ from multiprocessing import Process, Manager
 import shutil
 import stat
 
+import run_experiment
+
 urlfile =''
 iterations =0 
 url=''
@@ -141,139 +143,16 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
 
-    if no_cache==1:
-    	if getter_version == 'HTTP1.1/TLS':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--firefox.preference', 'network.http.spdy.enabled:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=0
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'chrome.args', 'disable-http2',  
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=0
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-        	
-        elif getter_version == 'HTTP2':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=0
-        	except CalledProcessError as e:
-        		if e.returncode == 28:
-                		print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=0
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
+    har_stats={}
+    if browser_kind=="chrome":
+    	har_stats=run_experiment.browse_chrome(ifname,url, no_cache,getter_version)
     else:
-    	if getter_version == 'HTTP1.1/TLS':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--firefox.preference', 'network.http.spdy.enabled:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=1
-        	except CalledProcessError as e:
-        		if e.returncode == 28:
-                		print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'chrome.args', 'disable-http2',  
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=1
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-    
-        	
-        elif getter_version == 'HTTP2':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=1
-        	except CalledProcessError as e:
-        		if e.returncode == 28:
-                		print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=1
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-   
-    shutil.rmtree('web-res')
-    har_stats.pop("statistics")
-
+	har_stats=run_experiment.browse_firefox(ifname,url, no_cache,getter_version)
+    if bool(har_stats):
+    	shutil.rmtree('web-res')
+    	har_stats.pop("statistics")
+    else:
+	return
     try:
     	har_stats["ping_max"]=ping_max
         har_stats["ping_avg"]=ping_avg
@@ -462,6 +341,17 @@ if __name__ == '__main__':
 	print "Randomizing the url lists .."
 
         random.shuffle(url_list)    
+
+        print "Deleting old caches"
+        
+        startDir="/opt/monroe/"
+        for item in os.listdir(startDir):
+            folder = os.path.join(startDir, item)
+            if os.path.isdir(folder) and "cache" in item:
+                try:
+                    shutil.rmtree(folder)
+                except:
+                    print "Exception ",str(sys.exc_info())
 
         try:
 		for ifname in allowed_interfaces:

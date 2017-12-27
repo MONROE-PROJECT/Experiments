@@ -40,6 +40,8 @@ from multiprocessing import Process, Manager
 import shutil
 import stat
 
+import run_experiment
+
 urlfile =''
 iterations =0 
 url=''
@@ -59,7 +61,7 @@ current_directory =''
 har_directory =''
 
 # Configuration
-DEBUG = False
+DEBUG = True
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -82,22 +84,14 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "urls": [['facebook.com/telia/', 'facebook.com/LeoMessi/', 'facebook.com/Cristiano/', 'facebook.com/intrepidtravel', 'facebook.com/threadless', 'facebook.com/Nutella', 'facebook.com/zappos', 'facebook.com/toughmudder', 'facebook.com/stjude', 'facebook.com/Adobe/'],
-              ['en.wikipedia.org/wiki/Timeline_of_the_far_future', 'en.wikipedia.org/wiki/As_Slow_as_Possible', 'en.wikipedia.org/wiki/List_of_political_catchphrases', 'en.wikipedia.org/wiki/1958_Lituya_Bay_megatsunami', 'en.wikipedia.org/wiki/Yonaguni_Monument#Interpretations', 'en.wikipedia.org/wiki/Crypt_of_Civilization', 'en.wikipedia.org/wiki/Mad_scientist', 'en.wikipedia.org/wiki/London_Stone', 'en.wikipedia.org/wiki/Internet', 'en.wikipedia.org/wiki/Stream_Control_Transmission_Protocol'],
-                  ['linkedin.com/company/teliacompany', 'linkedin.com/company/google', 'linkedin.com/company/facebook', 'linkedin.com/company/ericsson', 'linkedin.com/company/microsoft', 'linkedin.com/company/publications-office-of-the-european-union', 'linkedin.com/company/booking.com', 'linkedin.com/company/vodafone', 'linkedin.com/company/bmw', 'linkedin.com/company/t-mobile'],
-                ['uk.sports.yahoo.com', 'www.yahoo.com/movies/', 'flickr.com', 'yahoo.com/news/weather/', 'yahoo.jobbdirekt.se', 'uk.news.yahoo.com', 'yahoo.com/style/', 'yahoo.com/beauty', 'se.yahoo.com', 'uk.sports.yahoo.com/football/'],
-        ['instagram.com/leomessi/', 'instagram.com/iamzlatanibrahimovic/', 'instagram.com/nike/', 'instagram.com/adidasoriginals/', 'instagram.com/cristiano/', 'instagram.com/natgeo/', 'instagram.com/fcbarcelona/', 'instagram.com/realmadrid/', 'instagram.com/9gag/', 'instagram.com/adele/'],
-                ['google.com/search?q=Pok%C3%A9mon+Go', 'google.com/search?q=iPhone+7', 'google.com/search?q=Brexit', 'google.com/#q=stockholm,+sweden', 'google.com/#q=game+of+thrones', 'google.com/#q=Oslo', 'google.com/#q=Paris', 'google.com/#q=Madrid', 'google.com/#q=Rome', 'google.com/#q=the+revenant'],
-                  ['youtube.com/watch?v=544vEgMiMG0', 'youtube.com/watch?v=bcdJgjNDsto', 'youtube.com/watch?v=xGJ5a7uIZ1g', 'youtube.com/watch?v=-Gj4iCZhx7s', 'youtube.com/watch?v=dPTglkp4Lpw', 'youtube.com/watch?v=igEKvkBjMr0', 'youtube.com/watch?v=7-JVmMzGceQ', 'youtube.com/watch?v=ubes1I4Vf4o', 'youtube.com/watch?v=5mmpozjIxKU', 'youtube.com/watch?v=swELkJgTaNQ', 'youtube.com/watch?v=6oX5weDuiVM'],
-                  ['ebay.com/', 'ebay.com/rpp/electronics-en', 'ebay.com/rpp/electronics-en-cameras', 'ebay.com/rpp/sporting-goods-en', 'ebay.com/sch/Cycling-/7294/i.html', 'ebay.com/globaldeals', 'ebay.com/sch/Cell-Phones-Smartphones-/9355/i.html', 'ebay.com/globaldeals/tech/laptops-netbooks', 'ebay.com/rpp/home-and-garden-en', 'ebay.com/sch/Furniture-/3197/i.html'],
-                    ['nytimes.com','nytimes.com/section/science?action=click&pgtype=Homepage&region=TopBar&module=HPMiniNav&contentCollection=Science&WT.nav=page','nytimes.com/section/science/earth?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront','nytimes.com/section/science/space?action=click&contentCollection=science&region=navbar&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront', 'nytimes.com/section/health?action=click&contentCollection=science&module=collectionsnav&pagetype=sectionfront&pgtype=sectionfront&region=navbar', 'nytimes.com/section/sports?WT.nav=page&action=click&contentCollection=Sports&module=HPMiniNav&pgtype=Homepage&region=TopBar', 'nytimes.com/section/fashion?WT.nav=page&action=click&contentCollection=Style&module=HPMiniNav&pgtype=Homepage&region=TopBar','nytimes.com/pages/dining/index.html?action=click&pgtype=Homepage&region=TopBar&module=HPMiniNav&contentCollection=Food&WT.nav=page', 'cooking.nytimes.com/recipes/1013616-quinoa-and-chard-cakes?action=click&module=RecirculationRibbon&pgType=recipedetails&rank=3', 'nytimes.com/2017/04/10/upshot/how-many-pills-are-too-many.html?rref=collection%2Fsectioncollection%2Fhealth&action=click&contentCollection=health&region=stream&module=stream_unit&version=latest&contentPlacement=6&pgtype=sectionfront&_r=0'],
-                ['theguardian.com/international','theguardian.com/sport/2017/apr/12/new-gender-neutral-cricket-laws-officially-released-by-mcc','theguardian.com/uk/lifeandstyle','theguardian.com/lifeandstyle/2017/apr/11/vision-thing-how-babies-colour-in-the-world','theguardian.com/us-news/2017/apr/12/charging-bull-new-york-fearless-girl-statue-copyright-claim','theguardian.com/business/live/2017/apr/12/brexit-blow-to-workers-as-real-pay-starts-to-fall-again-business-live','theguardian.com/football','theguardian.com/football/2017/apr/11/juventus-barcelona-champions-league-quarter-final-match-report','theguardian.com/football/2017/apr/11/barcelona-neymar-clasico-ban','theguardian.com/uk/technology']],
-        "http_protocols":["h1s","h2"],
+        "urls": [['facebook.com/telia/', 'facebook.com/LeoMessi/', 'facebook.com/Cristiano/']],
+        "http_protocols":["h2"],
         "browsers":["firefox","chrome"],
         "iterations": 1,
         "allowed_interfaces": ["op0","op1","op2","eth0"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
+
 
 
 def run_exp(meta_info, expconfig, url,count,no_cache):
@@ -141,139 +135,16 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
 
-    if no_cache==1:
-    	if getter_version == 'HTTP1.1/TLS':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--firefox.preference', 'network.http.spdy.enabled:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=0
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'chrome.args', 'disable-http2',  
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=0
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-        	
-        elif getter_version == 'HTTP2':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=0
-        	except CalledProcessError as e:
-        		if e.returncode == 28:
-                		print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36']
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=0
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
+    har_stats={}
+    if browser_kind=="chrome":
+    	har_stats=run_experiment.browse_chrome(ifname,url, no_cache,getter_version)
     else:
-    	if getter_version == 'HTTP1.1/TLS':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--firefox.preference', 'network.http.spdy.enabled:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
-                    		'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=1
-        	except CalledProcessError as e:
-        		if e.returncode == 28:
-                		print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'chrome.args', 'disable-http2',  
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=1
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-    
-        	
-        elif getter_version == 'HTTP2':
-            if browser_kind=="firefox":
-        	try:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--userAgent', 'Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Firefox"
-                                har_stats["cache"]=1
-        	except CalledProcessError as e:
-        		if e.returncode == 28:
-                		print "Time limit exceeded"
-            else:
-        	try:
-			cmd=['bin/browsertime.js',"https://"+str(url), 
-                    		'--skipHar','-n','1','--resultDir','web-res',
-                    		'--chrome.args', 'no-sandbox', 
-                    		'--userAgent', 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36',
-				'--preURL',"https://"+str(url)]
-            		output=check_output(cmd)
-            		with open('web-res/browsertime.json') as data_file:    
-                		har_stats = json.load(data_file)
-                                har_stats["browser"]="Chrome"
-                                har_stats["cache"]=1
-                except CalledProcessError as e:
-        	        if e.returncode == 28:
-                	    print "Time limit exceeded"
-   
-    shutil.rmtree('web-res')
-    har_stats.pop("statistics")
-
+	har_stats=run_experiment.browse_firefox(ifname,url, no_cache,getter_version)
+    if bool(har_stats):
+    	shutil.rmtree('web-res')
+    	har_stats.pop("statistics")
+    else:
+	return
     try:
     	har_stats["ping_max"]=ping_max
         har_stats["ping_avg"]=ping_avg
@@ -463,6 +334,17 @@ if __name__ == '__main__':
 
         random.shuffle(url_list)    
 
+        print "Deleting old caches"
+        
+        startDir="/opt/monroe/"
+        for item in os.listdir(startDir):
+            folder = os.path.join(startDir, item)
+            if os.path.isdir(folder) and "cache" in item:
+                try:
+                    shutil.rmtree(folder)
+                except:
+                    print "Exception ",str(sys.exc_info())
+
         try:
 		for ifname in allowed_interfaces:
 	       		if ifname not in open('/proc/net/dev').read():
@@ -525,38 +407,39 @@ if __name__ == '__main__':
 
 	    #output_interface=None
 
-            cmd1=["route",
-                 "del",
-                 "default"]
-            try:
-                    check_output(cmd1)
-            except CalledProcessError as e:
-                    if e.returncode == 28:
-                            print "Time limit exceeded"
+            #cmd1=["route",
+            #     "del",
+            #     "default"]
+            #os.system(bashcommand)
+           # try:
+            #        check_output(cmd1)
+            #except CalledProcessError as e:
+             #       if e.returncode == 28:
+              #              print "Time limit exceeded"
             
-            gw_ip="undefined"
-            for g in ni.gateways()[ni.AF_INET]:
-                if g[1] == ifname:
-                    gw_ip = g[0]
-                    break   
+           # gw_ip="undefined"
+           # for g in ni.gateways()[ni.AF_INET]:
+           #     if g[1] == ifname:
+            #        gw_ip = g[0]
+             #       break   
 
-            cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-            try:
-                check_output(cmd2)
-            	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-            	output = output.strip(' \t\r\n\0')
-            	output_interface=output.split(" ")[4]
-            	if output_interface==str(ifname):
-                    	print "Source interface is set to "+str(ifname)
-    		else:
-                    	print "Source interface "+output_interface+"is different from "+str(ifname)
-    			continue
+           # cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
+           # try:
+            #    check_output(cmd2)
+            #	cmd3=["ip", "route", "get", "8.8.8.8"]
+             #   output=check_output(cmd3)
+            #	output = output.strip(' \t\r\n\0')
+            #	output_interface=output.split(" ")[4]
+            #	if output_interface==str(ifname):
+             #       	print "Source interface is set to "+str(ifname)
+    	#	else:
+         #           	print "Source interface "+output_interface+"is different from "+str(ifname)
+    	#		continue
             
-    	    except CalledProcessError as e:
-                     if e.returncode == 28:
-                            print "Time limit exceeded"
-    		     continue
+    	 #   except CalledProcessError as e:
+          #           if e.returncode == 28:
+           #                 print "Time limit exceeded"
+    	#	     continue
     	   
 
             if EXPCONFIG['verbosity'] > 1:
