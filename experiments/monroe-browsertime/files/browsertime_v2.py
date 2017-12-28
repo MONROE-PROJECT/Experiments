@@ -27,9 +27,11 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import json
 import zmq
+import re
 import netifaces
 import time
 import subprocess
+import shlex
 import socket
 import struct
 import random

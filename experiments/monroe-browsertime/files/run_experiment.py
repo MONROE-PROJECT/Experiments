@@ -170,7 +170,7 @@ def browse_firefox(iface,url, cache_off,getter_version):
             	                with open('web-res/browsertime.json') as data_file:    
                 	            har_stats = json.load(data_file)
                                     har_stats["browser"]="Firefox"
-                                    har_stats["cache"]=0
+                                    har_stats["cache"]=1
 				#copy /opt/monroe/profile_moz to   folder
                                 copytree("/opt/monroe/profile_moz","/opt/monroe/"+folder_name+"/")
                         except CalledProcessError as e:
