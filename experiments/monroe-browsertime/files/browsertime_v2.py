@@ -101,6 +101,80 @@ EXPCONFIG = {
         "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
 
+def set_source(ifname):
+    cmd1=["route",
+          "del",
+          "default"]
+    try:
+    	check_output(cmd1)
+    except CalledProcessError as e:
+    	if e.returncode == 28:
+        	print "Time limit exceeded"
+		return 0
+            
+    gw_ip="undefined"
+    for g in ni.gateways()[ni.AF_INET]:
+    	if g[1] == ifname:
+        	gw_ip = g[0]
+                break
+            
+    cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
+    try:
+    	check_output(cmd2)
+        cmd3=["ip", "route", "get", "8.8.8.8"]
+        output=check_output(cmd3)
+        output = output.strip(' \t\r\n\0')
+        output_interface=output.split(" ")[4]
+        if output_interface==str(ifname):
+        	print "Source interface is set to "+str(ifname)
+        else:
+                print "Source interface "+output_interface+"is different from "+str(ifname)
+                return 0
+                            
+    except CalledProcessError as e:
+     	if e.returncode == 28:
+        	print "Time limit exceeded"
+                return 0
+    return 1
+
+def check_dns():
+     cmd=["dig",
+         "www.google.com",
+         "+noquestion", "+nocomments", "+noanswer"]
+     ops_dns_used=0
+     try:
+     	out=check_output(cmd)
+	data=dns_list.replace("\n"," ")
+	for line in out.splitlines():
+		for ip in re.findall(r'(?:\d{1,3}\.)+(?:\d{1,3})',data):
+			if ip in line:
+				ops_dns_used=1
+				print line
+     except CalledProcessError as e:
+     	if e.returncode == 28:
+        	print "Time limit exceeded"
+     if ops_dns_used==1:
+     	print "Operators dns is set properly"
+
+def add_dns(interface):
+    str = ""
+    try:
+        with open('/dns') as dnsfile:
+            dnsdata = dnsfile.readlines()
+	    print dnsdata
+            dnslist = [ x.strip() for x in dnsdata ]
+            for item in dnslist:
+                if interface in item:
+                    str += item.split('@')[0].replace("server=",
+"nameserver ")
+                    str += "\n"
+        with open("/etc/resolv.conf", "w") as f:
+            f.write(str)
+    except:
+        print("Could not find DNS file")
+    print str
+    return str
+
 
 def run_exp(meta_info, expconfig, url,count,no_cache):
     """Seperate process that runs the experiment and collect the ouput.
@@ -151,6 +225,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     if bool(har_stats):
     	shutil.rmtree('web-res')
     	har_stats.pop("statistics")
+	har_stats["browserScripts"][0]["timings"].pop('resourceTimings')
     else:
 	return
     try:
@@ -414,39 +489,16 @@ if __name__ == '__main__':
 
 
 	    #output_interface=None
+	    # set the source route
+            if not set_source(ifname):
+		continue		
 
-            cmd1=["route",
-                 "del",
-                 "default"]
-            try:
-                    check_output(cmd1)
-            except CalledProcessError as e:
-                    if e.returncode == 28:
-                            print "Time limit exceeded"
-            
-            gw_ip="undefined"
-            for g in ni.gateways()[ni.AF_INET]:
-                if g[1] == ifname:
-                    gw_ip = g[0]
-                    break   
-
-            cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-            try:
-                check_output(cmd2)
-            	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-            	output = output.strip(' \t\r\n\0')
-            	output_interface=output.split(" ")[4]
-            	if output_interface==str(ifname):
-                    	print "Source interface is set to "+str(ifname)
-    		else:
-                    	print "Source interface "+output_interface+"is different from "+str(ifname)
-    			continue
-            
-    	    except CalledProcessError as e:
-                     if e.returncode == 28:
-                            print "Time limit exceeded"
-    		     continue
+	    print "Creating operator specific dns.."
+	    dns_list=""
+	    dns_list=add_dns(str(ifname))
+		
+	    print "Checking the dns setting..."
+            check_dns()		
     	   
 
             if EXPCONFIG['verbosity'] > 1:
