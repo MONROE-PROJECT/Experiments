@@ -99,7 +99,7 @@ EXPCONFIG = {
         "http_protocols":["h1s","h2"],
         "browsers":["firefox","chrome"],
         "iterations": 1,
-        "allowed_interfaces": ["op0","op1","op2","eth0"],  # Interfaces to run the experiment on
+        "allowed_interfaces": ["op0","op1","op2"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
 
@@ -227,7 +227,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     if bool(har_stats):
     	shutil.rmtree('web-res')
     	har_stats.pop("statistics")
-	har_stats["browserScripts"][0]["timings"].pop('resourceTimings')
+	#har_stats["browserScripts"][0]["timings"].pop('resourceTimings')
     else:
 	return
     try:
@@ -491,16 +491,18 @@ if __name__ == '__main__':
 
 
 	    #output_interface=None
-	    # set the source route
-            if not set_source(ifname):
-		continue		
+	    if not DEBUG:
 
-	    print "Creating operator specific dns.."
-	    dns_list=""
-	    dns_list=add_dns(str(ifname))
+		    # set the source route
+        	    if not set_source(ifname):
+			continue		
+
+	    	    print "Creating operator specific dns.."
+	    	    dns_list=""
+	    	    dns_list=add_dns(str(ifname))
 		
-	    print "Checking the dns setting..."
-            check_dns()		
+	    	    print "Checking the dns setting..."
+            	    check_dns()		
     	   
 
             if EXPCONFIG['verbosity'] > 1:
