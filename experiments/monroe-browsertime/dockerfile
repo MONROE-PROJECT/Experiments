@@ -72,20 +72,11 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 WORKDIR /opt/monroe/
 RUN npm install --production
 
-#COPY files/browsertime-master /usr/src/app 
-#COPY files/browsertime_dbg.py /usr/src/app
-#COPY files/browsertime.py /usr/src/app
 COPY files/browsertime-master /opt/monroe/
-COPY files/browsertime_dbg.py /opt/monroe/
-COPY files/browsertime_v2_dbg.py /opt/monroe/
 COPY files/run_experiment.py /opt/monroe/
 COPY files/seleniumRunner.js /opt/monroe/lib/core
 COPY files/test_python_syntax.py /opt/monroe/
 COPY files/browsertime.py /opt/monroe/
-COPY files/browsertime_v2.py /opt/monroe/
-COPY files/key3.db /opt/monroe
-COPY files/logins.json /opt/monroe
-COPY files/cookies.sqlite /opt/monroe
 COPY files/start.sh /opt/monroe/start.sh
 
 ENTRYPOINT ["dumb-init", "--", "/usr/bin/bash", "/opt/monroe/start.sh"]
