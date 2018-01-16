@@ -89,7 +89,11 @@ EXPCONFIG = {
 	"modeminterfacename": "InternalInterface",
 	"urls": ['facebook.com/telia/','en.wikipedia.org/wiki/Timeline_of_the_far_future','linkedin.com/company/teliacompany', 
 	'uk.sports.yahoo.com','instagram.com/leomessi/','google.com/search?q=Pok%C3%A9mon+Go', 
-	'ebay.com/','nytimes.com','theguardian.com/international','youtube.com'],
+	'ebay.com/','nytimes.com','theguardian.com/international','youtube.com',
+	'researchgate.net','slideshare.net','wikihow.com','stackoverflow.com',
+	'search.yahoo.com','kayak.com','yelp.com','etsy.com', 'huffingtonpost.com',
+	'wired.com', 'udemy.com', 'coursera.com', 'gizmodo.com', 'sports.yahoo.com',
+	'imgur.com','9gag.com','paypal.com','mediafire.com'],
 	"http_protocols":["h1s","h2"],
 	"browsers":["firefox","chrome"],
 	"iterations": 1,
@@ -569,6 +573,7 @@ if __name__ == '__main__':
 					browser_kind=browser 
 					for run in range(start_count, iterations):
 						# Create a experiment process and start it
+						print "Browsing {} with {} browser and {} protocol".format(url,browser,protocol) 
 						start_time_exp = time.time()
 						exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, url,run+1)
 						exp_process.start()
