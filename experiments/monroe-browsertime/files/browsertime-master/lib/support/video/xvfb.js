@@ -1,11 +1,13 @@
 'use strict';
 
 const Xvfb = require('xvfb'),
-  Promise = require('bluebird');
+  Promise = require('bluebird'),
+  get = require('lodash.get'),
+  videoDefaults = require('./defaults');
 
 Promise.promisifyAll(Xvfb.prototype);
 
-function buildXvfbArgs({ display = 99, screen = 0, size, silent }) {
+function buildXvfbArgs({ display, screen = 0, size, silent }) {
   return {
     displayNum: display,
     silent,
@@ -18,7 +20,7 @@ module.exports = {
   /**
    * @returns A promise for an xvfb instance. Pass it to stopXvfb.
    */
-  startXvfb({ display = 99, size, options }) {
+  startXvfb({ size, options }) {
     let xvfbSize = size;
     if (options.browser === 'firefox') {
       const extraSizeInFirefox = 200;
@@ -26,7 +28,7 @@ module.exports = {
       xvfbSize = Number(viewPort[0]) + extraSizeInFirefox + 'x' + viewPort[1];
     }
     const xvfbArgs = buildXvfbArgs({
-      display,
+      display: get(options, 'xvfbParams.display', videoDefaults.xvfbDisplay),
       size: xvfbSize,
       silent: options.verbose >= 2 ? false : true
     });

@@ -47,7 +47,9 @@ const defaultTimelineTraceCategories =
 function migrateLegacyOption(options, from, to) {
   if (get(options, from)) {
     log.warn(
-      `The option ${from} has been renamed to ${to}. The old option will be removed in a future version.`
+      `The option ${from} has been renamed to ${
+        to
+      }. The old option will be removed in a future version.`
     );
     set(options, to, true);
   }
@@ -128,6 +130,9 @@ module.exports.configureBuilder = function(builder, options) {
   if (chromeConfig.collectTracingEvents) {
     perfLogConf.traceCategories =
       chromeConfig.traceCategories || defaultTimelineTraceCategories;
+    if (chromeConfig.traceCategories) {
+      log.info('Use Chrome trace categories: %s', chromeConfig.traceCategories);
+    }
   }
 
   // headless mode doesn't work with extensions

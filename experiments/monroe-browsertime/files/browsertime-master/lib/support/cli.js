@@ -4,6 +4,7 @@ const yargs = require('yargs');
 const urlValidator = require('valid-url');
 const util = require('util');
 const hasbin = require('hasbin');
+const videoDefaults = require('./video/defaults');
 
 function validateInput(argv) {
   let url = argv._[0];
@@ -195,6 +196,11 @@ module.exports.parseCommandLine = function parseCommandLine() {
       type: 'boolean',
       group: 'firefox'
     })
+    .option('firefox.acceptInsecureCerts', {
+      describe: 'Accept insecure certs',
+      type: 'boolean',
+      group: 'firefox'
+    })
     .option('selenium.url', {
       describe:
         'URL to a running Selenium server (e.g. to run a browser on another machine).',
@@ -202,22 +208,23 @@ module.exports.parseCommandLine = function parseCommandLine() {
     })
     .option('video', {
       type: 'boolean',
-      describe: 'Record a video. Requires FFMpeg to be installed'
+      describe:
+        'Record a video and store the video. Set it to false to remove the video that is created by turning on speedIndex. Requires FFMpeg to be installed.'
     })
     .option('videoParams.framerate', {
-      default: 30,
+      default: videoDefaults.framerate,
       describe: 'Frames per second',
       group: 'video'
     })
     .option('videoParams.crf', {
-      default: 23,
+      default: videoDefaults.crf,
       describe:
         'Constant rate factor see https://trac.ffmpeg.org/wiki/Encode/H.264#crf',
       group: 'video'
     })
     .option('videoParams.addTimer', {
       type: 'boolean',
-      default: true,
+      default: videoDefaults.addTimer,
       describe: 'Add timer and metrics to the video.',
       group: 'video'
     })
@@ -243,6 +250,13 @@ module.exports.parseCommandLine = function parseCommandLine() {
       type: 'boolean',
       default: true,
       describe: 'Create filmstrip screenshots.',
+      group: 'video'
+    })
+    .option('videoParams.combine', {
+      type: 'boolean',
+      default: false,
+      describe:
+        'Combine preScript/postScript with the tested URL in the video. Turn this on and you will record the all scripts.',
       group: 'video'
     })
     // legacy of video.notext
@@ -419,6 +433,10 @@ module.exports.parseCommandLine = function parseCommandLine() {
       type: 'boolean',
       default: false,
       describe: 'Start xvfb before the browser is started'
+    })
+    .option('xvfbParams.display', {
+      default: videoDefaults.xvfbDisplay,
+      describe: 'The display used for xvfb'
     })
     .option('preURL', {
       describe:
