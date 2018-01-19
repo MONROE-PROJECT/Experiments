@@ -29,18 +29,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install ${APT_OPTS} \
     xz-utils \
-   # imagemagick \
-   # python-pip \
-   # python-dev \
-   # python-imaging \
-   # python-numpy \
-   # python-scipy \
-   # python-matplotlib \
-   # python-pandas \
-   # python-sympy \
-   # python-nose \
-   #  $FONTS \
-   # $XVFBDEPS \
     google-chrome-stable=${CHROME_VERSION} \
     && wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 \
     && tar -xjf firefox-${FIREFOX_VERSION}.tar.bz2  \
@@ -51,16 +39,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && tar -xJf "node-v$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
     && rm "node-v$NODE_VERSION-linux-x64.tar.xz" \
     && ln -s /usr/local/bin/node /usr/local/bin/nodejs \
-   # && pip install --upgrade pip \
-   # && pip install --upgrade setuptools \
-   # && pip install pyssim \
-   # && wget http://johnvansickle.com/ffmpeg/releases/ffmpeg-release-64bit-static.tar.xz \
-   # && tar xf ffmpeg-release-64bit-static.tar.xz \
-   # && mv ffmpeg*/ffmpeg /usr/bin/ \
-   # && mv ffmpeg*/ffprobe /usr/bin/ \
-   # && rm ffmpeg-release-64bit-static.tar.xz \
-    # Cleanup
-   # && apt-get remove ${APT_OPTS} python-pip \
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup
@@ -68,7 +46,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get autoremove ${APT_OPTS} \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 firefox-${FIREFOX_VERSION}.tar.bz2  geckodriver.tgz dumb-init.deb
 
-#WORKDIR /usr/src/app
 WORKDIR /opt/monroe/
 RUN npm install --production
 
