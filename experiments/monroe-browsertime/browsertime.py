@@ -88,18 +88,19 @@ EXPCONFIG = {
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
 	"urls": ['www.facebook.com/telia/','www.wikipedia.org','www.linkedin.com/company/teliacompany', 
-	'www.xe.com',
+	#'www.uk.sports.yahoo.com',
 	'www.instagram.com/leomessi/','www.google.com/#q=stockholm,+sweden', 
 	'www.ebay.com','www.nytimes.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
 	'www.wikihow.com','www.stackoverflow.com',
-	'www.expedia.com',
+	#'www.search.yahoo.com',
 	'www.kayak.com','www.yelp.com','www.etsy.com', 
 	'www.udemy.com', 'www.coursera.com',
+	#'www.sports.yahoo.com',
 	'www.imgur.com','www.9gag.com'],
 	"http_protocols":["h1s","h2"],
-	"browsers":["firefox","chrome"],
+	"browsers":["firefox"],
 	"iterations": 1,
-	"allowed_interfaces": ["op0","op1","op2"],  # Interfaces to run the experiment on
+	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
 	}
 
@@ -228,6 +229,7 @@ def run_exp(meta_info, expconfig, url,count):
 	
 	if bool(har_stats):
 		shutil.rmtree('web-res')
+		har_stats.pop("statistics")
 	#har_stats["browserScripts"][0]["timings"].pop('resourceTimings')
 	else:
 		return

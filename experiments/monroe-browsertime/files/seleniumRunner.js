@@ -20,6 +20,7 @@ const defaults = {
     browserStart: 60000,
     pageLoad: 300000,
     script: 80000,
+    logs: 90000,
     pageCompleteCheck: 300000
   },
   index: 0
@@ -179,9 +180,21 @@ class SeleniumRunner {
   }
 
   takeScreenshot() {
-    return Promise.resolve(this.driver.takeScreenshot()).then(
-      base64EncodedPng => new Buffer(base64EncodedPng, 'base64')
-    );
+    return Promise.resolve(
+      this.driver.takeScreenshot().catch(e => {
+        throw new BrowserError('Failed to take screenshot', { cause: e });
+      })
+    ).then(base64EncodedPng => {
+      if (typeof base64EncodedPng === 'string') {
+        return Buffer.from(base64EncodedPng, 'base64');
+      } else {
+        // Sometimes for Chrome, driver.takeScreenshot seems to succeed,
+        // but the result is not a string.
+        throw new BrowserError(
+          `Failed to take screenshot (type was ${typeof base64EncodedPng}`
+        );
+      }
+    });
   }
 
   runScript(script, name, args) {
@@ -218,7 +231,16 @@ class SeleniumRunner {
   }
 
   getLogs(logType) {
-    return Promise.resolve(this.driver.manage().logs().get(logType));
+    return Promise.resolve(
+      this.driver
+        .manage()
+        .logs()
+        .get(logType)
+    ).timeout(
+      this.options.timeouts.logs,
+      `Extracting logs from browser took more than ${this.options.timeouts
+        .logs / 1000} seconds.`
+    );
   }
 
   stop() {

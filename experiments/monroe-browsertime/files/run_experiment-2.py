@@ -26,38 +26,8 @@ def copytree(src, dst, symlinks=True, ignore=None):
 			if not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
 				shutil.copy2(s, d)
 
-def process_har_files():
-    objs=[]
-    pageSize=0
-    processed_har={}
-    try:
-        with open("web-res/browsertime.har") as f:
-            har=json.load(f)
-            num_of_objects=0
 
-            for entry in har["log"]["entries"]:
-                try:
-                    obj={}
-                    obj["url"]=entry["request"]["url"]
-                    obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                    pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                    obj["mimeType"]=entry["response"]["content"]["mimeType"]
-                    obj["startedDateTime"]=entry["startedDateTime"]
-                    obj["time"]=entry["time"]
-                    obj["timings"]=entry["timings"]
-                    objs.append(obj)
-                    num_of_objects=num_of_objects+1
-                except KeyError:
-                    pass
-            processed_har["Objects"]=objs
-            processed_har["NumObjects"]=num_of_objects
-            processed_har["PageSize"]=pageSize
-            processed_har["browser"]=har["log"]["browser"]
-            processed_har["creator"]=har["log"]["creator"]
-            return processed_har
-    except IOError:
-        print "HAR file not found ..."
-
+domains=["facebook","google","wikipedia","instagram","linkedin","yahoo","youtube","theguardian","ebay","nytimes"]
 
 
 
@@ -75,35 +45,22 @@ def browse_chrome(iface,url,getter_version):
 	try:
 		if getter_version == 'HTTP1.1/TLS':
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res',
+				'--skipHar','-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'disable-http2',  
 				'--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
 				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36"']
 			output=check_output(cmd)
 		else:
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res',
+				'--skipHar','-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
 				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75  Mobile Safari/537.36"']
 			output=check_output(cmd)
-                print "Processing the HAR files ..."
-                try:
-		    with open('web-res/browsertime.json') as data_file:    
-		        har_stats = json.load(data_file)
-                        har_stats["info"].pop('connectivity',None)
-                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
-                        har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
-                        har_stats.pop('statistics',None)
-                        har_stats.pop('visualMetrics',None)
-                        har_stats.pop('timestamps',None)
-                except IOError:
-                    print "No output found"
-
-                har_stats["har"]=process_har_files()
-		har_stats["browser"]="Chrome"
-		har_stats["protocol"]=getter_version
-		har_stats["cache"]=1
-
+		with open('web-res/browsertime.json') as data_file:    
+			har_stats = json.load(data_file)
+			har_stats["browser"]="Chrome"
+			har_stats["protocol"]=getter_version
+			har_stats["cache"]=1
 	except CalledProcessError as e:
 		if e.returncode == 28:
 			print "Time limit exceeded"
@@ -150,7 +107,7 @@ def browse_firefox(iface,url,getter_version):
 	try:
 		if getter_version == 'HTTP1.1/TLS':
 			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-				'-n','1','--resultDir','web-res',
+				'--skipHar','-n','1','--resultDir','web-res',
 				'--firefox.preference', 'network.http.spdy.enabled:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
@@ -159,25 +116,14 @@ def browse_firefox(iface,url,getter_version):
 
 		else:
 			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-				'-n','1','--resultDir','web-res',
+				'--skipHar','-n','1','--resultDir','web-res',
 				'--userAgent', '"Mozilla/5.0 (Android 4.4; Mobile; rv:54.0) Gecko/54.0 Firefox/54.0"']
 			output=check_output(cmd)
 			
-                try:
-		    with open('web-res/browsertime.json') as data_file:    
-		        har_stats = json.load(data_file)
-                        har_stats["info"].pop('connectivity',None)
-                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
-                        har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
-                        har_stats.pop('statistics',None)
-                        har_stats.pop('visualMetrics',None)
-                        har_stats.pop('timestamps',None)
-                except IOError:
-                    print "No output found"
-                har_stats["har"]=process_har_files()
-		har_stats["browser"]="Firefox"
-		har_stats["protocol"]=getter_version
-		har_stats["cache"]=0
+		with open('web-res/browsertime.json') as data_file:    
+			har_stats = json.load(data_file)
+			har_stats["browser"]="Firefox"
+			har_stats["cache"]=0
 		#copy /opt/monroe/profile_moz to   folder
 		try:
 			#for files in os.listdir('/opt/monroe/profile_moz'):
