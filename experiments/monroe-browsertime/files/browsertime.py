@@ -64,7 +64,7 @@ har_directory =''
 
 first_run=1
 # Configuration
-DEBUG = True
+DEBUG = False
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
