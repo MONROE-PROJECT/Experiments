@@ -1,0 +1,25 @@
+{
+  "cnf_server_host": "127.0.0.1",
+  "cnf_server_port": 8081,
+  "cnf_bind_ip": null,
+  "cnf_encrypt": false,
+  "cnf_encrypt_debug": false,
+  "cnf_cipherlist": null,
+  "cnf_timeout_s": 30,
+  "cnf_secret": "",
+  "cnf_rtt_tcp_payload_num": 11,
+  "cnf_dl_num_flows": 5,
+  "cnf_ul_num_flows": 5,
+  "cnf_dl_duration_s": 10,
+  "cnf_ul_duration_s": 10,
+  "cnf_dl_pretest_duration_s": 1,
+  "cnf_ul_pretest_duration_s": 1,
+  "cnf_dl_wait_time_s": 20,
+  "cnf_ul_wait_time_s": 20,
+  "cnf_tcp_info_sample_rate_us": 0,
+  "cnf_file_summary": "{time}_{id_test}_summary.json",
+  "cnf_file_flows": "{time}_{id_test}_flows.json.xz",
+  "cnf_file_stats": "{time}_{id_test}_stats.json.xz",
+  "cnf_add_to_result": {
+  }
+}
