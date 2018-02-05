@@ -159,7 +159,7 @@ def browse_firefox(iface,url,getter_version):
 
 		else:
 			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar'
+				'-n','1','--resultDir','web-res','--skipHar',
 				'--userAgent', '"Mozilla/5.0 (Android 4.4; Mobile; rv:56.0) Gecko/56.0 Firefox/56.0"']
 			output=check_output(cmd)
 			
