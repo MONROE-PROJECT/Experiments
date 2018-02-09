@@ -1,0 +1,38 @@
+FROM debian:stretch
+
+MAINTAINER jonas.karlsson@kau.se
+
+#APT OPTS
+ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
+
+############## Create Common directories and files ##############
+# The rationale behind is that they are small to overwrite,     #
+# ie we do not need to rebuild the core even we modify them.    #
+RUN mkdir -p /opt/monroe/lib
+RUN mkdir -p /opt/monroe/bin
+RUN mkdir -p /monroe
+
+COPY core/files/* /opt/monroe/
+COPY core/system_files/monroe-sshtunnel-client.sh /usr/bin/
+COPY core/system_files/bind.so /opt/monroe/lib/
+COPY core/system_files/dig /opt/monroe/bin/
+COPY core/system_files/paris-traceroute /usr/sbin/
+RUN chmod +x /usr/sbin/paris-traceroute
+RUN chmod +x /opt/monroe/bin/dig
+RUN chmod +x /opt/monroe/metadata
+
+############## Installation of prerequisites ####################
+RUN sed -i -e 's/main/main non-free/g' /etc/apt/sources.list
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
+    && apt-get ${APT_OPTS} upgrade \
+    && apt-get ${APT_OPTS} install \
+    gnupg \
+    python-zmq \
+    ca-certificates \
+    # Fix missing packages
+    && apt-get update ${APT_OPTS} --fix-missing \
+    # Cleanup
+    && apt-get clean ${APT_OPTS} \
+    && apt-get autoremove ${APT_OPTS} \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 geckodriver.tgz dumb-init.deb

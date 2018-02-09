@@ -1,0 +1,61 @@
+FROM monroe/base:cli
+
+MAINTAINER jonas.karlsson@kau.se
+
+#APT OPTS
+ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
+
+ENV NPM_CONFIG_LOGLEVEL info
+ENV NODE_VERSION 8.7.0
+ENV LC_ALL C
+ENV DEBCONF_NONINTERACTIVE_SEEN true
+ENV FIREFOX_VERSION 56.0.1
+ENV CHROME_VERSION 64.*
+ENV FONTS fonts-ipafont-gothic fonts-ipafont-mincho ttf-wqy-microhei fonts-wqy-microhei fonts-tlwg-loma fonts-tlwg-loma-otf fonts-gargi
+# firefox-locale-hi a font that does not exist in debian
+ENV XVFBDEPS libgl1-mesa-dri xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic dbus-x11
+ENV BROWSERTIME_XVFB true
+ENV BROWSERTIME_CONNECTIVITY__ENGINE external
+ENV BROWSERTIME_DOCKER true
+
+RUN mkdir -p /usr/src/app
+COPY web/files/package.json /opt/monroe/
+
+RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
+  touch /etc/init.d/systemd-logind
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install ${APT_OPTS} \
+    google-chrome-stable=${CHROME_VERSION} \
+    xvfb \
+    xauth \
+    libgtk-3-0 \
+    libasound2 \
+    dbus \
+    libdbus-glib-1-2 \
+    libgtk2.0-0 \
+    libgtk2.0-common \
+    python-pip \
+    && pip install pyvirtualdisplay selenium python-dateutil \
+    && wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 \
+    && tar -xjf firefox-${FIREFOX_VERSION}.tar.bz2  \
+    && rm -rf /opt/firefox \
+    && mv firefox /opt/ \
+    && ln -s /opt/firefox/firefox /usr/local/bin/firefox  \
+    && curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz" \
+    && tar -xJf "node-v$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
+    && rm "node-v$NODE_VERSION-linux-x64.tar.xz" \
+    && ln -s /usr/local/bin/node /usr/local/bin/nodejs \
+    && apt-get remove ${APT_OPTS} python-pip \
+    # Fix missing packages
+    && apt-get update ${APT_OPTS} --fix-missing \
+    # Cleanup
+    && apt-get clean ${APT_OPTS} \
+    && apt-get autoremove ${APT_OPTS} \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 firefox-${FIREFOX_VERSION}.tar.bz2  geckodriver.tgz dumb-init.deb
+
+WORKDIR /opt/monroe/
+RUN npm install --production

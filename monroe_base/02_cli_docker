@@ -1,39 +1,12 @@
-FROM debian:stretch
+FROM monroe/base:virt
 
 MAINTAINER jonas.karlsson@kau.se
 
-# FireFox F
-ENV FF_VER 52.3.0esr
-# FireFox Inc
-ENV FF_VER 52.4.0esr
 # DumbInit
-ENV DI_VER 1.2.0
-# Gecko Driver
-ENV GD_VER 0.18.0
+ENV DI_VER 1.2.1
+
 #APT OPTS
 ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
-
-############## Create Common directories and files ##############
-RUN mkdir -p /opt/monroe/lib
-RUN mkdir -p /opt/monroe/bin
-RUN mkdir -p /monroe
-
-COPY files/* /opt/monroe/
-COPY system_files/monroe-sshtunnel-client.sh /usr/bin/
-COPY system_files/bind.so /opt/monroe/lib/
-COPY system_files/dig /opt/monroe/bin/
-COPY system_files/paris-traceroute /usr/sbin/
-RUN chmod +x /usr/sbin/paris-traceroute
-RUN chmod +x /opt/monroe/bin/dig
-RUN chmod +x /opt/monroe/noop.sh
-
-############## Installation of prerequisites ####################
-RUN sed -i -e 's/main/main non-free/g' /etc/apt/sources.list
-RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt-get update \
-    && apt-get ${APT_OPTS} upgrade \
-    && apt-get ${APT_OPTS} install \
-    gnupg
 
 ############## Add 3: party repositories ########################
 # OML (per Turin F2F workshop 2016-01-28)
@@ -47,7 +20,6 @@ RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install ${APT_OPTS} \
-    ca-certificates \
     python \
     python-zmq \
     python-scapy \
@@ -63,16 +35,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     python3-six \
     python3-scapy \
     # no python3-rrdtool in debian:strech \
-    # Needed for headless firefox
-    #firefox-esr \ we want a specific version of firefox to ensure compatbility with selenium gecko driver
-    xvfb \
-    xauth \
-    libgtk-3-0 \
-    libasound2 \
-    dbus \
-    libdbus-glib-1-2 \
-    libgtk2.0-0 \
-    libgtk2.0-common \
     # Common tools
     flent \
     findutils \
@@ -101,23 +63,16 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     wget \
     supervisor \
     nano \
-    default-jre-headless \
     jq \
     dnsutils \
     libjson-c3 \
-    # From Incremental updates
+    xz-utils \
     scamper \
+    default-jre-headless \
+    speedtest-cli \
     # Dumb init
     && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
     && dpkg -i dumb-init.deb \
-    # Headless Firefox
-    && curl -L -o firefox.tbz2 "https://download.mozilla.org/?product=firefox-${FF_VER}&os=linux64&lang=en-US" \
-    && tar -C /opt -jxf firefox.tbz2 \
-    && ln -s /opt/firefox/firefox /usr/bin/firefox \
-    && curl -L -o geckodriver.tgz "https://github.com/mozilla/geckodriver/releases/download/v${GD_VER}/geckodriver-v${GD_VER}-linux64.tar.gz" \
-    && tar -C /usr/bin -zxf geckodriver.tgz \
-    && pip install pyvirtualdisplay selenium python-dateutil \
-    && apt-get remove ${APT_OPTS} python-pip \
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup
