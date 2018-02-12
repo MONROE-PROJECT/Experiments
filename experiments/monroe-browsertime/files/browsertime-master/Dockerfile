@@ -1,15 +1,17 @@
-FROM sitespeedio/webbrowsers:firefox-54.0-chrome-61.0
+FROM sitespeedio/webbrowsers:firefox-54.0-chrome-63.0
 
 ENV BROWSERTIME_XVFB true
 ENV BROWSERTIME_CONNECTIVITY__ENGINE external
 ENV BROWSERTIME_DOCKER true
+ENV BROWSERTIME_VIDEO true
+ENV BROWSERTIME_speedIndex true
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 VOLUME /browsertime
 
-COPY package.json /usr/src/app/
+COPY package.* /usr/src/app/
 RUN npm install --production
 COPY . /usr/src/app
 

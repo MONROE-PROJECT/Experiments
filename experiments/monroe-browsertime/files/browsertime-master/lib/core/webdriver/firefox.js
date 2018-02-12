@@ -12,7 +12,7 @@ let path = require('path'),
 
 const defaultFirefoxPreferences = {
   /** Old settings that we have used and been inspired by WPT,
-    internet in general and our own testing */
+   internet in general and our own testing */
   'browser.cache.disk.capacity': 1048576,
   'browser.cache.disk.smart_size.first_run': false,
   'browser.cache.disk.smart_size_cached_value': 1048576,
@@ -21,7 +21,6 @@ const defaultFirefoxPreferences = {
   'browser.places.importBookmarksHTML': false,
   'browser.newtabpage.enhanced': false,
   'browser.safebrowsing.remotelookups': false,
-  'browser.selfsupport.enabled': false,
   'browser.startup.homepage': 'about:blank',
   'extensions.checkCompatibility': false,
   'extensions.shownSelectionUI': true,
@@ -39,14 +38,33 @@ const defaultFirefoxPreferences = {
   'browser.newtabpage.directory.source': 'data:application/json,{}',
   'browser.newtab.preload': false,
   'pageThumbs.enabled': false,
+  'dom.performance.time_to_non_blank_paint.enabled': true,
   // this makes Firefox in Docker 5s faster :/
   'network.dns.disableIPv6': true,
 
+  /* Extra tracking protection https://wiki.mozilla.org/Security/Tracking_protection */
+  'privacy.trackingprotection.enabled': false,
+  'privacy.trackingprotection.pbmode.enabled': false,
+  'privacy.trackingprotection.annotate_channels': false,
+  'services.sync.prefs.sync.privacy.trackingprotection.enabled': false,
+  'services.sync.prefs.sync.privacy.trackingprotection.pbmode.enabled': false,
+  'browser.safebrowsing.provider.mozilla.updateURL': '',
+  'browser.safebrowsing.provider.mozilla.gethashURL': '',
+
+  /* Disable heartbeat https://wiki.mozilla.org/Firefox/Shield/Heartbeat */
+  'browser.selfsupport.url': '',
+  'browser.selfsupport.enabled': false,
+
+  /* Disable telemetry  https://wiki.mozilla.org/Telemetry/Testing */
+  'toolkit.telemetry.prompted': 2,
+  'toolkit.telemetry.rejected': true,
+  'toolkit.telemetry.enabled': false,
+  'toolkit.telemetry.reportingpolicy.firstRun': false,
   /**
-     * Setting from Mozilla test automation and default
-     * when you are using Geckodriver
-     * https://github.com/mozilla/geckodriver/commit/2bfdc3ec8151c427a6a75a6ba3ad203459540495#diff-0448b1e0b4c6692f0a18f4ebd3fc3fb3R4
-     */
+   * Setting from Mozilla test automation and default
+   * when you are using Geckodriver
+   * https://github.com/mozilla/geckodriver/commit/2bfdc3ec8151c427a6a75a6ba3ad203459540495#diff-0448b1e0b4c6692f0a18f4ebd3fc3fb3R4
+   */
 
   'browser.warnOnQuit': false,
   'browser.tabs.warnOnClose': false,
@@ -296,6 +314,10 @@ module.exports.configureBuilder = function(builder, options) {
 
   if (!isEmpty(proxySettings)) {
     ffOptions.setProxy(proxy.manual(proxySettings));
+  }
+
+  if (firefoxConfig.acceptInsecureCerts) {
+    builder.getCapabilities().set('acceptInsecureCerts', true);
   }
 
   builder.setFirefoxOptions(ffOptions);

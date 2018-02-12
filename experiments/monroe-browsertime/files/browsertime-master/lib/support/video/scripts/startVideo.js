@@ -2,7 +2,9 @@
 
 const ffmpegRecorder = require('../ffmpegRecorder'),
   Promise = require('bluebird'),
-  path = require('path');
+  path = require('path'),
+  get = require('lodash.get'),
+  videoDefaults = require('../defaults');
 
 module.exports = {
   run(context) {
@@ -42,8 +44,12 @@ module.exports = {
               recording = ffmpegRecorder.startRecordingAVFoundation({
                 display: 1,
                 filePath: mpegPath,
-                framerate: context.options.videoParams.framerate,
-                crf: context.options.videoParams.crf
+                framerate: get(
+                  context,
+                  'options.videoParams.framerate',
+                  videoDefaults.framerate
+                ),
+                crf: get(context, 'options.videoParams.crf', videoDefaults.crf)
               });
             } else {
               const originFirefox = '0,71';
@@ -51,7 +57,11 @@ module.exports = {
               const offsetFirefox = { x: 0, y: 168 };
               const offsetChrome = { x: 0, y: 66 };
               recording = ffmpegRecorder.startRecordingX11({
-                display: 99,
+                display: get(
+                  context,
+                  'options.xvfbParams.display',
+                  videoDefaults.xvfbDisplay
+                ),
                 size: context.options.viewPort,
                 filePath: mpegPath,
                 origin:
@@ -62,8 +72,12 @@ module.exports = {
                   context.options.browser === 'firefox'
                     ? offsetFirefox
                     : offsetChrome,
-                framerate: context.options.videoParams.framerate,
-                crf: context.options.videoParams.crf
+                framerate: get(
+                  context,
+                  'options.videoParams.framerate',
+                  videoDefaults.framerate
+                ),
+                crf: get(context, 'options.videoParams.crf', videoDefaults.crf)
               });
             }
 

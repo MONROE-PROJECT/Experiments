@@ -8,7 +8,7 @@ ENV NODE_VERSION 8.7.0
 ENV LC_ALL C
 ENV DEBCONF_NONINTERACTIVE_SEEN true
 ENV FIREFOX_VERSION 56.0.1
-ENV CHROME_VERSION 63.*
+ENV CHROME_VERSION 64.*
 ENV FONTS fonts-ipafont-gothic fonts-ipafont-mincho ttf-wqy-microhei fonts-wqy-microhei fonts-tlwg-loma fonts-tlwg-loma-otf fonts-gargi
 # firefox-locale-hi a font that does not exist in debian
 ENV XVFBDEPS libgl1-mesa-dri xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic dbus-x11
@@ -29,18 +29,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install ${APT_OPTS} \
     xz-utils \
-   # imagemagick \
-   # python-pip \
-   # python-dev \
-   # python-imaging \
-   # python-numpy \
-   # python-scipy \
-   # python-matplotlib \
-   # python-pandas \
-   # python-sympy \
-   # python-nose \
-   #  $FONTS \
-   # $XVFBDEPS \
     google-chrome-stable=${CHROME_VERSION} \
     && wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 \
     && tar -xjf firefox-${FIREFOX_VERSION}.tar.bz2  \
@@ -51,16 +39,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && tar -xJf "node-v$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
     && rm "node-v$NODE_VERSION-linux-x64.tar.xz" \
     && ln -s /usr/local/bin/node /usr/local/bin/nodejs \
-   # && pip install --upgrade pip \
-   # && pip install --upgrade setuptools \
-   # && pip install pyssim \
-   # && wget http://johnvansickle.com/ffmpeg/releases/ffmpeg-release-64bit-static.tar.xz \
-   # && tar xf ffmpeg-release-64bit-static.tar.xz \
-   # && mv ffmpeg*/ffmpeg /usr/bin/ \
-   # && mv ffmpeg*/ffprobe /usr/bin/ \
-   # && rm ffmpeg-release-64bit-static.tar.xz \
-    # Cleanup
-   # && apt-get remove ${APT_OPTS} python-pip \
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup
@@ -68,24 +46,13 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get autoremove ${APT_OPTS} \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 firefox-${FIREFOX_VERSION}.tar.bz2  geckodriver.tgz dumb-init.deb
 
-#WORKDIR /usr/src/app
 WORKDIR /opt/monroe/
 RUN npm install --production
 
-#COPY files/browsertime-master /usr/src/app 
-#COPY files/browsertime_dbg.py /usr/src/app
-#COPY files/browsertime.py /usr/src/app
 COPY files/browsertime-master /opt/monroe/
-COPY files/browsertime_dbg.py /opt/monroe/
-COPY files/browsertime_v2_dbg.py /opt/monroe/
 COPY files/run_experiment.py /opt/monroe/
 COPY files/seleniumRunner.js /opt/monroe/lib/core
-COPY files/test_python_syntax.py /opt/monroe/
 COPY files/browsertime.py /opt/monroe/
-COPY files/browsertime_v2.py /opt/monroe/
-COPY files/key3.db /opt/monroe
-COPY files/logins.json /opt/monroe
-COPY files/cookies.sqlite /opt/monroe
 COPY files/start.sh /opt/monroe/start.sh
 
 ENTRYPOINT ["dumb-init", "--", "/usr/bin/bash", "/opt/monroe/start.sh"]

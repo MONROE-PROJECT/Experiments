@@ -7,7 +7,9 @@ const ffprobe = require('../finetune/ffprobe'),
     .run,
   path = require('path'),
   fs = require('fs'),
-  log = require('intel');
+  log = require('intel'),
+  get = require('lodash.get'),
+  videoDefaults = require('../defaults');
 
 Promise.promisifyAll(fs);
 
@@ -25,7 +27,13 @@ module.exports = {
       .then(ffProbeJson => {
         const firstFrame = findFirstFrame(ffProbeJson);
         // the new start is the frame number divided by frames per second
-        const newStart = firstFrame / context.options.videoParams.framerate;
+        const newStart =
+          firstFrame /
+          get(
+            context,
+            'options.videoParams.framerate',
+            videoDefaults.framerate
+          );
         log.verbose('FirstFrame: %s newStart: %s', firstFrame, newStart);
         return ffmpegRemoveOrangeAndAddText(
           videoFile,
@@ -36,7 +44,7 @@ module.exports = {
         );
       })
       .then(() => {
-        if (context.options.videoParams.keepOriginalVideo) {
+        if (get(context, 'options.videoParams.keepOriginalVideo', false)) {
           return fs
             .renameAsync(videoFile, originalFile)
             .then(() => fs.renameAsync(tmpFile, videoFile));

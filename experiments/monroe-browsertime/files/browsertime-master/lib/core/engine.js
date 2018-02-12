@@ -9,7 +9,7 @@ const StorageManager = require('../support/storageManager');
 const engineDelegate = require('./engineDelegate');
 const SeleniumRunner = require('./seleniumRunner');
 const webdriver = require('selenium-webdriver');
-const UrlLoadError = require('../support/errors').UrlLoadError;
+const { BrowserError, UrlLoadError } = require('../support/errors');
 const startVideo = require('../support/video/scripts/startVideo');
 const startVideoAndroid = require('../support/video/scripts/startVideoAndroid');
 const pullNetLogAndroid = require('../support/pullNetLogAndroid');
@@ -37,8 +37,8 @@ const defaults = {
 class Engine {
   constructor(options) {
     try {
-      options.preScript = engineUtils.loadPrePostScripts(options.preScript);
-      options.postScript = engineUtils.loadPrePostScripts(options.postScript);
+      this.preScripts = engineUtils.loadPrePostScripts(options.preScript);
+      this.postScripts = engineUtils.loadPrePostScripts(options.postScript);
     } catch (e) {
       log.error(e.message);
       throw e;
@@ -62,7 +62,10 @@ class Engine {
   }
 
   startXvfb() {
-    if (this.options.xvfb) {
+    // This is the fix for the current use of ENV in Docker
+    // we should do a better fix for that
+    const useXvfb = get(this.options, 'xvfb', false);
+    if (useXvfb === true || useXvfb === 'true') {
       return xvfb
         .startXvfb({ size: this.options.viewPort, options: this.options })
         .tap(xvfbSession => {
@@ -92,23 +95,16 @@ class Engine {
 
     const taskData = {};
 
-    if (
-      options.cacheClearRaw ||
-      options.requestheader ||
-      options.block ||
-      options.basicAuth
-    ) {
-      const port = this.extensionServer.address().port;
-      options.preScript.push(extensionSetup(port, url));
-    }
-
     if (options.preURL) {
-      options.preScript.push(preURL);
+      this.preScripts.push(preURL);
     }
 
     if (options.speedIndex || options.video) {
-      options.preScript.push(isAndroid ? startVideoAndroid : startVideo);
-
+      if (options.videoParams.combine) {
+        this.preScripts.unshift(isAndroid ? startVideoAndroid : startVideo);
+      } else {
+        this.preScripts.push(isAndroid ? startVideoAndroid : startVideo);
+      }
       const videoPostScripts = [isAndroid ? stopVideoAndroid : stopVideo];
 
       if (options.speedIndex) {
@@ -121,11 +117,26 @@ class Engine {
         videoPostScripts.push(removeVideo);
       }
 
-      options.postScript.unshift(...videoPostScripts);
+      if (options.videoParams.combine) {
+        this.postScripts.push(...videoPostScripts);
+      } else {
+        this.postScripts.unshift(...videoPostScripts);
+      }
 
       if (isAndroid && options.chrome.collectNetLog) {
-        options.postScript.push(pullNetLogAndroid);
+        this.postScripts.push(pullNetLogAndroid);
       }
+    }
+
+    // always start with running our extension for the setup
+    if (
+      options.cacheClearRaw ||
+      options.requestheader ||
+      options.block ||
+      options.basicAuth
+    ) {
+      const port = this.extensionServer.address().port;
+      this.preScripts.unshift(extensionSetup(port, url));
     }
 
     function runScript(runner, script, isAsync, name) {
@@ -195,24 +206,21 @@ class Engine {
           (results, categoryName) => {
             const category = scripts[categoryName];
 
-            return runScriptInCategory(
-              runner,
-              category,
-              isAsync
-            ).then(result => {
-              results[categoryName] = result;
-              return results;
-            });
+            return runScriptInCategory(runner, category, isAsync).then(
+              result => {
+                results[categoryName] = result;
+                return results;
+              }
+            );
           },
           {}
         );
       });
     }
 
-    function runIteration(index) {
+    function runIteration(index, preScripts, postScripts) {
       options.index = index;
       const runner = new SeleniumRunner(options);
-
       log.info('Testing url %s run %s', url, index + 1);
       return Promise.resolve({
         browserScripts: [],
@@ -220,7 +228,7 @@ class Engine {
       })
         .tap(() => runner.start())
         .tap(() =>
-          Promise.mapSeries(options.preScript, preScript =>
+          Promise.mapSeries(preScripts, preScript =>
             preScript.run({
               url,
               options,
@@ -264,12 +272,16 @@ class Engine {
           if (options.screenshot) {
             return runner
               .takeScreenshot()
-              .tap(pngData => (results.screenshot = pngData));
+              .tap(pngData => (results.screenshot = pngData))
+              .catch(BrowserError, e => {
+                // not getting screenshots shouldn't result in a failed test.
+                log.warning(e);
+              });
           }
         })
         .tap(results => runDelegate.onStopIteration(runner, index, results))
         .tap(results =>
-          Promise.mapSeries(options.postScript, postScript =>
+          Promise.mapSeries(postScripts, postScript =>
             postScript.run({
               url,
               options,
@@ -315,7 +327,11 @@ class Engine {
         Promise.reduce(
           iterations,
           (results, item, runIndex, totalRuns) => {
-            let promise = runIteration(runIndex).then(iterationData => {
+            let promise = runIteration(
+              runIndex,
+              this.preScripts,
+              this.postScripts
+            ).then(iterationData => {
               results.timestamps.push(iterationData.timestamp);
               results.browserScripts.push(iterationData.browserScripts);
               if (iterationData.screenshot) {
@@ -373,8 +389,11 @@ class Engine {
           const numPages = result.har.log.pages.length;
           if (numPages !== this.options.iterations) {
             log.error(
-              `Number of HAR pages (${numPages}) does not match number of iterations (${this
-                .options.iterations})`
+              `Number of HAR pages (${
+                numPages
+              }) does not match number of iterations (${
+                this.options.iterations
+              })`
             );
             return;
           }

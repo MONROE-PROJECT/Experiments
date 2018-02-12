@@ -3,7 +3,9 @@
 const execa = require('execa'),
   path = require('path'),
   Promise = require('bluebird'),
-  fs = require('fs');
+  fs = require('fs'),
+  get = require('lodash.get'),
+  videoDefaults = require('../defaults');
 
 Promise.promisifyAll(fs);
 
@@ -16,7 +18,7 @@ module.exports = {
       '-c:v',
       'libx264',
       '-crf',
-      context.options.videoParams.crf,
+      get(context, 'options.videoParams.crf', videoDefaults.crf),
       '-preset',
       'medium',
       '-vf',
