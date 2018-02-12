@@ -275,55 +275,56 @@ def run_exp(meta_info, expconfig, url,count):
 	try:
 		har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
 		
-		if IMSIMCCMNC==24001:
+		if har_stats["IMSIMCCMNC"]==24001:
 			har_stats["Ops"]="Telia (SE)"
-		if IMSIMCCMNC==24201:
+		if har_stats["IMSIMCCMNC"]==24201:
 			har_stats["Ops"]="Telenor (NO)"
-		if IMSIMCCMNC==24008:
+		if har_stats["IMSIMCCMNC"]==24008:
 			har_stats["Ops"]="Telenor (SE)"
-		if IMSIMCCMNC==24002:
+		if har_stats["IMSIMCCMNC"]==24002:
 			har_stats["Ops"]="Tre (SE)"
-		if IMSIMCCMNC==22201:
+		if har_stats["IMSIMCCMNC"]==22201:
 			har_stats["Ops"]="TIM (IT)"
-		if IMSIMCCMNC==21404:
+		if har_stats["IMSIMCCMNC"]==21404:
 			har_stats["Ops"]="Yoigo (ES)"
 		
-		if IMSIMCCMNC==22210:
+		if har_stats["IMSIMCCMNC"]==22210:
 			har_stats["Ops"]="Vodafone (IT)"
-		if IMSIMCCMNC==24202:
+		if har_stats["IMSIMCCMNC"]==24202:
 			har_stats["Ops"]="Telia (NO)"
 			
-		if IMSIMCCMNC==24214:
+		if har_stats["IMSIMCCMNC"]==24214:
 			har_stats["Ops"]="ICE (NO)"
-		if IMSIMCCMNC==22288:
+		if har_stats["IMSIMCCMNC"]==22288:
 			har_stats["Ops"]="Wind (IT)"
-		if IMSIMCCMNC==21403:
+		if har_stats["IMSIMCCMNC"]==21403:
 			har_stats["Ops"]="Orange (ES)"
 		
-		if IMSIMCCMNC==24001:
+		if har_stats["IMSIMCCMNC"]==24001:
 			har_stats["Country"]="SE"
-		if IMSIMCCMNC==24201:
+		if har_stats["IMSIMCCMNC"]==24201:
 			har_stats["Country"]="NO"
-		if IMSIMCCMNC==24008:
+		if har_stats["IMSIMCCMNC"]==24008:
 			har_stats["Country"]="SE"
-		if IMSIMCCMNC==24002:
+		if har_stats["IMSIMCCMNC"]==24002:
 			har_stats["Country"]="SE"
-		if IMSIMCCMNC==22201:
+		if har_stats["IMSIMCCMNC"]==22201:
 			har_stats["Country"]="IT"
-		if IMSIMCCMNC==21404:
+		if har_stats["IMSIMCCMNC"]==21404:
 			har_stats["Country"]="ES"
 		
-		if IMSIMCCMNC==22210:
+		if har_stats["IMSIMCCMNC"]==22210:
 			har_stats["Country"]="IT"
-		if IMSIMCCMNC==24202:
+		if har_stats["IMSIMCCMNC"]==24202:
 			har_stats["Country"]="NO"
 			
-		if IMSIMCCMNC==24214:
+		if har_stats["IMSIMCCMNC"]==24214:
 			har_stats["Country"]="NO"
-		if IMSIMCCMNC==22288:
+		if har_stats["IMSIMCCMNC"]==22288:
 			har_stats["Country"]="IT"
-		if IMSIMCCMNC==21403:
+		if har_stats["IMSIMCCMNC"]==21403:
 			har_stats["Country"]="ES"
+		
 
 	except Exception:
 		print("IMSIMCCMNC info is not available")
