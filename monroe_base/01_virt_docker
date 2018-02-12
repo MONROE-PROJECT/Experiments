@@ -1,0 +1,43 @@
+FROM monroe/base:core
+
+MAINTAINER jonas.karlsson@kau.se
+
+#APT OPTS
+ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
+
+# This is the experiment that should run once the vm is started
+COPY virt/files/experiment.sh /opt/monroe/
+RUN chmod ugo+x /opt/monroe/experiment.sh
+
+#Net device template
+COPY virt/files/netdev-template /etc/network/
+RUN mkdir -p /etc/network/interfaces.d/
+COPY virt/files/persistent-net.rules-template /etc/network/
+RUN mkdir -p /etc/udev/rules.d/
+
+############## Main Installation (and cleanup) ####################
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
+    && apt-get install ${APT_OPTS} \
+    initramfs-tools \
+    grub2 \
+    sysvinit-core \
+    ifupdown \
+    irqbalance \
+    udev \
+    sed \
+    # Fix missing packages
+    && apt-get update ${APT_OPTS} --fix-missing \
+    # Cleanup
+    && apt-get clean ${APT_OPTS} \
+    && apt-get autoremove ${APT_OPTS} \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 geckodriver.tgz dumb-init.deb
+
+############## Tweaks  ####################
+RUN mkdir -p /etc/modprobe.d/ \
+    && echo "blacklist vga16fb" > /etc/modprobe.d/blacklist-framebuffer.conf \
+    && sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames=0 biosdevname=0 fbcon=map:99 text"/g' /etc/default/grub \
+    && sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0 fbcon=map:99 text"/g' /etc/default/grub \
+    && sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/g' /etc/default/grub \
+    && sed -i 's/#GRUB_TERMINAL=console/GRUB_TERMINAL=console/g' /etc/default/grub \
+    && sed -i 's,# By default this script does nothing.,# By default this script does nothing.\n/opt/monroe/experiment.sh || exit 1,g' /etc/rc.local

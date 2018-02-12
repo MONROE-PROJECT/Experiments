@@ -1,0 +1,5 @@
+auto ##NAME##
+iface ##NAME## inet static
+  address ##IP##
+  netmask ##NM##
+  gateway ##GW##

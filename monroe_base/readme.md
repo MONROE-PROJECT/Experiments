@@ -1,13 +1,12 @@
 # Monroe base container
 Used as a base container for experiments in the Monroe project.
 
-The container is based on debian jessie with (Monroe) common experiment tools added.
+The container is based on debian stretch with (Monroe) common experiment tools added.
 
-For a list of current packages installed and folders created see [dockerfile](https://github.com/MONROE-PROJECT/Experiments/blob/master/monroe_base/monroe_base.docker).
-Besides the installed packages the container adds these  [Utilities/Helperscripts](https://github.com/MONROE-PROJECT/Experiments/tree/master/monroe_base/files) script/files.
+For a list of current packages installed and folders created see [dockerfile](https://github.com/MONROE-PROJECT/Experiments/blob/master/monroe_base/02_cli.docker).
+Besides the installed packages the container adds these  [Utilities/Helperscripts](https://github.com/MONROE-PROJECT/Experiments/tree/master/monroe_base/core/) script/files.
 
-Currently the only script installed are monroe_exporter.py that is a small
- utility to atomically save json messages in a specified directory
+Currently the only script installed are monroe_exporter.py that is a small utility to atomically save json messages in a specified directory
  (must exist and be writable).  
 
 ## Requirements
