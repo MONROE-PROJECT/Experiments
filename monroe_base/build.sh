@@ -1,13 +1,23 @@
 #/bin/sh
-NAME=monroe/base
+LEVEL=$1
 
+NAME=monroe/base
 FINALTAG=complete
 DEFAULTTAG=cli
+OLDTAG=old
 LASTTAG=$(ls *_docker|tail -n1|cut -f2 -d"_")
-LEVEL=$1
+
 LEVELS=$(ls *_docker | cut -f1 -d"_")
 
+# Retag the old default and remove the old tag
+# This is safe even if we do not rebuild the default 
+docker pull ${NAME} 
+docker tag ${NAME} ${NAME}:${OLDTAG}
+docker rmi ${NAME}
 
+
+
+# Find out which level 
 if [[ ! ${LEVELS[*]} =~ "${LEVEL}" ]]
 then
     echo "First argument must be on of the following:"
