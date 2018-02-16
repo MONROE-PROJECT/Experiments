@@ -40,6 +40,8 @@ import netifaces as ni
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
 
+import run_experiment
+
 urlfile =''
 iterations =0 
 url=''
@@ -99,20 +101,75 @@ EXPCONFIG = {
 							   "eth0"],  # Interfaces to run the experiment on
         "interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
         }
+def set_source(ifname):
+    cmd1=["route",
+          "del",
+          "default"]
+    try:
+            check_output(cmd1)
+    except CalledProcessError as e:
+            if e.returncode == 28:
+                print "Time limit exceeded"
+                return 0
+
+    gw_ip="undefined"
+    for g in ni.gateways()[ni.AF_INET]:
+           if g[1] == ifname:
+                gw_ip = g[0]
+                break
+
+    cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
+    try:
+        check_output(cmd2)
+        cmd3=["ip", "route", "get", "8.8.8.8"]
+        output=check_output(cmd3)
+        output = output.strip(' \t\r\n\0')
+        output_interface=output.split(" ")[4]
+        if output_interface==str(ifname):
+                print "Source interface is set to "+str(ifname)
+        else:
+                print "Source interface "+output_interface+"is different from "+str(ifname)
+                return 0
+
+    except CalledProcessError as e:
+        if e.returncode == 28:
+            print "Time limit exceeded"
+            return 0
+    return 1
+
+def check_dns():
+    cmd=["dig",
+         "www.google.com",
+         "+noquestion", "+nocomments", "+noanswer"]
+    ops_dns_used=0
+    try:
+           out=check_output(cmd)
+           data=dns_list.replace("\n"," ")
+           for line in out.splitlines():
+                  for ip in re.findall(r'(?:\d{1,3}\.)+(?:\d{1,3})',data):
+                        if ip in line:
+                            ops_dns_used=1
+                            print line
+    except CalledProcessError as e:
+           if e.returncode == 28:
+                print "Time limit exceeded"
+                if ops_dns_used==1:
+                    print "Operators dns is set properly"
+
 def add_dns(interface):
     str = ""
     try:
-        with open('/dns') as dnsfile:
-            dnsdata = dnsfile.readlines()
-	    print dnsdata
-            dnslist = [ x.strip() for x in dnsdata ]
-            for item in dnslist:
-                if interface in item:
-                    str += item.split('@')[0].replace("server=",
-"nameserver ")
-                    str += "\n"
-        with open("/etc/resolv.conf", "w") as f:
-            f.write(str)
+           with open('/dns') as dnsfile:
+                dnsdata = dnsfile.readlines()
+                print dnsdata
+                dnslist = [ x.strip() for x in dnsdata ]
+                for item in dnslist:
+                       if interface in item:
+                            str += item.split('@')[0].replace("server=",
+                                                                  "nameserver ")
+                            str += "\n"
+           with open("/etc/resolv.conf", "w") as f:
+                f.write(str)
     except:
         print("Could not find DNS file")
     print str
@@ -200,13 +257,13 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except OSError, e:  ## if failed, report it back to the user ##
         print ("Error: %s - %s." % (e.filename,e.strerror))
 
-    print "Starting tracerouting ..."
+    #print "Starting tracerouting ..."
 
-    try:
-    	routes=py_traceroute(str(url).split("/")[0])
-    except Exception:
-    	print ("tracerouting unsuccessful")
-    
+    #try:
+    #	routes=py_traceroute(str(url).split("/")[0])
+    #except Exception:
+    #	print ("tracerouting unsuccessful")
+    #
     print "Starting ping ..."
 
     try:
@@ -224,182 +281,14 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     	response = None
 	print "Ping info is unknown"
 
-
-    print "Starting the display ..."
-    #count=run+1
-    st=time.time()
-    display = Display(visible=0, size=(800, 600))
-    display.start()
-    print "Display started in {} seconds.".format(time.time()-st)
-
-    d = DesiredCapabilities.FIREFOX
-    #d['loggingPrefs'] = {'browser': 'ALL', 'client': 'ALL', 'driver': 'ALL', 'performance': 'ALL', 'server': 'ALL'}
-    
-    d['marionette'] = True
-    d['binary'] = '/usr/bin/firefox'
-    print "Creating Firefox profile .."
-    try:
-    	profile = webdriver.FirefoxProfile("/opt/monroe/")
-    except Exception as e:
-	raise WebDriverException("Unable to set FF profile in  webdriver.", e)
-        return
-
-    print "Setting different Firefox profile .."
-    #set firefox preferences
-
-    profile.accept_untrusted_certs = True
-    profile.add_extension("har.xpi")
-    
-    if no_cache==1:
-    	profile.set_preference('browser.cache.memory.enable', False)
-    	profile.set_preference('browser.cache.offline.enable', False)
-    	profile.set_preference('browser.cache.disk.enable', False)
-    	profile.set_preference('network.http.use-cache', False)
-    else:
-    	profile.set_preference('browser.cache.memory.enable', True)
-    	profile.set_preference('browser.cache.offline.enable', True)
-    	profile.set_preference('browser.cache.disk.enable', True)
-    	profile.set_preference('network.http.use-cache', True)
-
-    profile.set_preference("app.update.enabled", False)
-    profile.set_preference('browser.startup.page', 0)
-    profile.set_preference("general.useragent.override", "Mozilla/5.0 (Android 4.4; Mobile; rv:46.0) Gecko/46.0 Firefox/46.0")
-    
-    #Check the HTTP(getter) scheme and disable the rest
-    if getter_version == 'HTTP1.1':
-        profile.set_preference('network.http.spdy.enabled.http2', False)
-        profile.set_preference('network.http.spdy.enabled', False)
-        profile.set_preference('network.http.spdy.enabled.v3-1', False)
-        profile.set_preference('network.http.max-connections-per-server', 6)
-        filename = "h1-"+url.split("/")[0]+"."+str(count)
-    elif getter_version == 'HTTP1.1/TLS':
-        profile.set_preference('network.http.spdy.enabled.http2', False)
-        profile.set_preference('network.http.spdy.enabled', False)
-        profile.set_preference('network.http.spdy.enabled.v3-1', False)
-        profile.set_preference('network.http.max-connections-per-server', 6)
-        filename = "h1s-"+url.split("/")[0]+"."+str(count)
-    elif getter_version == 'HTTP2':
-        profile.set_preference('network.http.spdy.enabled.http2', True)
-        profile.set_preference('network.http.spdy.enabled', True)
-        profile.set_preference('network.http.spdy.enabled.v3-1', True )
-        filename = "h2-"+url.split("/")[0]+"."+str(count)
-    
-    
-    #profile.set_preference('network.prefetch-next', False)
-    #profile.set_preference('network.http.spdy.enabled.v3-1', False)
-    
-    newurl = getter+url
-    
-    #set the preference for the trigger
-    profile.set_preference("extensions.netmonitor.har.contentAPIToken", "test")
-    profile.set_preference("extensions.netmonitor.har.autoConnect", True)
-    profile.set_preference(domains + "defaultFileName", filename)
-    profile.set_preference(domains + "enableAutoExportToFile", True)
-    profile.set_preference(domains + "defaultLogDir", har_directory)
-    profile.set_preference(domains + "pageLoadedTimeout", 1000)
-    profile.set_preference('webdriver.load.strategy', 'unstable')
-    time.sleep(1)
-
-    print "Profile for the Firefox is set"
-
-    #create firefox driver
-
-    print "Creating the Firefox driver .."
-
-    try:
-        st=time.time()
-        driver = webdriver.Firefox(capabilities=d,firefox_profile=profile)
-        print "Driver started in {} seconds.".format(time.time()-st)
-
-	driver.set_page_load_timeout(100)
-        #driver.manage.timeouts().pageLoadTimeout(100,SECONDS)
-        #driver.manage.timeouts().setScriptTimeout(100,SECONDS)
-        st=time.time()
-        driver.get(newurl)
-        print "Driver.get returned in {} seconds.".format(time.time()-st)
-	
-	navigationStart = driver.execute_script("return window.performance.timing.navigationStart")
-	responseStart = driver.execute_script("return window.performance.timing.responseStart")
-	domComplete = driver.execute_script("return window.performance.timing.domComplete")
-        loadeventStart= driver.execute_script("return window.performance.timing.loadEventStart")
-
-	backendPerformance = responseStart - navigationStart
-	frontendPerformance = domComplete - responseStart
-	plt = loadeventStart - navigationStart
-
-	print "Back End: %s" % backendPerformance
-	print "Front End: %s" % frontendPerformance
-	print "Page load time: %s" % plt
-	#timestr = time.strftime("%Y%m%d-%H%M%S")
-	#driver.save_screenshot(timestr+".png")
-    except Exception as e:
-        raise WebDriverException("Unable to start webdriver with FF.", e)
-        return
-    
-    time.sleep(5)
-    print "Quiting the driver.."
-    #driver.save_screenshot('screenie.png')
-
-    #close the firefox driver after HAR is written
-    driver.close()
-
-    print "Terminating the display .."
-
-    display.popen.terminate()
-
-    display.stop()
-
-    print "Killing geckodriver explicitely .."
-    try:
-	output=check_output("kill $(ps aux | pgrep -fla geckodriver| awk '{print $1}')",shell=True)
-    except CalledProcessError as e:
-	if e.returncode == 28:
-		print "Time limit exceeded"
     har_stats={}
+    har_stats=run_experiment.browse_firefox(har_directory,domains,getter,count,no_cache,url,getter_version)
     
-    objs=[]
-    pageSize=0
-
-    print "Processing the HAR files ..."
-
-    try:
-    	with open("har/"+filename+".har") as f:
-        	msg=json.load(f)
-    		num_of_objects=0
-
-    		start=0
-    		for entry in msg["log"]["entries"]:
-        		try:
-                		obj={}
-                		obj["url"]=entry["request"]["url"]
-               			obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                		pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
-				obj["mimeType"]=entry["response"]["content"]["mimeType"]
-				obj["startedDateTime"]=entry["startedDateTime"]
-                		obj["time"]=entry["time"]
-                		obj["timings"]=entry["timings"]
-                		objs.append(obj)
-                		num_of_objects=num_of_objects+1
-                		if start==0:
-                        		start_time=entry["startedDateTime"]
-                        		start=1
-                		end_time=entry["startedDateTime"]
-                		ms=entry["time"]
-    			except KeyError:
-        			pass
-                
-    		har_stats["Objects"]=objs
-    		har_stats["NumObjects"]=num_of_objects
-    		har_stats["PageSize"]=pageSize
-    except IOError:
-    	print "har/"+filename+".har doesn't exist"
-        
-
-    try:
-        har_stats["route"]=routes
-    except Exception:
-       print "traceroute info is not available"
-
+#    try:
+#        har_stats["route"]=routes
+#    except Exception:
+#       print "traceroute info is not available"
+#
     try:
     	har_stats["ping_max"]=ping_max
         har_stats["ping_avg"]=ping_avg
@@ -408,20 +297,7 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     except Exception:
 	print("Ping info is not available")
         har_stats["ping_exp"]=0
-    try:
-    	hours,minutes,seconds=str(((parse(end_time)+ datetime.timedelta(milliseconds=ms))- parse(start_time))).split(":")
-    	hours = int(hours)
-    	minutes = int(minutes)
-    	seconds = float(seconds)
-    	plt_ms = int(3600000 * hours + 60000 * minutes + 1000 * seconds)
-    	har_stats["Web load time2"]=plt_ms
-    except:
-    	print "Timing errors in web load time"
 
-    har_stats["url"]=url
-    har_stats["Protocol"]=getter_version	
-    har_stats["Web load time1"]=plt
-    har_stats["ttfb"]=backendPerformance
     har_stats["DataId"]= expconfig['dataid']
     har_stats["DataVersion"]= expconfig['dataversion']
     har_stats["NodeId"]= expconfig['nodeid']
@@ -458,6 +334,9 @@ def run_exp(meta_info, expconfig, url,count,no_cache):
     har_stats["SequenceNumber"]= count
 
     #msg=json.dumps(har_stats)
+
+    filename=har_stats["filename"]
+    har_stats.pop("filename")
     with open('/tmp/'+str(har_stats["NodeId"])+'_'+str(har_stats["DataId"])+'_'+str(har_stats["Timestamp"])+'.json', 'w') as outfile:
         json.dump(har_stats, outfile)
     
@@ -598,11 +477,21 @@ if __name__ == '__main__':
 
     start_time = time.time()
     
-    random.shuffle(urls)    
+    if type(urls) is list:
+        random.shuffle(urls)
+    else:
+        urls_name=urls
+        urls=[]
+        urls.append(urls_name)    
+    
     for url_list in urls:
-	print "Randomizing the url lists .."
-
-        random.shuffle(url_list)    
+        if type(url_list) is list:
+        	print "Randomizing the url lists .."
+                random.shuffle(url_list)    
+        else:
+                url_name=url_list
+                url_list=[]
+		url_list.append(url_name)
 
         try:
 		for ifname in allowed_interfaces:
@@ -664,63 +553,20 @@ if __name__ == '__main__':
             # Ok we have some information lets start the experiment script
 
 
-	    output_interface=None
+	    #output_interface=None
 
-            cmd1=["route",
-                 "del",
-                 "default"]
-            try:
-                    check_output(cmd1)
-            except CalledProcessError as e:
-                    if e.returncode == 28:
-                            print "Time limit exceeded"
-            
-            gw_ip="undefined"
-            for g in ni.gateways()[ni.AF_INET]:
-                if g[1] == ifname:
-                    gw_ip = g[0]
-                    break   
-
-            cmd2=["route", "add", "default", "gw", gw_ip,str(ifname)]
-            try:
-                check_output(cmd2)
-            	cmd3=["ip", "route", "get", "8.8.8.8"]
-                output=check_output(cmd3)
-            	output = output.strip(' \t\r\n\0')
-            	output_interface=output.split(" ")[4]
-            	if output_interface==str(ifname):
-                    	print "Source interface is set to "+str(ifname)
-    		else:
-                    	print "Source interface "+output_interface+"is different from "+str(ifname)
-    			continue
-            
-    	    except CalledProcessError as e:
-                     if e.returncode == 28:
-                            print "Time limit exceeded"
-    		     continue
-	    #if "eth"  not in str(ifname):
-    	    print "Creating operator specific dns.."
-	    dns_list=""
-	    dns_list=add_dns(str(ifname))
+	    if not DEBUG:
 		
-	    print "Checking the dns setting..."
-            cmd=["dig",
-                 "www.google.com",
-                 "+noquestion", "+nocomments", "+noanswer"]
-	    ops_dns_used=0
-            try:
-                    out=check_output(cmd)
-		    data=dns_list.replace("\n"," ")
-		    for line in out.splitlines():
-			for ip in re.findall(r'(?:\d{1,3}\.)+(?:\d{1,3})',data):
-				if ip in line:
-					ops_dns_used=1
-					print line
-            except CalledProcessError as e:
-                    if e.returncode == 28:
-                            print "Time limit exceeded"
-	    if ops_dns_used==1:
-			print "Operators dns is set properly"
+	    	# set the source route
+		if not set_source(ifname):
+			continue		
+			
+		print "Creating operator specific dns.."
+		dns_list=""
+		dns_list=add_dns(str(ifname))
+			
+		print "Checking the dns setting..."
+		check_dns()	
 		  
 
 	    
@@ -734,7 +580,13 @@ if __name__ == '__main__':
 			first_run=0
 	    	else:
 			no_cache=0
-	        random.shuffle(http_protocols)
+		if type(http_protocols) is list: 
+	        	random.shuffle(http_protocols)
+		else:
+			protocol=http_protocols
+			http_protocols=[]
+			http_protocols.append(protocol)
+
     	    	for protocol in http_protocols:
     			if protocol == 'h1':
                 			getter = h1
