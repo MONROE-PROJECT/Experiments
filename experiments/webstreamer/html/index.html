@@ -1,0 +1,209 @@
+<html>
+<head>
+<title>MONROE-WebRTC</title>
+<link rel="icon" type="image/png" href="monroe_logo.png" />
+<link rel="stylesheet" href="css/main.css" />
+
+
+<style media="screen" type="text/css">
+nav {
+    background-color: #ccc7c7;
+    overflow: hidden;
+}
+nav a {
+    float: left;
+    display: block;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 10px 10px;
+}
+nav a:hover {
+    background-color: #ddd;
+    color: black;
+}
+nav a.active {
+    background-color: #af4c64;
+    color: white;
+}
+nav a.active:hover {
+    background-color: #af4c4c ;
+    color: black;
+}
+
+h2 {
+    text-align: center;
+}
+footer {
+    text-align: center;
+}
+
+
+
+
+
+
+</style>
+
+<script src="js/ajax.js" ></script>
+<script src="js/webstreamer.js" ></script>
+
+<script>
+	// ------------------------------------------
+	// WebRTC connections
+	// ------------------------------------------
+	var webRtcServerList = {};
+
+	// ------------------------------------------
+	// decode URL arguments
+	// ------------------------------------------
+	var argurl = { video:location.search.slice(1) };
+	var argoptions;
+	if (typeof URLSearchParams != 'undefined') {
+		var params = new URLSearchParams(location.search.slice(1));
+		argurl = { video:params.get("video"), audio:params.get("audio") };
+		argoptions = params.get("options");
+	} else {
+		console.log("URLSearchParams not supported then no argument could be used");
+	}
+
+	function getText(url) {
+		var text;
+		if (url.video) {
+			text = url.video + " ";
+		}
+		if (url.audio) {
+			text += url.audio + " ";
+		}
+		return text;
+	}
+
+	// ------------------------------------------
+	// init device list
+	// ------------------------------------------
+	function onGetDeviceList(remoteDeviceList) {
+		var deviceList = [];
+                if (argurl.video || argurl.audio) {
+			deviceList.push( argurl );
+		}
+		if (remoteDeviceList) {
+			deviceList.push.apply( deviceList, remoteDeviceList );
+		}
+
+		// create navigation menu
+		var urllist = document.getElementById("menu");
+		for (var dev in deviceList) {
+			var url = deviceList[dev];
+			var option = document.createElement("a");
+			var videoTag = "video_" + JSON.stringify(url);
+			option.url = url;
+			option.text = getText(url);
+			option.id   = "nav_" + videoTag;
+			option.onclick = function () {
+				if (this.className === "active") {
+					del(this.url);
+				} else {
+					add(this.url);
+				}
+			}
+			urllist.appendChild(option);
+		}
+		if (deviceList.length > 0) {
+			add(deviceList[0]);
+		}
+	}
+
+
+	// ------------------------------------------
+	// add a webrtc client connection
+	// ------------------------------------------
+	function del(url) {
+		var videoTag = "video_" + JSON.stringify(url);
+
+		// disconnect webrtc connection
+		var webrtcServer = webRtcServerList[videoTag];
+		if (webrtcServer) {
+			webrtcServer.disconnect();
+			webRtcServerList[videoTag] = undefined;
+		}
+
+		// remove the video element and its tile
+		var divElt = 	document.getElementById ("div_" + videoTag);
+		document.getElementById("content").removeChild(divElt);
+
+		// unhighlight the navigation
+		var navElt = 	document.getElementById ("nav_" + videoTag);
+		navElt.className = "";
+	}
+
+	// ------------------------------------------
+	// add a webrtc client connection
+	// ------------------------------------------
+	function add(url) {
+		var videoTag = "video_" + JSON.stringify(url);
+
+		// add a video element to display webrtc stream
+		if (document.getElementById (videoTag) === null) {
+			var divelt = document.createElement("div");
+			divelt.id = "div_" + videoTag
+			var nameelt = document.createElement("h2");
+			nameelt.id = "title_" + videoTag
+			nameelt.innerHTML = getText(url);
+			divelt.appendChild(nameelt);
+			var videoelt = document.createElement("video");
+			videoelt.id = videoTag;
+			divelt.appendChild(videoelt);
+			document.getElementById("content").appendChild(divelt);
+		}
+		var videoelt = 	document.getElementById (videoTag);
+
+		// connect video element to webrtc stream
+		var webRtcServer = new WebRtcStreamer(videoTag);
+		webRtcServer.connect(url.video, url.audio, argoptions);
+
+		// highlight the navigation
+		var navElt = 	document.getElementById ("nav_" + videoTag);
+		navElt.className = "active";
+
+		// register webrtc streamer connection
+		webRtcServerList[videoTag] = webRtcServer;
+	}
+
+	// ------------------------------------------
+	// load/unload callbacks
+	// ------------------------------------------
+	window.onload         = function() {
+		send("/getMediaList", null, null, onGetDeviceList);
+		send("/version", null, null, onVersion);
+	}
+	window.onbeforeunload = function() {
+		for (var url in webRtcServerList) {
+			webRtcServerList[url].disconnect()
+		}
+	};
+</script>
+</head>
+
+<body>
+  <div class="navbar-header">
+      <a class="pull-left" href="https://www.monroe-project.eu/">
+          <img src = "monroe_logo.png" height="50" hspace="20"></img>
+      </a>
+  </div>
+	<nav id="menu"></nav>
+	<div id="content"></div>
+	<footer id="footer"></footer>
+  <video id="leftVideo" controls muted>
+    <source src="video/big.webm" type="video/webm" />
+    <source src="video/big.mp4" type="video/mp4" />
+    <p>This browser does not support the video element.</p>
+  </video>
+
+  <video id="rightVideo" autoplay controls></video>
+  <script src="adapter/adapter-latest.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/main.js"></script>
+
+  <script src="js/lib/ga.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

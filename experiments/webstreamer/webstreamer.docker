@@ -1,0 +1,53 @@
+FROM monroe/base
+MAINTAINER mohamed.moulay@imdea.org
+
+#--------------------------------------
+WORKDIR /webstreamer
+COPY . /webstreamer
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+
+RUN apt-get update \
+    && apt-get install -y curl \
+    && apt-get -y autoclean
+RUN apt-get -y install build-essential
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION 4.4.7
+
+RUN curl --silent -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.2/install.sh | bash
+RUN source $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
+#add node and npm to path so the commands are available
+ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
+ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+#Install localtunnel
+RUN npm install -g localtunnel
+#------------------------------------------------------------
+RUN apt-get install -y git
+RUN git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+ENV PATH /webrtc-streamer/depot_tools:$PATH
+ENV SYSROOT /webrtc/src/build/linux/debian_stretch_amd64-sysroot
+
+
+# Build 
+ 
+RUN apt-get update && apt-get install -y --no-install-recommends g++ autoconf automake libtool xz-utils libasound-dev \
+        && mkdir /webrtc \
+	&& cd /webrtc \
+	&& fetch --no-history --nohooks webrtc \
+	&& sed -i -e "s|'src/resources'],|'src/resources'],'condition':'rtc_include_tests==true',|" src/DEPS \
+	&& gclient sync \
+
+	&& cd src \
+	&& gn gen out/Release --args='is_debug=false rtc_use_h264=true ffmpeg_branding="Chrome" rtc_include_tests=false rtc_enable_protobuf=false use_custom_libcxx=false use_ozone=true rtc_include_pulse_audio=false rtc_build_examples=false' \
+	&& ninja -C out/Release jsoncpp rtc_json webrtc \
+	&& cd /webrtc-streamer \
+
+	&& rm -rf /webrtc \
+	&& apt-get clean
+#--------------------------------------------------------------------
+
+EXPOSE 8000
+
+ENTRYPOINT "/webrtc-streamer/start.sh" && /bin/bash
