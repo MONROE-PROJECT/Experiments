@@ -27,8 +27,11 @@ LOG_NAME = 'AStream_log'
 LOG_LEVEL = None
 
 # Set '-' to print to screen
-# LOG_FOLDER = "ASTREAM_LOGS/"
-LOG_FOLDER = "/monroe/results/"
+
+#CM: updating output directory
+#LOG_FOLDER = "ASTREAM_LOGS/"
+LOG_FOLDER = "/monroe/results/astream"
+
 if not os.path.exists(LOG_FOLDER):
     os.makedirs(LOG_FOLDER)
 
@@ -36,16 +39,12 @@ LOG_FILENAME = os.path.join(LOG_FOLDER, 'DASH_RUNTIME_LOG')
 # Logs related to the statistics for the video
 # PLAYBACK_LOG_FILENAME = os.path.join(LOG_FOLDER, strftime('DASH_PLAYBACK_LOG_%Y-%m-%d.%H_%M_%S.csv'))
 # Buffer logs created by dash_buffer.py
-# AEL -- need to create different logs for each run of the dash player -- initialize the names of the logs with the LOG_FILENAME ??????
 BUFFER_LOG_FILENAME = os.path.join(LOG_FOLDER, strftime('DASH_BUFFER_LOG_%Y-%m-%d.%H_%M_%S.csv'))
-#BUFFER_LOG_FILENAME = os.path.join(LOG_FOLDER, 'DASH_BUFFER_LOG')
 LOG_FILE_HANDLE = None
 # To be set by configure_log_file.py
 LOG = None
 # JSON Filename
 JSON_LOG = os.path.join(LOG_FOLDER, strftime('ASTREAM_%Y-%m-%d.%H_%M_%S.json'))
-#JSON_LOG = os.path.join(LOG_FOLDER, 'ASTREAM')
-
 JSON_HANDLE = dict()
 JSON_HANDLE['playback_info'] = {'start_time': None,
                                 'end_time': None,
@@ -54,22 +53,6 @@ JSON_HANDLE['playback_info'] = {'start_time': None,
                                 'up_shifts': 0,
                                 'down_shifts': 0
                                 }
-# AEL -- adding MONROE modem info to the output JSON
-# AEL -- need to change this to be a list 
-JSON_HANDLE['MONROE'] = list() # list of dictionaries
-# {
-#             "Guid": None,
-#             "DataId": None,
-#             "DataVersion": 0,
-#             "NodeId": 0,
-#             "Timestamp": 0,
-#             "Iccid": None,
-#             "NWMCCMNC": None,
-#             "InterfaceName": None,
-#             "Operator": None,
-#             "SequenceNumber": 0,
-#             "GPSPositions": None
-#         }
 # Constants for the BASIC-2 adaptation scheme
 BASIC_THRESHOLD = 10
 BASIC_UPPER_THRESHOLD = 1.2

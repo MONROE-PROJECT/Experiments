@@ -21,6 +21,8 @@ class DashPlayer:
         self.playback_start_time = None
         self.playback_duration = video_length
         self.segment_duration = segment_duration
+        #print "video_length = {}".format(video_length)
+        #print "segment_duration = {}".format(segment_duration)
         # Timers to keep track of playback time and the actual time
         self.playback_timer = StopWatch()
         self.actual_start_time = None
@@ -44,7 +46,7 @@ class DashPlayer:
         self.buffer = Queue.Queue()
         self.buffer_lock = threading.Lock()
         self.current_segment = None
-        self.buffer_log_file = config_dash.BUFFER_LOG_FILENAME # may be an issue here for which we are losing logged data?
+        self.buffer_log_file = config_dash.BUFFER_LOG_FILENAME
         config_dash.LOG.info("VideoLength={},segmentDuration={},MaxBufferSize={},InitialBuffer(secs)={},"
                              "BufferAlph(secs)={},BufferBeta(secs)={}".format(self.playback_duration,
                                                                               self.segment_duration,
@@ -76,6 +78,7 @@ class DashPlayer:
             if self.playback_state == "END":
                 config_dash.LOG.info("Finished playback of the video: {} seconds of video played for {} seconds".format(
                     self.playback_duration, time.time() - start_time))
+                config_dash.JSON_HANDLE['playback_info']['end_time'] = time.time()
                 self.playback_timer.pause()
                 return "STOPPED"
 
@@ -83,6 +86,7 @@ class DashPlayer:
                 # If video is stopped quit updating the playback time and exit player
                 config_dash.LOG.info("Player Stopped at time {}".format(
                     time.time() - start_time))
+                config_dash.JSON_HANDLE['playback_info']['end_time'] = time.time()
                 self.playback_timer.pause()
                 self.log_entry("Stopped")
                 return "STOPPED"
@@ -117,11 +121,12 @@ class DashPlayer:
                         if interruption_start:
                             interruption_end = time.time()
                             interruption = interruption_end - interruption_start
-                            interruption_start = None
+
                             config_dash.JSON_HANDLE['playback_info']['interruptions']['events'].append(
                                 (interruption_start, interruption_end))
                             config_dash.JSON_HANDLE['playback_info']['interruptions']['total_duration'] += interruption
                             config_dash.LOG.info("Duration of interruption = {}".format(interruption))
+                            interruption_start = None
                         self.set_state("PLAY")
                         self.log_entry("Buffering-Play")
 
@@ -131,6 +136,8 @@ class DashPlayer:
                     continue
                 else:
                     config_dash.LOG.info("Initial Waiting Time = {}".format(initial_wait))
+                    config_dash.JSON_HANDLE['playback_info']['initial_buffering_duration'] = initial_wait
+                    config_dash.JSON_HANDLE['playback_info']['start_time'] = time.time()
                     self.set_state("PLAY")
                     self.log_entry("InitialBuffering-Play")
 
@@ -194,6 +201,7 @@ class DashPlayer:
         # Acquire Lock on the buffer and add a segment to it
         if not self.actual_start_time:
             self.actual_start_time = time.time()
+            config_dash.JSON_HANDLE['playback_info']['start_time'] = self.actual_start_time
         config_dash.LOG.info("Writing segment {} at time {}".format(segment['segment_number'],
                                                                     time.time() - self.actual_start_time))
         self.buffer_lock.acquire()
@@ -232,7 +240,6 @@ class DashPlayer:
             else:
                 log_time = 0
             if not os.path.exists(self.buffer_log_file):
-                # AEL -- could add here the nodeid, iccid, mccmnc, operatorname
                 header_row = "EpochTime,CurrentPlaybackTime,CurrentBufferSize,CurrentPlaybackState,Action,Bitrate".split(",")
                 stats = (log_time, str(self.playback_timer.time()), self.buffer.qsize(),
                          self.playback_state, action,bitrate)
@@ -240,7 +247,7 @@ class DashPlayer:
                 stats = (log_time, str(self.playback_timer.time()), self.buffer.qsize(),
                          self.playback_state, action,bitrate)
             str_stats = [str(i) for i in stats]
-            with open(self.buffer_log_file, 'ab') as log_file_handle:
+            with open(self.buffer_log_file, "ab") as log_file_handle:
                 result_writer = csv.writer(log_file_handle, delimiter=",")
                 if header_row:
                     result_writer.writerow(header_row)
