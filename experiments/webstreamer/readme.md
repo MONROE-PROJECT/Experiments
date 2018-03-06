@@ -6,3 +6,5 @@ The parameters to use Webstreamer are the following:
 - Specify a STUN server using -S.
 - Specify an RTSP link just by running the binary + RTSP Link.
 After the container starts please navigate to the https link generated in the container console and go to chrome://webrtcinternals to observer all the metrics in real-time.
+
+Based on the Original WebRTC source code and https://github.com/Mohmoulay/webrtc-streamer.
