@@ -1,8 +1,10 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-CONTAINER=${DIR##*/}
+#CONTAINER=${DIR##*/}
+CONTAINER=astream
+CONTAINERTAG=cmidoglu/astream-lightweight
+#CONTAINERTAG=cmidoglu/astream
 
-CONTAINERTAG=andralutu/astream # Modify to your own dockerhub user/repo
-
-docker login && docker tag ${CONTAINER} ${CONTAINERTAG} && docker push ${CONTAINERTAG} && echo "Finished uploading ${CONTAINERTAG}"
+#docker login &&
+docker tag ${CONTAINER} ${CONTAINERTAG} && docker push ${CONTAINERTAG} && echo "Finished uploading ${CONTAINERTAG}"

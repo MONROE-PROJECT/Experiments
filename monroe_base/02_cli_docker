@@ -16,6 +16,10 @@ RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:
     && rm oml2.key
 
 
+# Remove some files only used in virt (to avoid confusion)
+RUN rm /opt/monroe/*experiment.sh
+
+
 ############## Main Installation and cleanup ####################
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
@@ -36,7 +40,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     python3-scapy \
     # no python3-rrdtool in debian:strech \
     # Common tools
-    flent \
     findutils \
     tshark \
     bzip2 \
@@ -57,7 +60,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     net-tools \
     rsync \
     openssh-client \
-    openssh-server \
     iptables \
     curl \
     wget \

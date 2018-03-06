@@ -7,7 +7,9 @@ ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-
 
 # This is the experiment that should run once the vm is started
 COPY virt/files/experiment.sh /opt/monroe/
+COPY virt/files/user-experiment.sh /opt/monroe/
 RUN chmod ugo+x /opt/monroe/experiment.sh
+RUN chmod ugo+x /opt/monroe/user-experiment.sh
 
 #Net device template
 COPY virt/files/netdev-template /etc/network/

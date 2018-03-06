@@ -1,0 +1,15 @@
+FROM monroe/base
+
+MAINTAINER cise@simula.no
+
+RUN echo "DBG: installing numpy and pandas"
+RUN apt-get update -q
+RUN apt-get install -y libblas-dev liblapack-dev liblapacke-dev gfortran
+RUN apt-get install -y python-pip
+RUN pip install numpy
+RUN pip install pandas
+
+COPY files/* /opt/monroe/
+COPY files/adaptation/ /opt/monroe/adaptation/
+
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/monroe-astream-client.py"]

@@ -10,7 +10,7 @@ ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-
 # ie we do not need to rebuild the core even we modify them.    #
 RUN mkdir -p /opt/monroe/lib
 RUN mkdir -p /opt/monroe/bin
-RUN mkdir -p /monroe
+RUN mkdir -p /monroe/results
 
 COPY core/files/* /opt/monroe/
 COPY core/system_files/monroe-sshtunnel-client.sh /usr/bin/
@@ -29,6 +29,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get ${APT_OPTS} install \
     gnupg \
     python-zmq \
+    openssh-server \
     ca-certificates \
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
