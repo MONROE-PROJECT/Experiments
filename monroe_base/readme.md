@@ -1,4 +1,4 @@
-# Monroe base container
+# Monroe base container/image
 Used as a base container for experiments in the Monroe project.
 
 The container is based on debian stretch with (Monroe) common experiment tools added.
@@ -6,8 +6,28 @@ The container is based on debian stretch with (Monroe) common experiment tools a
 For a list of current packages installed and folders created see [dockerfile](https://github.com/MONROE-PROJECT/Experiments/blob/master/monroe_base/02_cli.docker).
 Besides the installed packages the container adds these  [Utilities/Helperscripts](https://github.com/MONROE-PROJECT/Experiments/tree/master/monroe_base/core/) script/files.
 
-Currently the only script installed are monroe_exporter.py that is a small utility to atomically save json messages in a specified directory
- (must exist and be writable).  
+The container is split up on several tags. Most users should use base their experiments on monroe/base or the equivalent monroe/base:latest. We have however created two more tags for specialized experiments: 
+#### Tags
+* monroe/base:web --> For experiments that do chrome and firefox (headless) experiments.
+* monroe/base:virt --> For experiments that should run in a virtual machine.
+* monroe/base --> For all other experiments.
+
+## Detailed description of current tags
+
+### "Real tags"
+These tags are used for defining different functionality but should normaly not be used to base experiments on 
+* monroe/base:core --> common base files (based on debian:stretch), [00_core](https://github.com/MONROE-PROJECT/Experiments/tree/master/monroe_base/00_core_docker)
+* monroe/base:virt --> for virtualization support (based on monroe/base:core), [01_virt](https://github.com/MONROE-PROJECT/Experiments/tree/master/monroe_base/01_virt_docker)
+* monroe/base:cli --> Common tools for "command line experiments" (based on monroe/base:virt), [02_cli](https://github.com/MONROE-PROJECT/Experiments/tree/master/monroe_base/02_cli_docker)
+* monroe/base:web --> Common tools for web experiments (based on monroe/base:cli), [03_web](https://github.com/MONROE-PROJECT/Experiments/tree/master/monroe_base/03_web_docker)
+### "Virtual tags"
+These tags point to some of the other tags and are used for convenience and backend purposes. 
+* monroe/base (no tag) or monroe/base:latest --> monroe/base:cli
+    * For all experiment except virtualization and web based experiments (that should use monroe/base:virt and monroe/base:web) 
+* monroe/base:complete --> currently to monroe/base:web but will update as we add functinality or security patches. 
+    * Used for backend purposes should not be used directly as base for any experiment.
+* monroe/base:old --> The previous version of monroe/base:latest 
+    * Used for backend purposes should not be used directly as base for any experiment.
 
 ## Requirements
 
