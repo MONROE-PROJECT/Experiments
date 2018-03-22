@@ -233,7 +233,7 @@ def run_exp(meta_info, expconfig, url,count):
 		har_stats["ping_exp"]=False
 	
 	har_stats["url"]=url
-	har_stats["Protocol"]=getter_version	
+	#har_stats["Protocol"]=getter_version	
 	har_stats["DataId"]= expconfig['dataid']
 	har_stats["DataVersion"]= expconfig['dataversion']
 	har_stats["NodeId"]= expconfig['nodeid']
