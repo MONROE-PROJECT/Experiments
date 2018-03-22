@@ -64,7 +64,7 @@ har_directory =''
 
 first_run=1
 # Configuration
-DEBUG = False
+DEBUG = True
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -87,19 +87,11 @@ EXPCONFIG = {
 	"verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
-	 "urls": ['www.facebook.com/telia/','www.wikipedia.org','www.linkedin.com/company/teliacompany', 
-        'www.reddit.com',
-        'www.instagram.com/leomessi/','www.google.com/#q=stockholm,+sweden', 
-        'www.ebay.com','www.twitter.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
-        'www.tmall.com','www.stackoverflow.com',
-        'www.live.com','microsoft.com',
-        'www.kayak.com','www.yelp.com','www.etsy.com', 
-        'www.flickr.com', 'www.coursera.com',
-        'www.imgur.com'],
-	"http_protocols":["h1s","h2"],
+	"urls": ['www.google.com'],
+	"http_protocols":["h1s"],
 	"browsers":["firefox","chrome"],
 	"iterations": 1,
-	"allowed_interfaces": ["op0","op1","op2"],  # Interfaces to run the experiment on
+	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
 	}
 
@@ -232,13 +224,13 @@ def run_exp(meta_info, expconfig, url,count):
 	else:
 		return
 	try:
-		har_stats["ping_max"]=ping_max
-		har_stats["ping_avg"]=ping_avg
-		har_stats["ping_min"]=ping_min
-		har_stats["ping_exp"]=1
+		har_stats["ping_max"]=float(ping_max)
+		har_stats["ping_avg"]=float(ping_avg)
+		har_stats["ping_min"]=float(ping_min)
+		har_stats["ping_exp"]=True
 	except Exception:
 		print("Ping info is not available")
-		har_stats["ping_exp"]=0
+		har_stats["ping_exp"]=False
 	
 	har_stats["url"]=url
 	har_stats["Protocol"]=getter_version	
@@ -336,6 +328,7 @@ def run_exp(meta_info, expconfig, url,count):
 
 	
 	
+        print "First Run {}".format(first_run)
 	#msg=json.dumps(har_stats)
 	with open('/tmp/'+str(har_stats["NodeId"])+'_'+str(har_stats["DataId"])+'_'+str(har_stats["Timestamp"])+'.json', 'w') as outfile:
 		json.dump(har_stats, outfile)
@@ -343,10 +336,10 @@ def run_exp(meta_info, expconfig, url,count):
 	if expconfig['verbosity'] > 2:
 		#print json.dumps(har_stats, indent=4, sort_keys=True)
 		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
-		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["Protocol"],har_stats["url"], har_stats["browserScripts"][0]["timings"]["pageTimings"]["pageLoadTime"]))
+		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["Protocol"],har_stats["url"], har_stats["pageLoadTime"]))
 	if not DEBUG:
 		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
-		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["Protocol"],har_stats["url"], har_stats["browserScripts"][0]["timings"]["pageTimings"]["pageLoadTime"]))
+		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["Protocol"],har_stats["url"], har_stats["pageLoadTime"]))
 		if first_run==0:
 			monroe_exporter.save_output(har_stats, expconfig['resultdir'])
 	

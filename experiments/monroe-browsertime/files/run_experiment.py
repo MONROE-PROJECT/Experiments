@@ -92,6 +92,17 @@ def browse_chrome(iface,url,getter_version):
 		        har_stats = json.load(data_file)
                         har_stats["info"].pop('connectivity',None)
                         #har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
+                        har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
+                        har_stats["navigationTiming"]=har_stats["browserScripts"][0]["timings"]['navigationTiming']
+                        har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+                        har_stats["pageTimings"]=har_stats["browserScripts"][0]["timings"]['pageTimings']
+                        har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
+                        har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
+                        har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
+                        har_stats["resourceTimings"]=har_stats["browserScripts"][0]["timings"]['resourceTimings']
+                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
                         har_stats.pop('statistics',None)
                         har_stats.pop('visualMetrics',None)
@@ -102,7 +113,7 @@ def browse_chrome(iface,url,getter_version):
                 #har_stats["har"]=process_har_files()
 		har_stats["browser"]="Chrome"
 		har_stats["protocol"]=getter_version
-		har_stats["cache"]=1
+		#har_stats["cache"]=1
 
 	except CalledProcessError as e:
 		if e.returncode == 28:
@@ -168,6 +179,17 @@ def browse_firefox(iface,url,getter_version):
 		        har_stats = json.load(data_file)
                         har_stats["info"].pop('connectivity',None)
                         #har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
+                        har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
+                        har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+                        har_stats["navigationTiming"]=har_stats["browserScripts"][0]["timings"]['navigationTiming']
+                        har_stats["pageTimings"]=har_stats["browserScripts"][0]["timings"]['pageTimings']
+                        har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
+                        har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
+                        har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
+                        har_stats["resourceTimings"]=har_stats["browserScripts"][0]["timings"]['resourceTimings']
+                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
                         har_stats.pop('statistics',None)
                         har_stats.pop('visualMetrics',None)
@@ -177,7 +199,7 @@ def browse_firefox(iface,url,getter_version):
                 #har_stats["har"]=process_har_files()
 		har_stats["browser"]="Firefox"
 		har_stats["protocol"]=getter_version
-		har_stats["cache"]=0
+		#har_stats["cache"]=0
 		#copy /opt/monroe/profile_moz to   folder
 		try:
 			#for files in os.listdir('/opt/monroe/profile_moz'):
