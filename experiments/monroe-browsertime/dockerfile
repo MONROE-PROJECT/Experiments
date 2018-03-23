@@ -10,4 +10,4 @@ COPY files/seleniumRunner.js /opt/monroe/lib/core
 COPY files/browsertime.py /opt/monroe/
 COPY files/start.sh /opt/monroe/start.sh
 
-ENTRYPOINT ["dumb-init", "--", "/usr/bin/bash", "/opt/monroe/start.sh"]
+ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]
