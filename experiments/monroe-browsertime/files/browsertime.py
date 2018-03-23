@@ -336,7 +336,7 @@ def run_exp(meta_info, expconfig, url,count):
 
 	
 	
-        print "First Run {}".format(first_run)
+        #print "First Run {}".format(first_run)
 	#msg=json.dumps(har_stats)
 	with open('/tmp/'+str(har_stats["NodeId"])+'_'+str(har_stats["DataId"])+'_'+str(har_stats["Timestamp"])+'.json', 'w') as outfile:
 		json.dump(har_stats, outfile)
@@ -344,10 +344,10 @@ def run_exp(meta_info, expconfig, url,count):
 	if expconfig['verbosity'] > 2:
 		#print json.dumps(har_stats, indent=4, sort_keys=True)
 		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
-		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["Protocol"],har_stats["url"], har_stats["pageLoadTime"]))
+		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["protocol"],har_stats["url"], har_stats["pageLoadTime"]))
 	if not DEBUG:
 		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
-		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["Protocol"],har_stats["url"], har_stats["pageLoadTime"]))
+		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["protocol"],har_stats["url"], har_stats["pageLoadTime"]))
 		if first_run==0:
 			monroe_exporter.save_output(har_stats, expconfig['resultdir'])
 	
