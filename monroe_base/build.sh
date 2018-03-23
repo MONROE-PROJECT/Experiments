@@ -6,6 +6,11 @@ FINALTAG=complete
 DEFAULTTAG=cli
 OLDTAG=old
 LASTTAG=$(ls *_docker|tail -n1|cut -f2 -d"_")
+LASTLEVEL=$(ls *_docker | tail -n1| cut -f1 -d"_")
+LASTPATCHLEVEL=${LASTLEVEL:1:1}
+if [ $LASTPATCHLEVEL == 0 ];then 
+    LASTPATCHLEVEL=""
+fi
 
 LEVELS=$(ls *_docker | cut -f1 -d"_")
 
@@ -29,7 +34,11 @@ for l in ${LEVELS[*]}
 do
     dockerfile="$(ls ${l}_*_docker)"
     tag="$(echo ${dockerfile}|cut -f2 -d"_")"
-    CONTAINER=${NAME}:${tag}
+    patchlevel=${l:1:1}
+    if [ ${patchlevel} == 0 ]; then
+	    patchlevel=""
+    fi
+    CONTAINER=${NAME}:${tag}${patchlevel}
     if [[ $l -ge $LEVEL ]]
     then
 	echo "Building $tag"
@@ -54,4 +63,4 @@ done
 docker tag ${NAME}:${DEFAULTTAG} ${NAME}
 
 # Automatcially set the top "tag" to
-docker tag ${NAME}:${LASTTAG} ${NAME}:${FINALTAG}
+docker tag ${NAME}:${LASTTAG}${LASTPATCHLEVEL} ${NAME}:${FINALTAG}

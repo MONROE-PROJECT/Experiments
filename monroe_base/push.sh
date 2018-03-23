@@ -26,7 +26,11 @@ fi
 for l in ${LEVELS[*]}
 do
     tag="$(echo ${dockerfile}|cut -f2 -d"_")"
-    CONTAINER=${NAME}:${tag}
+    patchlevel=${l:1:1}
+    if [ ${patchlevel} == 0 ]; then
+	    patchlevel=""
+    fi
+    CONTAINER=${NAME}:${tag}${patchlevel}
     if [[ $l -ge $LEVEL ]]
     then
 	echo "Pushing $tag"

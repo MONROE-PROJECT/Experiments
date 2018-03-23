@@ -10,7 +10,10 @@ ENV NODE_VERSION 8.7.0
 ENV LC_ALL C
 ENV DEBCONF_NONINTERACTIVE_SEEN true
 ENV FIREFOX_VERSION 56.0.1
+# Version 64 is deprecated on googles repo so in the future we need to upgrade or download from the unoffical (untested) repo here: https://www.slimjet.com/chrome/download-chrome.php?file=lnx%2Fchrome64_64.0.3282.140.deb
 ENV CHROME_VERSION 64.*
+#ENV GECKODRIVER_VERSION 0.20.0
+#ENV CHROMEDRIVER_VERSION 2.37
 ENV FONTS fonts-ipafont-gothic fonts-ipafont-mincho ttf-wqy-microhei fonts-wqy-microhei fonts-tlwg-loma fonts-tlwg-loma-otf fonts-gargi
 # firefox-locale-hi a font that does not exist in debian
 ENV XVFBDEPS libgl1-mesa-dri xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic dbus-x11
@@ -39,12 +42,17 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     libgtk2.0-0 \
     libgtk2.0-common \
     python-pip \
+    unzip \
     && pip install pyvirtualdisplay selenium python-dateutil \
     && wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 \
     && tar -xjf firefox-${FIREFOX_VERSION}.tar.bz2  \
     && rm -rf /opt/firefox \
     && mv firefox /opt/ \
     && ln -s /opt/firefox/firefox /usr/local/bin/firefox  \
+#    && curl -L -o geckodriver.tgz "https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz" \
+#    && tar -C /usr/bin -zxf geckodriver.tgz \
+#    && curl -L -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" \
+#    && unzip -o -q chromedriver.zip -d /usr/bin/ \
     && curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz" \
     && tar -xJf "node-v$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
     && rm "node-v$NODE_VERSION-linux-x64.tar.xz" \
@@ -55,7 +63,11 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     # Cleanup
     && apt-get clean ${APT_OPTS} \
     && apt-get autoremove ${APT_OPTS} \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 firefox-${FIREFOX_VERSION}.tar.bz2  geckodriver.tgz dumb-init.deb
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 firefox-${FIREFOX_VERSION}.tar.bz2  geckodriver.tgz dumb-init.deb chromedriver.zip
 
 WORKDIR /opt/monroe/
 RUN npm install --production
+
+# Reuse browsertime installed gecko and chrome driver
+RUN ln -s /opt/monroe/node_modules/alto-saxophone/vendor/chromedriver /usr/bin/ \
+    && ln -s /opt/monroe/node_modules/soprano-saxophone/vendor/geckodriver /usr/bin/
