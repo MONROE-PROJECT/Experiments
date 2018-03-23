@@ -64,7 +64,7 @@ har_directory =''
 
 first_run=1
 # Configuration
-DEBUG = True
+DEBUG = False
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -87,11 +87,19 @@ EXPCONFIG = {
 	"verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
-	"urls": ['www.google.com'],
-	"http_protocols":["h1s"],
+	"urls": ['www.facebook.com/telia/','www.wikipedia.org','www.linkedin.com/company/teliacompany', 
+        'www.reddit.com',
+        'www.instagram.com/leomessi/','www.google.com/#q=stockholm,+sweden', 
+        'www.ebay.com','www.twitter.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
+        'www.tmall.com','www.stackoverflow.com',
+        'www.live.com','microsoft.com',
+        'www.kayak.com','www.yelp.com','www.etsy.com', 
+        'www.flickr.com', 'www.coursera.com',
+        'www.imgur.com'],
+	"http_protocols":["h1s","h2"],
 	"browsers":["firefox","chrome"],
 	"iterations": 1,
-	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
+	"allowed_interfaces": ["op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
 	}
 
