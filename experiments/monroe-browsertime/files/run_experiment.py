@@ -89,14 +89,17 @@ def browse_chrome(iface,url,getter_version):
                 print "Processing the HAR files ..."
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-		        har_stats = json.load(data_file)
+			har_stats = json.load(data_file)
                         har_stats["info"].pop('connectivity',None)
-                        #har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        har_stats["pageinfo"]=har_stats["browserScripts"][0]["pageinfo"]
                         har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
+                        har_stats["fullyLoaded"]=har_stats["browserScripts"][0]["timings"]['fullyLoaded']
+                        har_stats["browserScripts"][0]["timings"].pop('fullyLoaded',None)
                         har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
-                        har_stats["navigationTiming"]=har_stats["browserScripts"][0]["timings"]['navigationTiming']
                         har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+                        har_stats["navigationTiming"]=har_stats["browserScripts"][0]["timings"]['navigationTiming']
                         har_stats["pageTimings"]=har_stats["browserScripts"][0]["timings"]['pageTimings']
+			har_stats["browserScripts"][0].pop('pageinfo',None)
                         har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
                         har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
                         har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
@@ -104,6 +107,7 @@ def browse_chrome(iface,url,getter_version):
                         har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
                         har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
+                        har_stats.pop('browserScripts',None)
                         har_stats.pop('statistics',None)
                         har_stats.pop('visualMetrics',None)
                         har_stats.pop('timestamps',None)
@@ -176,14 +180,17 @@ def browse_firefox(iface,url,getter_version):
 			
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-		        har_stats = json.load(data_file)
+			har_stats = json.load(data_file)
                         har_stats["info"].pop('connectivity',None)
-                        #har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        har_stats["pageinfo"]=har_stats["browserScripts"][0]["pageinfo"]
                         har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
+                        har_stats["fullyLoaded"]=har_stats["browserScripts"][0]["timings"]['fullyLoaded']
+                        har_stats["browserScripts"][0]["timings"].pop('fullyLoaded',None)
                         har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
                         har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
                         har_stats["navigationTiming"]=har_stats["browserScripts"][0]["timings"]['navigationTiming']
                         har_stats["pageTimings"]=har_stats["browserScripts"][0]["timings"]['pageTimings']
+			har_stats["browserScripts"][0].pop('pageinfo',None)
                         har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
                         har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
                         har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
@@ -191,6 +198,7 @@ def browse_firefox(iface,url,getter_version):
                         har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
                         har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
+                        har_stats.pop('browserScripts',None)
                         har_stats.pop('statistics',None)
                         har_stats.pop('visualMetrics',None)
                         har_stats.pop('timestamps',None)
