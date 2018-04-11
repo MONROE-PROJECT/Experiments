@@ -92,7 +92,7 @@ EXPCONFIG = {
         'www.instagram.com/leomessi/','www.google.com/#q=stockholm,+sweden', 
         'www.ebay.com','www.twitter.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
         'www.tmall.com','www.stackoverflow.com',
-        'www.live.com','microsoft.com',
+        'www.live.com','www.microsoft.com',
         'www.kayak.com','www.yelp.com','www.etsy.com', 
         'www.flickr.com', 'www.coursera.com',
         'www.imgur.com'],
