@@ -6,9 +6,10 @@ COPY files/* /opt/monroe/
 
 RUN apt-get update
 RUN apt-get install -y --force-yes \
-	gcc  && \
-	cd opt/monroe/ && \
-	gcc udp_bw_est_rcvr.c -o  UDPbwEstimatorRcvr\
+	gcc   \
+	python-dateutil \
+	&& cd opt/monroe/  \
+	&& gcc udp_bw_est_rcvr.c -o  UDPbwEstimatorRcvr\
 	&& apt-get purge -y --force-yes  gcc \
 	&& apt-get clean -y --force-yes clean \
         && apt-get -y --force-yes autoremove \

@@ -66,8 +66,8 @@ EXPCONFIG = {
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
-        "burst_size":"300",
-	"no_bursts":"10",
+        "burst_size":["150","300","600","900"],
+	"no_bursts":[10,20,30],
 	"server_ip":"193.10.227.44",	
 	"server_name":"",	
 	"packet_size":"1400",
@@ -154,9 +154,9 @@ def run_exp(expconfig,ip):
     		print ("tracerouting unsuccessful")
 
     cmd=["./UDPbwEstimatorRcvr","-c",
-	    expconfig["burst_size"],
+	    expconfig["used_burst_size"],
             "-b",
-            expconfig["no_bursts"],
+            expconfig["used_no_bursts"],
             "-l",expconfig["packet_size"],"-s",ip,"-o",
 	   "8000",
             "-d",
@@ -184,6 +184,8 @@ def run_exp(expconfig,ip):
     count=0
     bw=""
     while True:
+	if count==int(expconfig["used_no_bursts"]):
+		break
     	line=logfile.readline()
     	if line =='\n' or line == "":
         	count+=1
@@ -194,8 +196,6 @@ def run_exp(expconfig,ip):
     		bw+=str(((total_bytes*8)/(1000))/duration)
 		bw+=" "
         	total_bytes=0
-        	if count==3:
-            		break
     	else:
         	line = line.strip().split(' ')
         	num_packets=num_packets+1
@@ -209,8 +209,8 @@ def run_exp(expconfig,ip):
 
     print num_packets
     logfile.close()
-    har_stats["burst_size"]=expconfig["burst_size"]
-    har_stats["no_bursts"]=expconfig["no_bursts"]
+    har_stats["burst_size"]=expconfig["used_burst_size"]
+    har_stats["no_bursts"]=expconfig["used_no_bursts"]
     har_stats["udp_server"]=expconfig["server_ip"]
     har_stats["packet_size"]=expconfig["packet_size"]
     #har_stats["bw"]=output
@@ -254,6 +254,56 @@ def run_exp(expconfig,ip):
     	print("InterfaceName info is not available")
     try:
     	har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
+
+	if har_stats["IMSIMCCMNC"]==24001:
+		har_stats["Ops"]="Telia (SE)"
+	if har_stats["IMSIMCCMNC"]==24201:
+		har_stats["Ops"]="Telenor (NO)"
+	if har_stats["IMSIMCCMNC"]==24008:
+		har_stats["Ops"]="Telenor (SE)"
+	if har_stats["IMSIMCCMNC"]==24002:
+		har_stats["Ops"]="Tre (SE)"
+	if har_stats["IMSIMCCMNC"]==22201:
+		har_stats["Ops"]="TIM (IT)"
+	if har_stats["IMSIMCCMNC"]==21404:
+		har_stats["Ops"]="Yoigo (ES)"
+		
+	if har_stats["IMSIMCCMNC"]==22210:
+		har_stats["Ops"]="Vodafone (IT)"
+	if har_stats["IMSIMCCMNC"]==24202:
+		har_stats["Ops"]="Telia (NO)"
+			
+	if har_stats["IMSIMCCMNC"]==24214:
+		har_stats["Ops"]="ICE (NO)"
+	if har_stats["IMSIMCCMNC"]==22288:
+		har_stats["Ops"]="Wind (IT)"
+	if har_stats["IMSIMCCMNC"]==21403:
+		har_stats["Ops"]="Orange (ES)"
+		
+	if har_stats["IMSIMCCMNC"]==24001:
+		har_stats["Country"]="SE"
+	if har_stats["IMSIMCCMNC"]==24201:
+		har_stats["Country"]="NO"
+	if har_stats["IMSIMCCMNC"]==24008:
+		har_stats["Country"]="SE"
+	if har_stats["IMSIMCCMNC"]==24002:
+		har_stats["Country"]="SE"
+	if har_stats["IMSIMCCMNC"]==22201:
+		har_stats["Country"]="IT"
+	if har_stats["IMSIMCCMNC"]==21404:
+		har_stats["Country"]="ES"
+		
+	if har_stats["IMSIMCCMNC"]==22210:
+		har_stats["Country"]="IT"
+	if har_stats["IMSIMCCMNC"]==24202:
+		har_stats["Country"]="NO"
+			
+	if har_stats["IMSIMCCMNC"]==24214:
+		har_stats["Country"]="NO"
+	if har_stats["IMSIMCCMNC"]==22288:
+		har_stats["Country"]="IT"
+	if har_stats["IMSIMCCMNC"]==21403:
+		har_stats["Country"]="ES"
     except Exception:
     	print("IMSIMCCMNC info is not available")
     try:
@@ -395,6 +445,9 @@ if __name__ == '__main__':
         exp_grace = EXPCONFIG['exp_grace'] + EXPCONFIG['time']
         ifup_interval_check = EXPCONFIG['ifup_interval_check']
         time_between_experiments = EXPCONFIG['time_between_experiments']
+	burst_size=EXPCONFIG["burst_size"]
+	no_bursts=EXPCONFIG["no_bursts"]
+	server_ip=EXPCONFIG["server_ip"]
         EXPCONFIG['guid']
         EXPCONFIG['modem_metadata_topic']
         EXPCONFIG['zmqport']
@@ -460,32 +513,66 @@ if __name__ == '__main__':
         start_time_exp = time.time()
 	iface_ip= str(ni.ifaddresses(ifname)[AF_INET][0]['addr'])
 	print iface_ip
-        exp_process = exp_process = create_exp_process(EXPCONFIG,iface_ip)
-        exp_process.start()
         
-        while (time.time() - start_time_exp < exp_grace and
-                     exp_process.is_alive()):
+	if type(burst_size) is  list:
+		burst_sizes=[]
+		for item_burst in burst_size:
+			if not isinstance(item_burst, basestring):
+				burst_sizes.append(str(item_burst))
+			else:
+				burst_sizes.append(item_burst)
+	else:
+		burst_sizes=[]
+		if not isinstance(burst_size, basestring):
+			burst_sizes.append(str(burst_size))
+		else:
+			burst_sizes.append(burst_size)
+
+					
+	for burst_sz in burst_sizes:
+		EXPCONFIG["used_burst_size"]=burst_sz
+		if type(no_bursts) is  list:
+			flow_sizes=[]
+			for flow_size in no_bursts:
+				if not isinstance(flow_size, basestring):
+					flow_sizes.append(str(flow_size))
+				else:
+					flow_sizes.append(flow_size)
+		else:
+			flow_sizes=[]
+			if not isinstance(no_bursts, basestring):
+				flow_sizes.append(str(no_bursts))
+			else:
+				flow_sizes.append(no_bursts)
+		 
+		for flow_size in flow_sizes:
+			EXPCONFIG["used_no_bursts"]=flow_size
+        		exp_process = exp_process = create_exp_process(EXPCONFIG,iface_ip)
+        		exp_process.start()
         
-		if not (check_if(ifname) and check_meta(meta_info,
+        		while (time.time() - start_time_exp < exp_grace and
+                     		exp_process.is_alive()):
+        
+				if not (check_if(ifname) and check_meta(meta_info,
                                                             meta_grace,
 	                                                            EXPCONFIG)):
-			if EXPCONFIG['verbosity'] > 0:
-                        	print "Interface went down during a experiment"
-                	break
-            	elapsed_exp = time.time() - start_time_exp
-            	if EXPCONFIG['verbosity'] > 1:
-               		print "Running Experiment for {} s".format(elapsed_exp)
-            	time.sleep(ifup_interval_check)
+					if EXPCONFIG['verbosity'] > 0:
+                        			print "Interface went down during a experiment"
+                			break
+            			elapsed_exp = time.time() - start_time_exp
+            			if EXPCONFIG['verbosity'] > 1:
+               				print "Running Experiment for {} s".format(elapsed_exp)
+            			time.sleep(ifup_interval_check)
         
-        if exp_process.is_alive():
-            exp_process.terminate()
-        if meta_process.is_alive():
-            meta_process.terminate()
+        		if exp_process.is_alive():
+            			exp_process.terminate()
+        		if meta_process.is_alive():
+            			meta_process.terminate()
         
-        elapsed = time.time() - start_time
-        if EXPCONFIG['verbosity'] > 1:
-        	print "Finished {} after {}".format(ifname, elapsed)
-        time.sleep(time_between_experiments)
+        		elapsed = time.time() - start_time
+        		if EXPCONFIG['verbosity'] > 1:
+        			print "Finished {} after {}".format(ifname, elapsed)
+        		time.sleep(time_between_experiments)
 
     if EXPCONFIG['verbosity'] > 1:
         print ("Interfaces {} "
