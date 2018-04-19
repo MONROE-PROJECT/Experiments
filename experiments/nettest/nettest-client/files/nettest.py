@@ -89,15 +89,19 @@ EXPCONFIG = {
         "tar_additional_results": True
 }
 
-def get_filename(data, postfix, ending, tstamp):
-    return "{}_{}_{}_{}{}.{}".format(data['nodeid'], data['dataid'], data['dataversion'], tstamp,
+def get_filename(data, postfix, ending, tstamp, interface):
+    # return "{}_{}_{}_{}{}.{}".format(data['nodeid'], data['dataid'], data['dataversion'], tstamp,
+    #     ("_" + postfix) if postfix else "", ending)
+
+    tstamp_datetime = time.strftime("%Y%m%d-%H%M%S", time.gmtime(tstamp))
+    return "{}_{}_{}_{}{}.{}".format(data['dataid'], data['nodeid'], interface, tstamp_datetime,
         ("_" + postfix) if postfix else "", ending)
 
-def save_output(data, msg, postfix=None, ending="json", tstamp=time.time(), outdir="/monroe/results/"):
+def save_output(data, msg, postfix=None, ending="json", tstamp=time.time(), outdir="/monroe/results/", interface="interface"):
     f = NamedTemporaryFile(mode='w+', delete=False, dir=outdir)
     f.write(msg)
     f.close()
-    outfile = path.join(outdir, get_filename(data, postfix, ending, tstamp))
+    outfile = path.join(outdir, get_filename(data, postfix, ending, tstamp, interface))
     move_file(f.name, outfile)
 
 def move_file(f, t):
@@ -165,6 +169,9 @@ def run_exp(meta_info, expconfig):
         if 'NWMCCMNC' in meta_info:
             cfg['cnf_add_to_result']['NWMCCMNC'] = meta_info["NWMCCMNC"]
 
+        ifname = meta_info[cfg['modeminterfacename']]
+        cfg['cnf_add_to_result']['Interface'] = ifname
+
         # Add all metadata if requested
         if cfg['add_modem_metadata_to_result']:
             for k,v in meta_info.items():
@@ -182,7 +189,8 @@ def run_exp(meta_info, expconfig):
         if cfg['verbosity'] > 2:
             print("Result: {}".format(msg))
         if not DEBUG:
-            save_output(data=cfg, msg=json.dumps(msg), tstamp=cfg['timestamp'], outdir=cfg['resultdir'])
+            #TODO
+            save_output(data=cfg, msg=json.dumps(msg), tstamp=cfg['timestamp'], outdir=cfg['resultdir'], interface=ifname)
     except Exception as e:
         if cfg['verbosity'] > 0:
             print ("Execution or parsing failed for "
@@ -219,12 +227,15 @@ def metadata(meta_ifinfo, ifname, expconfig):
                 msg['nodeid'] = expconfig['nodeid']
                 msg['dataid'] = msg['DataId']
                 msg['dataversion'] = msg['DataVersion']
+                msg['ifname'] = ifname
+
+                #TODO
                 tstamp = time.time()
                 if 'Timestamp' in msg:
                     tstamp = msg['Timestamp']
                 if expconfig['verbosity'] > 2:
                     print(msg)
-                save_output(data=msg, msg=json.dumps(msg), tstamp=tstamp, outdir=expconfig['save_metadata_resultdir'])
+                save_output(data=msg, msg=json.dumps(msg), tstamp=tstamp, outdir=expconfig['save_metadata_resultdir'], interface=ifname)
 
             if topic.startswith(expconfig['modem_metadata_topic']):
                 if (expconfig["modeminterfacename"] in msg and
@@ -276,12 +287,26 @@ def add_manual_metadata_information(info, ifname, expconfig):
        Normally eth0 and wlan0.
     """
     info[expconfig["modeminterfacename"]] = ifname
-    info["Operator"] = "local"
-    info["ICCID"] = "local"
-    info["IMSIMCCMNC"] = "local"
-    info["NWMCCMNC"] = "local"
-    info["Timestamp"] = time.time()
 
+    if ifname == "eth0":
+        info["Operator"] = "local"
+        info["ICCID"] = "local"
+        info["IMSIMCCMNC"] = -1
+        info["NWMCCMNC"] = -1
+
+    elif ifname == "wlan0":
+        info["Operator"] = "local"
+        info["ICCID"] = "local"
+        info["IMSIMCCMNC"] = 0
+        info["NWMCCMNC"] = 0
+
+    else:
+        info["Operator"] = "local"
+        info["ICCID"] = "local"
+        info["IMSIMCCMNC"] = 999
+        info["NWMCCMNC"] = 999
+
+    info["Timestamp"] = time.time()
 
 def create_meta_process(ifname, expconfig):
     meta_info = Manager().dict()
@@ -472,23 +497,23 @@ if __name__ == '__main__':
                 meta_process.terminate()
 
             if 'tar_additional_results' in cfg and cfg['tar_additional_results']:
-                with tarfile.open(path.join(cfg['resultdir'], get_filename(cfg, None, 'tar.gz', start_time_exp)), mode='w:gz') as tar:
+                with tarfile.open(path.join(cfg['resultdir'], get_filename(cfg, None, 'tar.gz', start_time_exp, ifname)), mode='w:gz') as tar:
                     if temp_flows_json:
-                        tar.add(temp_flows_json, arcname=get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp), recursive=False)
+                        tar.add(temp_flows_json, arcname=get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp, ifname), recursive=False)
                         os.remove(temp_flows_json)
                     if temp_stats_json:
-                        tar.add(temp_stats_json, arcname=get_filename(cfg, 'STATS', 'json.xz', start_time_exp), recursive=False)
+                        tar.add(temp_stats_json, arcname=get_filename(cfg, 'STATS', 'json.xz', start_time_exp, ifname), recursive=False)
                         os.remove(temp_stats_json)
                     if traceroute_targets and 'cnf_server_host' in cfg and traceroute_targets[cfg['cnf_server_host']]:
-                        tar.add(traceroute_targets[cfg['cnf_server_host']], arcname=get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp), recursive=False)
+                        tar.add(traceroute_targets[cfg['cnf_server_host']], arcname=get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp, ifname), recursive=False)
             else:
                 if temp_flows_json:
-                    move_file(temp_flows_json, path.join(cfg['resultdir'], get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp)))
+                    move_file(temp_flows_json, path.join(cfg['resultdir'], get_filename(cfg, 'FLOWS', 'json.xz', start_time_exp, ifname)))
                 if temp_stats_json:
-                    move_file(temp_stats_json, path.join(cfg['resultdir'], get_filename(cfg, 'STATS', 'json.xz', start_time_exp)))
+                    move_file(temp_stats_json, path.join(cfg['resultdir'], get_filename(cfg, 'STATS', 'json.xz', start_time_exp, ifname)))
                 if traceroute_targets and 'cnf_server_host' in cfg and traceroute_targets[cfg['cnf_server_host']]:
                     temp_traceroute = traceroute_targets[cfg['cnf_server_host']]
-                    copy_file(temp_traceroute, path.join(cfg['traceroute_resultdir'], get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp)))
+                    copy_file(temp_traceroute, path.join(cfg['traceroute_resultdir'], get_filename(cfg, 'TRACEROUTE', 'json', start_time_exp, ifname)))
 
         if traceroute_targets:
             for tmpfile in traceroute_targets.values():
