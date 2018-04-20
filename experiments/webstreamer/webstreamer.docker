@@ -50,4 +50,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends g++ autoconf au
 
 EXPOSE 8000
 
-ENTRYPOINT "/webrtc-streamer/start.sh" && /bin/bash
+ENTRYPOINT "/webstreamer/start.sh" && /bin/bash
