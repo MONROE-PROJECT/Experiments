@@ -65,8 +65,10 @@ def browse_chrome(iface,url,getter_version):
 
 	if "1.1" in getter_version:
 		protocol="h1s"
-	else:
+	elif getter_version=="HTTP2":
 		protocol="h2"
+	elif getter_version=="QUIC":
+		protocol="quic"
 	
 	folder_name="cache-"+iface+"-"+protocol+"-"+"chrome"
 	print "Cache folder for chrome {}",format(folder_name)
@@ -80,9 +82,16 @@ def browse_chrome(iface,url,getter_version):
 				'--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
 				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
 			output=check_output(cmd)
-		else:
+		elif getter_version=="HTTP2":
 			cmd=['bin/browsertime.js',"https://"+str(url), 
 				'-n','1','--resultDir','web-res','--skipHar',
+				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
+			output=check_output(cmd)
+		elif getter_version=="QUIC":
+			cmd=['bin/browsertime.js',"https://"+str(url), 
+				'-n','1','--resultDir','web-res','--skipHar',
+				'--chrome.args','enable-quic',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
 				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
 			output=check_output(cmd)
@@ -91,19 +100,20 @@ def browse_chrome(iface,url,getter_version):
 		    with open('web-res/browsertime.json') as data_file:    
 			har_stats = json.load(data_file)
                         har_stats["info"].pop('connectivity',None)
-                        har_stats["pageinfo"]=har_stats["browserScripts"][0]["pageinfo"]
+			har_stats["info"]=str(har_stats["info"])
+                        har_stats["pageinfo"]=str(har_stats["browserScripts"][0]["pageinfo"])
                         har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
                         har_stats["fullyLoaded"]=har_stats["browserScripts"][0]["timings"]['fullyLoaded']
                         har_stats["browserScripts"][0]["timings"].pop('fullyLoaded',None)
                         har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
                         har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                        har_stats["navigationTiming"]=har_stats["browserScripts"][0]["timings"]['navigationTiming']
-                        har_stats["pageTimings"]=har_stats["browserScripts"][0]["timings"]['pageTimings']
+                        har_stats["navigationTiming"]=str(har_stats["browserScripts"][0]["timings"]['navigationTiming'])
+                        har_stats["pageTimings"]=str(har_stats["browserScripts"][0]["timings"]['pageTimings'])
 			har_stats["browserScripts"][0].pop('pageinfo',None)
                         har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
                         har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
                         har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
-                        har_stats["resourceTimings"]=har_stats["browserScripts"][0]["timings"]['resourceTimings']
+                        har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
                         har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
                         har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
@@ -182,19 +192,20 @@ def browse_firefox(iface,url,getter_version):
 		    with open('web-res/browsertime.json') as data_file:    
 			har_stats = json.load(data_file)
                         har_stats["info"].pop('connectivity',None)
-                        har_stats["pageinfo"]=har_stats["browserScripts"][0]["pageinfo"]
+			har_stats["info"]=str(har_stats["info"])
+                        har_stats["pageinfo"]=str(har_stats["browserScripts"][0]["pageinfo"])
                         har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
                         har_stats["fullyLoaded"]=har_stats["browserScripts"][0]["timings"]['fullyLoaded']
                         har_stats["browserScripts"][0]["timings"].pop('fullyLoaded',None)
                         har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
                         har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                        har_stats["navigationTiming"]=har_stats["browserScripts"][0]["timings"]['navigationTiming']
-                        har_stats["pageTimings"]=har_stats["browserScripts"][0]["timings"]['pageTimings']
+                        har_stats["navigationTiming"]=str(har_stats["browserScripts"][0]["timings"]['navigationTiming'])
+                        har_stats["pageTimings"]=str(har_stats["browserScripts"][0]["timings"]['pageTimings'])
 			har_stats["browserScripts"][0].pop('pageinfo',None)
                         har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
                         har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
                         har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
-                        har_stats["resourceTimings"]=har_stats["browserScripts"][0]["timings"]['resourceTimings']
+                        har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
                         har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
                         har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
