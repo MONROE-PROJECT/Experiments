@@ -15,3 +15,5 @@ Experimenters can also specify the target MPD file (e.g., "cnf_astream_mpd":"htt
 The MONROE-AStream container outputs two files:
 1) Summary JSON describing the experiment.
 2) Compressed archive containing runtime log, segment log, buffer log, and downloaded video segments.
+
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
