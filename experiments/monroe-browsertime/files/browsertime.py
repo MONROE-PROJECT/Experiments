@@ -91,7 +91,7 @@ EXPCONFIG = {
 	"urls": [
         'www.youtube.com/watch?v=544vEgMiMG0',
         'www.google.com/search?q=Fifa+world+cup+2018&cad=h',
-	 'www.blog.litespeedtech.com/2017/06/26/litespeed-is-powered-by-quic/',
+	 'www.litespeedtech.com',
 	 'www.keycdn.com',
 	  'wwww.meetup.com',
 	  'www.justwatch.com',
