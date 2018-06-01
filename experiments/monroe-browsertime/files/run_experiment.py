@@ -26,6 +26,22 @@ def copytree(src, dst, symlinks=True, ignore=None):
 			if not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
 				shutil.copy2(s, d)
 
+def check_quic():
+    try:
+        with open("web-res/browsertime.har") as f:
+            har=json.load(f)
+
+            for entry in har["log"]["entries"]:
+                 http_ver_req = entry['request']['httpVersion']
+                 http_ver_res = entry['response']['httpVersion']
+                 if "quic" in http_ver_req and "quic" in http_ver_res:
+                     return http_ver_res
+            return "HTTP2"
+    except IOError:
+        print "HAR file not found ..."
+        return "na"
+
+
 def process_har_files():
     objs=[]
     pageSize=0
@@ -90,7 +106,7 @@ def browse_chrome(iface,url,getter_version):
 			output=check_output(cmd)
 		elif getter_version=="QUIC":
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--chrome.args','enable-quic',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
 				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
@@ -126,7 +142,10 @@ def browse_chrome(iface,url,getter_version):
 
                 #har_stats["har"]=process_har_files()
 		har_stats["browser"]="Chrome"
-		har_stats["protocol"]=getter_version
+		if "QUIC" in getter_version:
+                	har_stats["protocol"]=check_quic()
+		else:
+			har_stats["protocol"]=getter_version
 		#har_stats["cache"]=1
 
 	except CalledProcessError as e:
