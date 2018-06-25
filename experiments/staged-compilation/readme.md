@@ -12,7 +12,7 @@ cd self-contained
 ./build.sh ; # take a cup-of-coffe or three
 ```
 
-## Variant 2 (eperate-containers)
+## Variant 2 (seperate-containers)
 The build stage in the above variant is ephemeral so when buildind a large project with only small code changes (or no chnages) the build time can be a problem.
 
 Therefore a alternative is to use seperate containers for building and the final container. 
