@@ -12,9 +12,9 @@ cd self-contained
 ./build.sh ; # take a cup-of-coffe or three
 ```
 
-## Variant 2 (seperate-containers)
-The build stage in the above variant is ephemeral so when buildind a large project with only small code changes (or no chnages) the build time can be a problem.
+## Variant 2 (separate-containers)
+The build stage in the above variant is ephemeral so when building a large project with only small code changes (or no changes) the build time over-head can be a problem.
 
 Therefore a alternative is to use seperate containers for building and the final container. 
-With this setup the build stage does not need do be redone on every "docker build". The drawback is of course that the setup becomes more complex and harder to maintanin.
-To build this project first build the contianer in the "build" folder (seperate-containers/build) and then the final container (seperate-containers).
+With this setup the build stage does not need do be redone on every "docker build" of the final container. The drawback is of course that the setup becomes more complex and harder to maintain.
+To build this project first build the contianer in the "build" folder (separate-containers/build) and then the final container (separate-containers).
