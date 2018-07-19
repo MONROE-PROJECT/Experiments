@@ -1,0 +1,13 @@
+--- /usr/share/ooni/decks-available/web.yaml	2016-11-22 12:33:11.000000000 +0000
++++ web_global.yaml	2017-10-21 23:07:28.630791848 +0100
+@@ -10,9 +10,4 @@
+ - name: Runs the Web Connectivity Test
+   ooni:
+     test_name: web_connectivity
+-    file: $citizenlab_global_urls
+-
+-- name: Runs the Web Connectivity Test
+-  ooni:
+-    test_name: web_connectivity
+-    file: $citizenlab_${probe_cc}_urls
++    file: /opt/monroe/global.csv

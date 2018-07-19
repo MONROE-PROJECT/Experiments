@@ -1,0 +1,21 @@
+
+; <<>> DiG 9.10.3-P4-Debian <<>> -b 172.18.21.2 www.google.com +subnet=90.236.169.254/32
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 60997
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;www.google.com.			IN	A
+
+;; ANSWER SECTION:
+www.google.com.		147	IN	A	216.58.209.100
+
+;; Query time: 46 msec
+;; SERVER: 195.67.199.18#53(195.67.199.18)
+;; WHEN: Tue Nov 28 04:41:17 UTC 2017
+;; MSG SIZE  rcvd: 59
+
+

@@ -1,0 +1,20 @@
+dig -b 172.18.21.2 instagramstatic-a.akamaihd.net +cmd
+
+; <<>> DiG 9.10.3-P4-Debian <<>> -b 172.18.21.2 instagramstatic-a.akamaihd.net +noquestion
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 35363
+;; flags: qr rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; ANSWER SECTION:
+instagramstatic-a.akamaihd.net. 169 IN  CNAME   instagramstatic-a.akamaihd.net.edgesuite.net.
+instagramstatic-a.akamaihd.net.edgesuite.net. 16042 IN CNAME a1168.dsw4.akamai.net.
+a1168.dsw4.akamai.net.  19  IN  A   95.101.142.27
+a1168.dsw4.akamai.net.  19  IN  A   104.84.152.27
+
+;; Query time: 31 msec
+;; SERVER: 195.67.199.18#53(195.67.199.18)
+;; WHEN: Fri Nov 17 15:01:44 UTC 2017
+;; MSG SIZE  rcvd: 178
