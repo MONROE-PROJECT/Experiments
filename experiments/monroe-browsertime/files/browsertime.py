@@ -59,6 +59,7 @@ browser_kind=''
 h1='http://'
 h1s='https://'
 h2='https://'
+quic='https://'
 current_directory =''
 har_directory =''
 
@@ -568,12 +569,17 @@ if __name__ == '__main__':
 				elif protocol == 'h2':
 					getter = h2
 					getter_version = 'HTTP2'
+				elif protocol == 'quic':
+					getter = quic
+					getter_version = 'QUIC'
 				else:
-					print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2>' 
+					print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2/quic>' 
 					sys.exit()	
 				random.shuffle(browsers)
 				for browser in browsers:
 					browser_kind=browser 
+					if browser == "firefox" and protocol == "quic":
+						continue
 					for run in range(start_count, iterations):
 						# Create a experiment process and start it
 						print "Browsing {} with {} browser and {} protocol".format(url,browser,protocol) 
