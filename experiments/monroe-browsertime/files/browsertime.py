@@ -88,9 +88,9 @@ EXPCONFIG = {
 	"verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
-	"urls": ['www.facebook.com/telia/','www.wikipedia.org','www.linkedin.com/company/teliacompany', 
+	"urls": ['www.facebook.com/telia/','www.wikipedia.org',
         'www.reddit.com',
-        'www.instagram.com/leomessi/','www.google.com/#q=stockholm,+sweden', 
+        'www.instagram.com/leomessi/',
         'www.ebay.com','www.twitter.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
         'www.tmall.com','www.stackoverflow.com',
         'www.live.com','www.microsoft.com',
