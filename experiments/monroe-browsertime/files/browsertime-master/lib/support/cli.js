@@ -4,7 +4,8 @@ const yargs = require('yargs');
 const urlValidator = require('valid-url');
 const util = require('util');
 const hasbin = require('hasbin');
-const videoDefaults = require('./video/defaults');
+const videoDefaults = require('../video/defaults');
+const screenshotDefaults = require('../screenshot/defaults');
 
 function validateInput(argv) {
   let url = argv._[0];
@@ -22,7 +23,7 @@ function validateInput(argv) {
     }
   }
 
-  if (argv.video || argv.speedIndex) {
+  if (argv.video || argv.visualMetrics) {
     if (!hasbin.all.sync(['ffmpeg'])) {
       return 'You need to have ffmpeg in your path to be able to record a video.';
     }
@@ -44,6 +45,14 @@ function validateInput(argv) {
       argv.connectivity.latency)
   ) {
     return 'You must pass --connectivity.profile "custom" for custom connectivity configs to take effect.';
+  }
+
+  if (argv.injectJs && argv.browser === 'chrome') {
+    return 'Injecting JavaScript is only supported in Firefox at the moment.';
+  }
+
+  if (Array.isArray(argv.iterations)) {
+    return 'Ooops you passed number of iterations twice, remove one of them and try again.';
   }
 
   return true;
@@ -100,7 +109,7 @@ module.exports.parseCommandLine = function parseCommandLine() {
     })
     .option('chrome.mobileEmulation.deviceName', {
       describe:
-        "Name of device to emulate. Works only standalone (see list in Chrome DevTools, but add phone like 'iPhone 6')",
+        "Name of device to emulate. Works only standalone (see list in Chrome DevTools, but add phone like 'iPhone 6'). This will override your userAgent string.",
       group: 'chrome'
     })
     .option('chrome.mobileEmulation.width', {
@@ -127,21 +136,16 @@ module.exports.parseCommandLine = function parseCommandLine() {
         'Choose which device to use. If you do not set it, first device will be used.',
       group: 'chrome'
     })
-    .option('chrome.collectTracingEvents', {
-      type: 'boolean',
-      describe:
-        'Include Tracing events in the performance log (implies chrome.collectPerfLog).',
-      group: 'chrome'
-    })
-    // legacy naming of collectTracingEvents
-    .option('chrome.dumpTraceCategoriesLog', {
-      type: 'boolean',
-      describe: false
-    })
     .option('chrome.traceCategories', {
       describe:
-        'A comma separated list of Tracing event categories to include in the performance log (implies chrome.collectTracingEvents).',
+        'A comma separated list of Tracing event categories to include in the Trace log. Default no trace categories is collected.',
       type: 'string',
+      group: 'chrome'
+    })
+    .option('chrome.timeline', {
+      describe:
+        'Collect the timeline data. Drag and drop the JSON in your Chrome detvools timeline panel or check out the CPU metrics in the Browsertime.json',
+      type: 'boolean',
       group: 'chrome'
     })
     .option('chrome.collectPerfLog', {
@@ -150,14 +154,14 @@ module.exports.parseCommandLine = function parseCommandLine() {
         'Collect performance log from Chrome with Page and Network events and save to disk.',
       group: 'chrome'
     })
-    // legacy naming of dumpChromePerflog
-    .option('experimental.dumpChromePerflog', {
-      type: 'boolean',
-      describe: false
-    })
     .option('chrome.collectNetLog', {
       type: 'boolean',
       describe: 'Collect network log from Chrome and save to disk.',
+      group: 'chrome'
+    })
+    .option('chrome.collectConsoleLog', {
+      type: 'boolean',
+      describe: 'Collect Chromes console log and save to disk.',
       group: 'chrome'
     })
     .option('firefox.binaryPath', {
@@ -193,12 +197,18 @@ module.exports.parseCommandLine = function parseCommandLine() {
     })
     .option('firefox.includeResponseBodies', {
       describe: 'Include response bodies in HAR',
-      type: 'boolean',
+      default: 'none',
+      choices: ['none', 'all', 'html'],
       group: 'firefox'
     })
     .option('firefox.acceptInsecureCerts', {
       describe: 'Accept insecure certs',
       type: 'boolean',
+      group: 'firefox'
+    })
+    .option('firefox.collectMozLog', {
+      type: 'boolean',
+      describe: 'Collect the MOZ HTTP log',
       group: 'firefox'
     })
     .option('selenium.url', {
@@ -209,7 +219,7 @@ module.exports.parseCommandLine = function parseCommandLine() {
     .option('video', {
       type: 'boolean',
       describe:
-        'Record a video and store the video. Set it to false to remove the video that is created by turning on speedIndex. Requires FFMpeg to be installed.'
+        'Record a video and store the video. Set it to false to remove the video that is created by turning on visualMetrics. To remove fully turn off video recordings, make sure to set video and visualMetrics to false. Requires FFMpeg to be installed.'
     })
     .option('videoParams.framerate', {
       default: videoDefaults.framerate,
@@ -259,14 +269,25 @@ module.exports.parseCommandLine = function parseCommandLine() {
         'Combine preScript/postScript with the tested URL in the video. Turn this on and you will record the all scripts.',
       group: 'video'
     })
-    // legacy of video.notext
-    .option('videoRaw', {
-      type: 'boolean',
-      describe: false
+    .option('videoParams.nice', {
+      default: 0,
+      describe:
+        'Use nice when running FFMPEG during the run. A value from -20 to 19  https://linux.die.net/man/1/nice',
+      group: 'video'
     })
-    .option('speedIndex', {
+    .option('visualMetrics', {
       type: 'boolean',
-      describe: 'Calculate SpeedIndex. Requires FFMpeg and python dependencies'
+      describe:
+        'Collect Visual Metrics like First Visual Change, SpeedIndex, Perceptual Speed Index and Last Visual Change. Requires FFMpeg and Python dependencies'
+    })
+    .option('visuaElements', {
+      type: 'boolean',
+      describe:
+        'Collect Visual Metrics from elements. Works only with --visualMetrics turned on. By default you will get visual metrics from the largest image within the view port and the largest h1. You can also configure to pickup your own defined elements with --scriptInput.visualElements'
+    })
+    .option('scriptInput.visualElements', {
+      describe:
+        'Include specific elements in visual elements. Give the element a name and select it with document.body.querySelector. Use like this: --scriptInput.visualElements name:domSelector see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors. Add multiple instances to measure multiple elements. Visual Metrics will use these elements and calculate when they are visible and fully rendered.'
     })
     .option('browser', {
       alias: 'b',
@@ -274,13 +295,43 @@ module.exports.parseCommandLine = function parseCommandLine() {
       choices: ['chrome', 'firefox'],
       describe: 'Specify browser'
     })
+    /** Screenshot */
     .option('screenshot', {
       type: 'boolean',
-      describe: 'Save one screen shot per iteration.'
+      default: false,
+      describe: 'Save one screen shot per iteration.',
+      group: 'Screenshot'
+    })
+    .option('screenshotParams.type', {
+      describe: 'Set the file type of the screenshot',
+      choices: ['png', 'jpg'],
+      default: screenshotDefaults.type,
+      group: 'Screenshot'
+    })
+    .option('screenshotParams.png.compressionLevel', {
+      describe: 'zlib compression level',
+      default: screenshotDefaults.png.compressionLevel,
+      group: 'Screenshot'
+    })
+    .option('screenshotParams.jpg.quality', {
+      describe: 'Quality of the JPEG screenshot. 1-100',
+      default: screenshotDefaults.jpg.quality,
+      group: 'Screenshot'
+    })
+    .option('screenshotParams.maxSize', {
+      describe: 'The max size of the screenshot (width and height).',
+      default: screenshotDefaults.maxSize,
+      group: 'Screenshot'
     })
     .option('pageCompleteCheck', {
       describe:
-        'Supply a Javascript that decides when the browser is finished loading the page and can start to collect metrics. The Javascript snippet is repeatedly queried to see if page has completed loading (indicated by the script returning true). Use it to fetch timings happening after the loadEventEnd.'
+        'Supply a JavaScript that decides when the browser is finished loading the page and can start to collect metrics. The JavaScript snippet is repeatedly queried to see if page has completed loading (indicated by the script returning true). Use it to fetch timings happening after the loadEventEnd. By default the tests ends 2 seconds after loadEventEnd. Also checkout --pageCompleteCheckInactivity'
+    })
+    .option('pageCompleteCheckInactivity', {
+      describe:
+        'Alternative way to choose when to end your test. This will wait for 2 seconds of inactivity that happens after loadEventEnd.',
+      type: 'boolean',
+      default: false
     })
     .option('iterations', {
       alias: 'n',
@@ -366,11 +417,30 @@ module.exports.parseCommandLine = function parseCommandLine() {
     .option('requestheader', {
       alias: 'r',
       describe:
-        'Request header that will be added to the request. Add multiple instances to add multiple request headers.'
+        'Request header that will be added to the request. Add multiple instances to add multiple request headers. Use the following format key:value'
+    })
+    .option('cookie', {
+      describe:
+        'Cookie that will be added to the request. Add multiple instances to add multiple request cookies. Use the following format cookieName=cookieValue'
+    })
+    .option('injectJs', {
+      describe:
+        'Inject JavaScript into the current page (only Firefox at the moment) at document_start. More info: https://developer.mozilla.org/docs/Mozilla/Add-ons/WebExtensions/API/contentScripts'
     })
     .option('block', {
       describe:
         'Domain to block. Add multiple instances to add multiple domains that will be blocked.'
+    })
+    .option('percentiles', {
+      type: 'array',
+      default: [0, 10, 90, 99, 100],
+      describe:
+        'The percentile values within the data browsertime will calculate and report.'
+    })
+    .option('decimals', {
+      type: 'number',
+      default: 0,
+      describe: 'The decimal points browsertime statistics round to.'
     })
     .option('cacheClearRaw', {
       describe:
@@ -418,6 +488,10 @@ module.exports.parseCommandLine = function parseCommandLine() {
       type: 'boolean',
       describe: 'Pass --skipHar to not collect a HAR file.'
     })
+    .option('gzipHar', {
+      type: 'boolean',
+      describe: 'Pass --gzipHar to gzip the HAR file'
+    })
     .option('config', {
       describe: 'Path to JSON config file',
       config: 'config'
@@ -455,8 +529,11 @@ module.exports.parseCommandLine = function parseCommandLine() {
     .option('headless', {
       type: 'boolean',
       default: false,
+      describe: 'Run the browser in headless mode.'
+    })
+    .option('extension', {
       describe:
-        'Run the browser in headless mode. Needs Firefox Nightly or latest Chrome.'
+        'Path to a WebExtension to be installed in the browser. Note that --extension can be passed multiple times.'
     })
     .count('verbose')
     .string('_')

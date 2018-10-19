@@ -1,14 +1,69 @@
-FROM monroe/base:web
+FROM monroe/base
 
+MAINTAINER jonas.karlsson@kau.se
+
+ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
+ENV NPM_CONFIG_LOGLEVEL info
+ENV NODE_VERSION 8.12.0
+ENV LC_ALL C
+ENV DEBCONF_NONINTERACTIVE_SEEN true
+ENV FIREFOX_VERSION 62.0
+ENV CHROME_VERSION 69.*
+ENV FONTS fonts-ipafont-gothic fonts-ipafont-mincho ttf-wqy-microhei fonts-wqy-microhei fonts-tlwg-loma fonts-tlwg-loma-otf fonts-gargi
+# firefox-locale-hi a font that does not exist in debian
+ENV XVFBDEPS libgl1-mesa-dri xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic dbus-x11
+ENV BROWSERTIME_XVFB true
+ENV BROWSERTIME_CONNECTIVITY__ENGINE external
+ENV BROWSERTIME_DOCKER true
+
+RUN mkdir -p /usr/src/app
+#COPY files/package.json /usr/src/app/
+COPY files/package.json /opt/monroe/
+
+RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
+  touch /etc/init.d/systemd-logind
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && xvfbDeps='xvfb libgl1-mesa-dri xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic dbus-x11' \ 
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && apt-get update \
+    && apt-get install ${APT_OPTS} \
+    xz-utils \
+    python-pip \
+    python-psutil \
+    unzip \
+    $xvfbDeps \
+    google-chrome-stable=${CHROME_VERSION} \
+    && pip install pyvirtualdisplay selenium python-dateutil \
+    && wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 \
+    && tar -xjf firefox-${FIREFOX_VERSION}.tar.bz2  \
+    && rm -rf /opt/firefox \
+    && mv firefox /opt/ \
+    && ln -s /opt/firefox/firefox /usr/local/bin/firefox  \
+    # Needed for when we install FF this way
+    && apt-get install -y libdbus-glib-1-2 \
+    && curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz" \
+    && tar -xJf "node-v$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
+    && rm "node-v$NODE_VERSION-linux-x64.tar.xz" \
+    && ln -s /usr/local/bin/node /usr/local/bin/nodejs \
+    # Fix missing packages
+    && apt-get update ${APT_OPTS} --fix-missing \
+    # Cleanup
+    && apt-get clean ${APT_OPTS} \
+    && apt-get autoremove ${APT_OPTS} \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 firefox-${FIREFOX_VERSION}.tar.bz2  geckodriver.tgz dumb-init.deb
 
 WORKDIR /opt/monroe/
 RUN npm install --production
-RUN mkdir /opt/monroe/basic_browser_repo
+
 COPY files/browsertime-master /opt/monroe/
 COPY files/browsertime-master/browsersupport/ /opt/monroe/basic_browser_repo
 COPY files/run_experiment.py /opt/monroe/
 COPY files/seleniumRunner.js /opt/monroe/lib/core
+#COPY files/test_python_syntax.py /opt/monroe/
 COPY files/browsertime.py /opt/monroe/
+COPY files/browsertime-dbg.py /opt/monroe/
 COPY files/start.sh /opt/monroe/start.sh
 
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]

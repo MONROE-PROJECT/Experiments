@@ -35,6 +35,7 @@ import shlex
 import socket
 import struct
 import random
+import psutil
 import netifaces as ni
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
@@ -103,6 +104,17 @@ EXPCONFIG = {
 	"allowed_interfaces": ["op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
 	}
+
+def check_system():
+    cpu_percent = psutil.cpu_percent()
+    memory_percent = psutil.virtual_memory()[2]
+    disk_percent = psutil.disk_usage('/')[3]
+    disk_percent_2 = psutil.disk_usage('/dev/shm/')[3]
+    response = "Current disk_percent is %s percent.  " % disk_percent
+    response = "Current shared memory disk_percent is %s percent.  " % disk_percent_2
+    response += "Current CPU utilization is %s percent.  " % cpu_percent
+    response += "Current memory utilization is %s percent. " % memory_percent
+    print response
 
 def set_source(ifname):
 	cmd1=["route",
@@ -222,6 +234,9 @@ def run_exp(meta_info, expconfig, url,count):
 		print ("Error: %s - %s." % (e.filename,e.strerror))
 	
 	har_stats={}
+
+	check_system()
+
 	if browser_kind=="chrome":
 		har_stats=run_experiment.browse_chrome(ifname,url,getter_version)
 	else:

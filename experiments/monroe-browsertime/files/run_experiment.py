@@ -34,13 +34,13 @@ def process_har_files():
         with open("web-res/browsertime.har") as f:
             har=json.load(f)
             num_of_objects=0
-
             for entry in har["log"]["entries"]:
                 try:
                     obj={}
                     obj["url"]=entry["request"]["url"]
-                    obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                    pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
+		    if entry["response"]["bodySize"] is not None and entry["response"]["headersSize"] is not None:
+	                    obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
+        	            pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
                     obj["mimeType"]=entry["response"]["content"]["mimeType"]
                     obj["startedDateTime"]=entry["startedDateTime"]
                     obj["time"]=entry["time"]
@@ -77,24 +77,26 @@ def browse_chrome(iface,url,getter_version):
 	try:
 		if getter_version == 'HTTP1.1/TLS':
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'disable-http2',  
 				'--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81  Mobile Safari/537.36"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="HTTP2":
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81  Mobile Safari/537.36"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="QUIC":
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--chrome.args','enable-quic',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81  Mobile Safari/537.36"']
+			output=check_output(" ".join(cmd), shell=True)
                 print "Processing the HAR files ..."
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
@@ -113,8 +115,8 @@ def browse_chrome(iface,url,getter_version):
                         har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
                         har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
                         har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
-                        har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
-                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        #har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
+                        #har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
                         har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
                         har_stats.pop('browserScripts',None)
@@ -124,7 +126,7 @@ def browse_chrome(iface,url,getter_version):
                 except IOError:
                     print "No output found"
 
-                #har_stats["har"]=process_har_files()
+                har_stats["har"]=process_har_files()
 		har_stats["browser"]="Chrome"
 		har_stats["protocol"]=getter_version
 		#har_stats["cache"]=1
@@ -173,23 +175,25 @@ def browse_firefox(iface,url,getter_version):
 			shutil.rmtree(common_cache_folder)
 		except:
 			print "Exception ",str(sys.exc_info())
-        print os.listdir("browsersupport/firefox-profile")
+        #print os.listdir("browsersupport/firefox-profile")
 	try:
 		if getter_version == 'HTTP1.1/TLS':
 			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--firefox.preference', 'network.http.spdy.enabled:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-				'--userAgent', '"Mozilla/5.0 (Android 4.4; Mobile; rv:56.0) Gecko/56.0 Firefox/56.0"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
 
 		else:
 			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
-				'--userAgent', '"Mozilla/5.0 (Android 4.4; Mobile; rv:56.0) Gecko/56.0 Firefox/56.0"']
-			output=check_output(cmd)
-			
+				'-n','1','--resultDir','web-res',
+				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
+		#print  os.listdir("web-res")	
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
 			har_stats = json.load(data_file)
@@ -207,8 +211,8 @@ def browse_firefox(iface,url,getter_version):
                         har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
                         har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
                         har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
-                        har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
-                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
+                        #har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
+                        #har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
                         har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
                         har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
                         har_stats.pop('browserScripts',None)
@@ -217,7 +221,7 @@ def browse_firefox(iface,url,getter_version):
                         har_stats.pop('timestamps',None)
                 except IOError:
                     print "No output found"
-                #har_stats["har"]=process_har_files()
+                har_stats["har"]=process_har_files()
 		har_stats["browser"]="Firefox"
 		har_stats["protocol"]=getter_version
 		#har_stats["cache"]=0

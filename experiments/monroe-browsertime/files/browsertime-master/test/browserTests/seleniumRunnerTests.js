@@ -3,6 +3,7 @@
 const SeleniumRunner = require('../../lib/core/seleniumRunner');
 
 const BROWSERS = [];
+const BASE_PATH = '/tmp/';
 
 if (process.env.BROWSERTIME_TEST_BROWSER) {
   BROWSERS.push(process.env.BROWSERTIME_TEST_BROWSER);
@@ -10,12 +11,27 @@ if (process.env.BROWSERTIME_TEST_BROWSER) {
   BROWSERS.push('chrome', 'firefox');
 }
 
+function timeout(promise, ms, errorMessage) {
+  let timer = null;
+
+  return Promise.race([
+    new Promise((resolve, reject) => {
+      timer = setTimeout(reject, ms, new Error(errorMessage));
+      return timer;
+    }),
+    promise.then(value => {
+      clearTimeout(timer);
+      return value;
+    })
+  ]);
+}
+
 describe('SeleniumRunner', function() {
   let runner;
 
   describe('#start', function() {
     it('should reject when passed incorrect configuration', function() {
-      runner = new SeleniumRunner({
+      runner = new SeleniumRunner(BASE_PATH, {
         browser: 'invalid'
       });
       return runner.start().should.be.rejected;
@@ -23,7 +39,7 @@ describe('SeleniumRunner', function() {
 
     if (BROWSERS.includes('chrome')) {
       it.skip('should handle if Chrome crashes', function() {
-        runner = new SeleniumRunner({
+        runner = new SeleniumRunner(BASE_PATH, {
           browser: 'chrome',
           chrome: {
             args: '--crash-test'
@@ -42,13 +58,13 @@ describe('SeleniumRunner', function() {
   BROWSERS.forEach(function(browser) {
     describe('#loadAndWait - ' + browser, function() {
       beforeEach(function() {
-        runner = new SeleniumRunner({
+        runner = new SeleniumRunner(BASE_PATH, {
           browser: browser,
           timeouts: {
             browserStart: 60000,
             scripts: 5000,
             pageLoad: 10000,
-            pageCompleteCheck: 10000
+            pageCompleteCheck: 5000
           }
         });
         return runner.start();
@@ -56,42 +72,43 @@ describe('SeleniumRunner', function() {
 
       it('should be able to load a url', function() {
         return runner.loadAndWait(
-          'http://httpbin.org/html'
+          'https://www.sitespeed.io/testcases/info/domElements.html'
         ).should.be.fulfilled;
       });
-
-      it('should fail if url takes too long to load', function() {
+      it.skip('should fail if url takes too long to load, enable this when httpbin works again', function() {
         return runner.loadAndWait(
-          'http://httpbin.org/delay/20',
+          'https://httpbin.org/delay/20',
           'return true'
         ).should.be.rejected;
       });
 
       it('should fail if wait script never returns true', function() {
         return runner.loadAndWait(
-          'http://httpbin.org/html',
+          'https://www.sitespeed.io/testcases/info/domElements.html',
           'return false'
         ).should.be.rejected;
       });
 
       it('should fail if wait script throws an exception', function() {
         return runner.loadAndWait(
-          'http://httpbin.org/html',
+          'https://www.sitespeed.io/testcases/info/domElements.html',
           'throw new Error("foo");'
         ).should.be.rejected;
       });
 
       it.skip('should fail if wait script hangs', function() {
         return runner.loadAndWait(
-          'http://httpbin.org/html',
+          'https://www.sitespeed.io/testcases/info/domElements.html',
           'while (true) {}; return true;'
         ).should.be.rejected;
       });
 
       afterEach(function() {
-        return runner
-          .stop()
-          .timeout(10000, 'Waited for ' + browser + ' to quit for too long');
+        return timeout(
+          runner.stop(),
+          10000,
+          'Waited for ' + browser + ' to quit for too long'
+        );
       });
     });
 
@@ -152,15 +169,17 @@ describe('SeleniumRunner', function() {
       });
 
       afterEach(function() {
-        return runner
-          .stop()
-          .timeout(10000, 'Waited for ' + browser + ' to quit for too long');
+        return timeout(
+          runner.stop(),
+          10000,
+          'Waited for ' + browser + ' to quit for too long'
+        );
       });
     });
 
     describe('#takeScreenshot - ' + browser, function() {
       beforeEach(function() {
-        runner = new SeleniumRunner({
+        runner = new SeleniumRunner(BASE_PATH, {
           browser: browser,
           timeouts: {
             browserStart: 60000,
