@@ -24,15 +24,8 @@ module.exports.configure = function configure(options) {
     level = log.NONE;
   }
 
-  if (level === log.INFO) {
-    log.basicConfig({
-      format: '[%(date)s] %(levelname)s: %(message)s',
-      level: level
-    });
-  } else {
-    log.basicConfig({
-      format: '[%(date)s] %(levelname)s: [%(name)s] %(message)s',
-      level: level
-    });
-  }
+  log.basicConfig({
+    format: '[%(date)s] %(message)s',
+    level: level
+  });
 };

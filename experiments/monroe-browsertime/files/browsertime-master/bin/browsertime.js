@@ -1,58 +1,68 @@
 #!/usr/bin/env node
 'use strict';
 
-const Engine = require('../').Engine;
-const browserScripts = require('../lib/support/browserScript');
-const logging = require('../').logging;
-const cli = require('../lib/support/cli');
-const StorageManager = require('../lib/support/storageManager');
-const merge = require('lodash.merge');
-const isEmpty = require('lodash.isempty');
-const pick = require('lodash.pick');
-const fs = require('fs');
-const path = require('path');
-const log = require('intel').getLogger('browsertime');
+let Engine = require('../').Engine,
+  browserScripts = require('../lib/support/browserScript'),
+  logging = require('../').logging,
+  cli = require('../lib/support/cli'),
+  StorageManager = require('../lib/support/storageManager'),
+  Promise = require('bluebird'),
+  merge = require('lodash.merge'),
+  isEmpty = require('lodash.isempty'),
+  forEach = require('lodash.foreach'),
+  pick = require('lodash.pick'),
+  fs = require('fs'),
+  path = require('path'),
+  log = require('intel');
 
-async function parseUserScripts(scripts) {
+Promise.promisifyAll(fs);
+
+function parseUserScripts(scripts) {
   if (!Array.isArray(scripts)) scripts = [scripts];
-  const results = {};
-  for (const script of scripts) {
-    const code = await browserScripts.findAndParseScripts(
-      path.resolve(script),
-      'custom'
-    );
-    merge(results, code);
-  }
-  return results;
+
+  return Promise.reduce(
+    scripts,
+    (results, script) =>
+      browserScripts
+        .findAndParseScripts(path.resolve(script), 'custom')
+        .then(scripts => merge(results, scripts)),
+    {}
+  );
 }
 
-async function run(url, options) {
-  try {
-    let dir = 'browsertime-results';
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir);
-    }
+function run(url, options) {
+  let dir = 'browsertime-results';
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
+  }
 
-    let engine = new Engine(options);
+  let engine = new Engine(options);
 
-    log.info('Running %s for url: %s', options.browser, url);
-    if (log.isEnabledFor(log.DEBUG)) {
-      log.debug('Running with options: %:2j', options);
-    }
+  log.info('Running %s for url: %s', options.browser, url);
+  if (log.isEnabledFor(log.DEBUG)) {
+    log.debug('Running with options: %:2j', options);
+  }
 
-    const scriptCategories = await browserScripts.allScriptCategories;
-    let scriptsByCategory = await browserScripts.getScriptsForCategories(
-      scriptCategories
+  const scriptCategories = browserScripts.allScriptCategories;
+  let scriptsByCategory = browserScripts.getScriptsForCategories(
+    scriptCategories
+  );
+
+  if (options.script) {
+    const userScripts = parseUserScripts(options.script);
+    scriptsByCategory = Promise.join(
+      scriptsByCategory,
+      userScripts,
+      (scriptsByCategory, userScripts) => merge(scriptsByCategory, userScripts)
     );
+  }
 
-    if (options.script) {
-      const userScripts = await parseUserScripts(options.script);
-      scriptsByCategory = merge(scriptsByCategory, userScripts);
-    }
-
-    try {
-      await engine.start();
-      const result = await engine.run(url, scriptsByCategory);
+  engine
+    .start()
+    .then(function() {
+      return engine.run(url, scriptsByCategory);
+    })
+    .then(function(result) {
       let saveOperations = [];
 
       const storageManager = new StorageManager(url, options);
@@ -63,9 +73,7 @@ async function run(url, options) {
         'browserScripts',
         'statistics',
         'visualMetrics',
-        'timestamps',
-        'cpu',
-        'errors'
+        'timestamps'
       ]);
       if (!isEmpty(btData)) {
         saveOperations.push(
@@ -73,42 +81,57 @@ async function run(url, options) {
         );
       }
       if (result.har) {
-        const useGzip = options.gzipHar === true;
         saveOperations.push(
-          storageManager.writeJson(harName + '.har', result.har, useGzip)
+          storageManager.writeJson(harName + '.har', result.har)
         );
       }
-      await Promise.all(saveOperations);
+      forEach(result.extraJson, (value, key) =>
+        saveOperations.push(storageManager.writeJson(key, value))
+      );
+      forEach(result.screenshots, (value, index) =>
+        saveOperations.push(
+          storageManager.writeData(`screenshot-${index}.png`, value)
+        )
+      );
 
-      const resultDir = path.relative(process.cwd(), storageManager.directory);
-
-      // check for errors
-      for (let errors of result.errors) {
-        if (errors.length > 0) {
-          process.exitCode = 1;
-        }
-      }
-      log.info(`Wrote data to ${resultDir}`);
-    } finally {
+      return Promise.all(saveOperations).then(() => {
+        log.info(
+          'Wrote data to %s',
+          path.relative(process.cwd(), storageManager.directory)
+        );
+        return result;
+      });
+    })
+    .catch(function(e) {
+      log.error('Error running browsertime', e);
+      throw e;
+    })
+    .finally(function() {
       log.debug('Stopping Browsertime');
-      try {
-        await engine.stop();
-        log.debug('Stopped Browsertime');
-      } catch (e) {
-        log.error('Error stopping Browsertime!', e);
-        process.exitCode = 1;
-      }
-    }
-  } catch (e) {
-    log.error('Error running browsertime', e);
-    process.exitCode = 1;
-  } finally {
-    process.exit();
-  }
+      return engine
+        .stop()
+        .tap(() => {
+          log.debug('Stopped Browsertime');
+        })
+        .catch(e => {
+          log.error('Error stopping Browsertime!', e);
+
+          process.exitCode = 1;
+        });
+    })
+    .catch(function() {
+      process.exitCode = 1;
+    })
+    .finally(process.exit); // explicitly exit to avoid a hanging process
 }
 
 let cliResult = cli.parseCommandLine();
 
 logging.configure(cliResult.options);
+
+if (log.isEnabledFor(log.CRITICAL)) {
+  // TODO change the threshold to VERBOSE before releasing 1.0
+  Promise.longStackTraces();
+}
 
 run(cliResult.url, cliResult.options);

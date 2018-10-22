@@ -20,12 +20,6 @@ describe('statistics', function() {
       assert.deepEqual(result.foo, result.bar);
     });
 
-    it('should handle keys with dots', function() {
-      stats.add('1.2.3', 42.0);
-      let result = stats.summarize();
-      assert.deepEqual(result['1.2.3'].mean, 42.0);
-    });
-
     it('should require string keys', function() {
       assert.throws(function() {
         stats.add(3, 3);
@@ -118,23 +112,18 @@ describe('statistics', function() {
               {
                 name: 'logoTime',
                 startTime: 2654.805
-              },
-              {
-                name: 'timing.good.times',
-                startTime: 123.456
               }
             ],
             measures: []
           }
         },
         (keyPath, value) => {
-          const equals = (a1, a2) => JSON.stringify(a1) === JSON.stringify(a2);
-          if (equals(keyPath, ['userTimings', 'marks'])) {
+          if (keyPath === 'userTimings.marks') {
             return value.reduce((result, mark) => {
               result[mark.name] = mark.startTime;
               return result;
             }, {});
-          } else if (equals(keyPath, ['userTimings', 'measures'])) {
+          } else if (keyPath === 'userTimings.measure') {
             return value.reduce((result, mark) => {
               result[mark.name] = mark.duration;
               return result;
@@ -159,10 +148,9 @@ describe('statistics', function() {
         }
       });
 
-      let result = stats.summarizeDeep({ decimals: 3 });
+      let result = stats.summarizeDeep();
       assert.deepEqual(result.a, result.b.d);
       assert.equal(result.b.c.mean, result.b.d.mean);
-      assert.equal(result.userTimings.marks['timing.good.times'].max, 123.456);
     });
   });
 

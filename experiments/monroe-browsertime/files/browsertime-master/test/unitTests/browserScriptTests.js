@@ -30,8 +30,8 @@ describe('#parseBrowserScripts', function() {
   });
 
   it('should get scripts for all categories', function() {
-    return parser.allScriptCategories
-      .then(categories => parser.getScriptsForCategories(categories))
+    return parser
+      .getScriptsForCategories(parser.allScriptCategories)
       .then(scriptsByCategory => {
         const categoryNames = Object.keys(scriptsByCategory);
 

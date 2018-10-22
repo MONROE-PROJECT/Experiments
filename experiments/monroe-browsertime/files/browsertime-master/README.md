@@ -4,8 +4,6 @@
 [![Downloads total][downloads-total-image]][downloads-url]
 [![Stars][stars-image]][stars-url]
 
-[Documentation](https://www.sitespeed.io/documentation/browsertime/) | [Changelog](https://github.com/sitespeedio/browsertime/blob/master/CHANGELOG.md)
-
 ![Browsertime](browsertime.png)
 
 Access the Web Performance Timeline, from your browser, in your terminal!
@@ -37,6 +35,7 @@ To understand how Browsertime does these things, let's talk about how it works. 
 5. When the page is finished loading (you can define yourself when that happens), Browsertime executes the default JavaScript timing metrics and collects:
    - [Navigation Timing metrics](http://kaaes.github.io/timing/info.html)
    - [User Timing metrics](http://www.html5rocks.com/en/tutorials/webperformance/usertiming/)
+   - [Resource Timing data](http://www.w3.org/TR/resource-timing/)
    - First paint
    - [RUM Speed Index](https://github.com/WPO-Foundation/RUM-SpeedIndex).
 6. It also collects a [HAR](http://www.softwareishard.com/blog/har-12-spec/) file that shows all requests/responses on the page.
@@ -161,7 +160,7 @@ You need to [install adb](https://www.sitespeed.io/documentation/sitespeed.io/mo
 If you want to set connectivity you need to use something like [Micro device lab](https://github.com/phuedx/micro-device-lab) or [TSProxy](https://github.com/WPO-Foundation/tsproxy).
 
 <pre>
-$ browsertime --chrome.android.package com.android.chrome https://www.sitespeed.io --video --visualMetrics
+$ browsertime --chrome.android.package com.android.chrome https://www.sitespeed.io --video --speedIndex
 </pre>
 
 If you are on Linux (we have tested Ubuntu 16) you can use our Docker container to drive your Android phone. A couple of things to remember:
@@ -173,14 +172,14 @@ If you are on Linux (we have tested Ubuntu 16) you can use our Docker container 
 If you use Docker you will automatically get support for video and SpeedIndex. You can get that without Docker but then need to [install VisualMetrics dependencies](https://github.com/sitespeedio/docker-visualmetrics-deps/blob/master/Dockerfile) yourself.
 
 <pre>
-$ docker run --privileged -v /dev/bus/usb:/dev/bus/usb -e START_ADB_SERVER=true --shm-size=1g --rm -v "$(pwd)":/browsertime-results sitespeedio/browsertime -n 1 --chrome.android.package com.android.chrome --xvfb false --visualMetrics --video https://en.m.wikipedia.org/wiki/Barack_Obama
+$ docker run --privileged -v /dev/bus/usb:/dev/bus/usb -e START_ADB_SERVER=true --shm-size=1g --rm -v "$(pwd)":/browsertime-results sitespeedio/browsertime -n 1 --chrome.android.package com.android.chrome --xvfb false --speedIndex --video https://en.m.wikipedia.org/wiki/Barack_Obama
 </pre>
 
 ## Configuration
 Run <code>$ bin/browsertime.js --help</code> and you can see the configuration options.
 
 ## Using WebPageReplay
-Our Docker container now included [WebPageReplay](https://github.com/catapult-project/catapult/blob/master/web_page_replay_go/README.md).
+We have a special Docker container that comes with [WebPageReplay](https://github.com/catapult-project/catapult/blob/master/web_page_replay_go/README.md) installed. This is a really early alpha release but we think you should try it out.
 
 WebPageReplay will let you replay your page locally (getting rid of server latency etc) and makes it easier to find front end regressions.
 
@@ -197,20 +196,15 @@ You can change latency by setting a Docker environment variable. Use REPLAY to t
 Default browser is Chrome:
 
 ```
-docker run --cap-add=NET_ADMIN --shm-size=1g --rm -v "$(pwd)":/browsertime -e REPLAY=true -e LATENCY=100 sitespeedio/browsertime:3.0.0 https://en.wikipedia.org/wiki/Barack_Obama
+docker run --cap-add=NET_ADMIN --shm-size=1g --rm -v "$(pwd)":/browsertime -e REPLAY=true -e LATENCY=100 sitespeedio/browsertime:2.1.1-wpr-alpha https://en.wikipedia.org/wiki/Barack_Obama
 ```
 
 Use Firefox:
 
 ```
-docker run --cap-add=NET_ADMIN --shm-size=1g --rm -v "$(pwd)":/browsertime -e REPLAY=true -e LATENCY=100 sitespeedio/browsertime:3.0.0 -b firefox -n 11 https://en.wikipedia.org/wiki/Barack_Obama
+docker run --cap-add=NET_ADMIN --shm-size=1g --rm -v "$(pwd)":/browsertime -e REPLAY=true -e LATENCY=100 sitespeedio/browsertime:2.1.1-wpr-alpha -b firefox --skipHar -n 11 https://en.wikipedia.org/wiki/Barack_Obama
 ```
-
-And Chrome on your Android phone. This will only work on Linux because you need to be able to mount the usb port in Docker:
-
-```
-docker run --privileged -v /dev/bus/usb:/dev/bus/usb -e START_ADB_SERVER=true --cap-add=NET_ADMIN --shm-size=1g --rm -v “$(pwd)“:/browsertime -e REPLAY=true -e LATENCY=100 sitespeedio/browsertime https://en.m.wikipedia.org/wiki/Barack_Obama --chrome.android.package com.android.chrome --xvfb false --chrome.args ignore-certificate-errors-spki-list=PhrPvGIaAMmd29hj8BCZOq096yj7uMpRNHpn5PDxI6I= -n 11 --chrome.args user-data-dir=/data/tmp/chrome
-```
+IMPORTANT: We use Firefox 57 for WebPageReplay because we need to run a higher version than 54, that means we cannot get a HAR file until Mozilla releases the new way of getting that HAR. That's why you need to add *--skipHar* for Firefox.
 
 ## Send metrics to Graphite
 The easiest way to send metrics is to install [jq](https://stedolan.github.io/jq/) and use it to pick the values you wanna track.

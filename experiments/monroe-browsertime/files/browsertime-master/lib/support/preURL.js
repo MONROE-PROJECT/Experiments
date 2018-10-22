@@ -1,10 +1,19 @@
 'use strict';
 
-const log = require('intel').getLogger('browsertime');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const Promise = require('bluebird'),
+  log = require('intel');
 
-module.exports = async function(browser, options) {
-  log.info('Accessing preURL %s', options.preURL);
-  await browser.loadAndWait(options.preURL);
-  await delay(options.preURLDelay ? options.preURLDelay : 1500);
+module.exports = {
+  run(context) {
+    return context
+      .runWithDriver(driver => {
+        log.info('Accessing preURL %s', context.options.preURL);
+        return driver.get(context.options.preURL);
+      })
+      .then(() =>
+        Promise.delay(
+          context.options.preURLDelay ? context.options.preURLDelay : 1500
+        )
+      );
+  }
 };

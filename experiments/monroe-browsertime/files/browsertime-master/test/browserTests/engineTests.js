@@ -1,8 +1,7 @@
 'use strict';
 
-const Promise = require('bluebird');
-const path = require('path');
-const Engine = require('../../lib/core/engine');
+const path = require('path'),
+  Engine = require('../../lib/core/engine');
 
 const BROWSERS = [];
 
@@ -35,9 +34,7 @@ describe('Engine', function() {
       it('should be able to load a url', function() {
         // somewhat clunky way to ignore generated har data in test.
         let browserScripts = engine
-          .run('https://www.sitespeed.io/testcases/info/domElements.html', {
-            scripts
-          })
+          .run('http://httpbin.org/html', { scripts })
           .then(function(r) {
             return r.browserScripts;
           });
@@ -45,14 +42,14 @@ describe('Engine', function() {
           {
             scripts: {
               foo: 'fff',
-              uri: 'https://www.sitespeed.io/testcases/info/domElements.html',
+              uri: 'http://httpbin.org/html',
               fourtytwo: 42
             }
           },
           {
             scripts: {
               foo: 'fff',
-              uri: 'https://www.sitespeed.io/testcases/info/domElements.html',
+              uri: 'http://httpbin.org/html',
               fourtytwo: 42
             }
           }
@@ -61,39 +58,28 @@ describe('Engine', function() {
 
       it('should be able to load multiple urls', function() {
         return engine
-          .run('https://www.sitespeed.io/testcases/info/domElements.html', {
-            scripts
-          })
+          .run('http://httpbin.org/html', { scripts })
           .then(function() {
-            return engine.run(
-              'https://www.sitespeed.io/testcases/info/responsive.html',
-              { scripts }
-            );
+            return engine.run('http://httpbin.org/html', { scripts });
           }).should.be.fulfilled;
       });
 
-      if (browser === 'chrome') {
-        it('should be able to generate a har', function() {
-          // somewhat clunky way to ignore generated har data in test.
-          return engine
-            .run('https://www.sitespeed.io/testcases/info/domElements.html', {
-              scripts
-            })
-            .then(function(r) {
-              return r.har.should.have.nested.property(
-                'log.entries[0].request.url'
-              );
-            });
-        });
-      } else {
-        it.skip('Firefox cannot generate a HAR since Firefox 55');
-      }
+      it('should be able to generate a har', function() {
+        // somewhat clunky way to ignore generated har data in test.
+        return engine
+          .run('http://httpbin.org/html', { scripts })
+          .then(function(r) {
+            return r.har.should.have.nested.property(
+              'log.entries[0].request.url'
+            );
+          });
+      });
 
-      afterEach(() =>
-        Promise.resolve(engine.stop()).timeout(
-          10000,
-          'Waited for ' + browser + ' to quit for too long'
-        ));
+      afterEach(function() {
+        return engine
+          .stop()
+          .timeout(10000, 'Waited for ' + browser + ' to quit for too long');
+      });
     });
 
     describe('#run async - ' + browser, function() {
@@ -118,7 +104,7 @@ describe('Engine', function() {
       it('should be able to run async script', function() {
         let browserScripts = engine
           .run(
-            'https://www.sitespeed.io/testcases/info/domElements.html',
+            'http://httpbin.org/html',
             { scripts: syncScripts },
             { scripts: asyncScripts }
           )
@@ -129,7 +115,7 @@ describe('Engine', function() {
           {
             scripts: {
               foo: 'fff',
-              uri: 'https://www.sitespeed.io/testcases/info/domElements.html',
+              uri: 'http://httpbin.org/html',
               fourtytwo: 42,
               promiseFourtyThree: 43
             }
@@ -139,12 +125,9 @@ describe('Engine', function() {
 
       it('should be able to run async fetch script', function() {
         let browserScripts = engine
-          .run(
-            'https://www.sitespeed.io/testcases/info/domElements.html',
-            null,
-            {
-              scripts: {
-                fetched: `(function() {
+          .run('http://httpbin.org/html', null, {
+            scripts: {
+              fetched: `(function() {
             var request = new Request(document.URL, {
               redirect: 'follow',
               destination: 'document'
@@ -152,9 +135,8 @@ describe('Engine', function() {
 
             return fetch(request).then(response => response.ok);
           })()`
-              }
             }
-          )
+          })
           .then(function(r) {
             return r.browserScripts;
           });
@@ -167,11 +149,11 @@ describe('Engine', function() {
         ]);
       });
 
-      afterEach(() =>
-        Promise.resolve(engine.stop()).timeout(
-          10000,
-          'Waited for ' + browser + ' to quit for too long'
-        ));
+      afterEach(function() {
+        return engine
+          .stop()
+          .timeout(10000, 'Waited for ' + browser + ' to quit for too long');
+      });
     });
 
     describe('#pre/post scripts - ' + browser, function() {
@@ -203,11 +185,11 @@ describe('Engine', function() {
         return engine.run('data:text/html;charset=utf-8,', { scripts });
       });
 
-      afterEach(() =>
-        Promise.resolve(engine.stop()).timeout(
-          10000,
-          'Waited for ' + browser + ' to quit for too long'
-        ));
+      afterEach(function() {
+        return engine
+          .stop()
+          .timeout(10000, 'Waited for ' + browser + ' to quit for too long');
+      });
     });
   });
 });

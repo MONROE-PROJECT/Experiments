@@ -2,9 +2,9 @@
 
 'use strict';
 
-const yargs = require('yargs');
-const browsertime = require('../');
-const merge = require('lodash.merge');
+let yargs = require('yargs'),
+  browsertime = require('../'),
+  merge = require('lodash.merge');
 
 async function runBrowsertime() {
   let parsed = yargs
@@ -15,46 +15,31 @@ async function runBrowsertime() {
       default: 'chrome',
       choices: ['chrome', 'firefox'],
       describe: 'Specify browser'
-    })
-    .option('connectivity.latency', {
-      default: undefined,
-      group: 'connectivity'
     });
 
   const defaultConfig = {
     iterations: 1,
     connectivity: {
+      profile: 'native',
       downstreamKbps: undefined,
       upstreamKbps: undefined,
       latency: undefined,
-      engine: 'external',
-      localhost: true
+      engine: 'external'
     },
     delay: 0,
     video: false,
-    visualMetrics: false,
-    resultDir: '/tmp/browsertime',
-    screenshotParams: {
-      type: 'jpg'
-    }
+    speedIndex: false,
+    resultDir: '/tmp/browsertime'
   };
 
   const btOptions = merge({}, parsed.argv, defaultConfig);
   browsertime.logging.configure(parsed.argv);
 
   const engine = new browsertime.Engine(btOptions);
-  try {
-    await engine.start();
-    const result = await engine.run(parsed.argv._[0]);
-    for (let errors of result.errors) {
-      if (errors.length > 0) {
-        process.exitCode = 1;
-      }
-    }
-  } finally {
-    await engine.stop();
-    process.exit();
-  }
+  await engine
+    .start()
+    .then(() => engine.run(parsed.argv._[0]))
+    .finally(() => engine.stop());
 }
 
 runBrowsertime();

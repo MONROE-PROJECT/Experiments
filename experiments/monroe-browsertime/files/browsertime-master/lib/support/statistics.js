@@ -1,11 +1,11 @@
-'use strict';
 /*
  * Utility functions for managing statistics of collected metrics and timings.
  */
+'use strict';
 
-const get = require('lodash.get');
-const set = require('lodash.set');
-const Stats = require('fast-stats').Stats;
+const get = require('lodash.get'),
+  set = require('lodash.set'),
+  Stats = require('fast-stats').Stats;
 
 function validateType(value, type, message) {
   if (typeof value !== type) {
@@ -65,7 +65,7 @@ class Statistics {
     }
 
     function addRecursive(target, keyPrefix, value) {
-      if (tranformFunction && keyPrefix.length > 0) {
+      if (tranformFunction && keyPrefix) {
         value = tranformFunction(keyPrefix, value);
       }
       const valueType = typeof value;
@@ -83,8 +83,11 @@ class Statistics {
               break;
             }
             Object.keys(value).forEach(key => {
-              const path = keyPrefix.concat([key]);
-              addRecursive(target, path, value[key]);
+              addRecursive(
+                target,
+                [keyPrefix, key].filter(o => !!o).join('.'),
+                value[key]
+              );
             });
           }
           break;
@@ -109,7 +112,7 @@ class Statistics {
       }
     }
 
-    addRecursive(this.data, [], data);
+    addRecursive(this.data, undefined, data);
   }
 
   summarize(options) {
@@ -118,18 +121,16 @@ class Statistics {
     let decimals = options.decimals || 0;
 
     return Object.keys(this.data).reduce((results, key) => {
-      let stats = get(this.data, [key]);
-      const node = {
+      let stats = this.data[key];
+      results[key] = {
         median: Number(stats.median().toFixed(decimals)),
         mean: Number(stats.amean().toFixed(decimals)),
         mdev: Number(stats.stddev() / Math.sqrt(stats.length).toFixed(decimals)) // "standard deviation of the mean"
       };
       percentiles.forEach(function(p) {
         let name = percentileName(p);
-        node[name] = Number(stats.percentile(p).toFixed(decimals));
+        results[key][name] = Number(stats.percentile(p).toFixed(decimals));
       });
-      set(results, [key], node);
-
       return results;
     }, {});
   }
@@ -143,8 +144,7 @@ class Statistics {
       const results = {
         median: Number(stats.median().toFixed(decimals)),
         mean: Number(stats.amean().toFixed(decimals)),
-        mdev: Number((stats.stddev() / Math.sqrt(stats.length)).toFixed(4)), // "standard deviation of the mean"
-        stddev: Number(stats.stddev().toFixed(decimals))
+        mdev: Number(stats.stddev() / Math.sqrt(stats.length).toFixed(decimals)) // "standard deviation of the mean"
       };
       percentiles.forEach(p => {
         let name = percentileName(p);
@@ -158,8 +158,11 @@ class Statistics {
         set(target, keyPrefix, summarize(data));
       } else if (typeof data === 'object') {
         Object.keys(data).forEach(key => {
-          const path = keyPrefix.concat([key]);
-          summarizeRecursive(target, path, data[key]);
+          summarizeRecursive(
+            target,
+            [keyPrefix, key].filter(o => !!o).join('.'),
+            data[key]
+          );
         });
       } else {
         throw new Error(
@@ -169,7 +172,7 @@ class Statistics {
     }
 
     const result = {};
-    summarizeRecursive(result, [], this.data);
+    summarizeRecursive(result, undefined, this.data);
     return result;
   }
 }

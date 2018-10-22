@@ -1,29 +1,18 @@
 #!/bin/bash
 set -e
 
-# See https://github.com/SeleniumHQ/docker-selenium/issues/87
-export DBUS_SESSION_BUS_ADDRESS=/dev/null
-
 google-chrome --version
 firefox --version
 
 BROWSERTIME_RECORD=/usr/src/app/bin/browsertimeWebPageReplay.js
 BROWSERTIME=/usr/src/app/bin/browsertime.js
 
-HTTP_PORT=80
-HTTPS_PORT=443
-
-CERT_FILE=/webpagereplay/certs/wpr_cert.pem
-KEY_FILE=/webpagereplay/certs/wpr_key.pem
-
-SCRIPTS=/webpagereplay/scripts/deterministic.js
-
 if [ -n "$START_ADB_SERVER" ] ; then
-  WPR_HTTP_PORT=${WPR_HTTP_PORT:-8080}
-  WPR_HTTPS_PORT=${WPR_HTTPS_PORT:-8081}
+  WPR_HTTP_PORT=8080
+  WPR_HTTPS_PORT=8081
 else
-  WPR_HTTP_PORT=${WPR_HTTP_PORT:-80}
-  WPR_HTTPS_PORT=${WPR_HTTPS_PORT:-443}
+  WPR_HTTP_PORT=80
+  WPR_HTTPS_PORT=443
 fi
 
 # Here's a hack for fixing the problem with Chrome not starting in time
@@ -41,76 +30,45 @@ function chromeSetup() {
 function setupADB(){
   # Start adb server and list connected devices
   if [ -n "$START_ADB_SERVER" ] ; then
-    sudo adb version
     sudo adb start-server
     sudo adb devices
+  fi
 
-    if [ -n "$REPLAY" ] ; then
-      if [ -n "$DEVICE_SERIAL" ] ; then
-        sudo adb -s $DEVICE_SERIAL reverse tcp:$WPR_HTTP_PORT tcp:$WPR_HTTP_PORT
-        sudo adb -s $DEVICE_SERIAL reverse tcp:$WPR_HTTPS_PORT tcp:$WPR_HTTPS_PORT
-      else
-        sudo adb reverse tcp:$WPR_HTTP_PORT tcp:$WPR_HTTP_PORT
-        sudo adb reverse tcp:$WPR_HTTPS_PORT tcp:$WPR_HTTPS_PORT
-      fi
-    fi
-
+  if [ $REPLAY ] ; then
+      sudo adb reverse tcp:$WPR_HTTP_PORT tcp:$WPR_HTTP_PORT
+      sudo adb reverse tcp:$WPR_HTTPS_PORT tcp:$WPR_HTTPS_PORT
   fi
 }
 
 function runWebPageReplay() {
 
   function shutdown {
-    kill -2 $replay_pid
-    wait $replay_pid
+    webpagereplaywrapper replay --stop $WPR_PARAMS
     kill -s SIGTERM ${PID}
     wait $PID
   }
 
   LATENCY=${LATENCY:-100}
-  WPR_PARAMS="--http_port $WPR_HTTP_PORT --https_port $WPR_HTTPS_PORT --https_cert_file $CERT_FILE --https_key_file $KEY_FILE --inject_scripts $SCRIPTS /tmp/archive.wprgo"
-  WAIT=${WAIT:-5000}
-  REPLAY_WAIT=${REPLAY_WAIT:-3}
-  RECORD_WAIT=${RECORD_WAIT:-3}
-  WAIT_SCRIPT="return (function() {try { var end = window.performance.timing.loadEventEnd; var start= window.performance.timing.navigationStart; return (end > 0) && (performance.now() > end - start + $WAIT);} catch(e) {return true;}})()"
+  WPR_PATH=/root/go/src/github.com/catapult-project/catapult/web_page_replay_go
+  WPR_PARAMS="--path $WPR_PATH --http $WPR_HTTP_PORT --https $WPR_HTTPS_PORT"
+  WAIT=${WAIT:-2000}
 
-  declare -i RESULT=0
-  echo 'Start WebPageReplay Record'
-  wpr record $WPR_PARAMS > /tmp/wpr-record.log 2>&1 &
-  record_pid=$!
-  sleep $RECORD_WAIT
-  $BROWSERTIME_RECORD --firefox.preference network.dns.forceResolve:127.0.0.1 --chrome.args host-resolver-rules="MAP *:$HTTP_PORT 127.0.0.1:$WPR_HTTP_PORT,MAP *:$HTTPS_PORT 127.0.0.1:$WPR_HTTPS_PORT,EXCLUDE localhost" --pageCompleteCheck "$WAIT_SCRIPT" "$@"
-  RESULT+=$?
+  webpagereplaywrapper record --start $WPR_PARAMS
 
-  kill -2 $record_pid
-  RESULT+=$?
-  wait $record_pid
-  echo 'Stopped WebPageReplay record'
+  $BROWSERTIME_RECORD  --firefox.preference network.dns.forceResolve:127.0.0.1 --firefox.acceptInsecureCerts --chrome.args host-resolver-rules="MAP *:$HTTP_PORT 127.0.0.1:$WPR_HTTP_PORT,MAP *:$HTTPS_PORT 127.0.0.1:$WPR_HTTPS_PORT,EXCLUDE localhost" --pageCompleteCheck "return (function() {try { if (performance.now() > ((performance.timing.loadEventEnd - performance.timing.navigationStart) + $WAIT)) {return true;} else return false;} catch(e) {return true;}})()" "$@"
 
-  if [ $RESULT -eq 0 ]
-    then
-      echo 'Start WebPageReplay Replay'
-      wpr replay $WPR_PARAMS > /tmp/wpr-replay.log 2>&1 &
-      replay_pid=$!
-      sleep $REPLAY_WAIT
-      if [ $? -eq 0 ]
-        then
-          exec $BROWSERTIME --firefox.preference network.dns.forceResolve:127.0.0.1 --firefox.preference security.OCSP.enabled:0 --chrome.args host-resolver-rules="MAP *:$HTTP_PORT 127.0.0.1:$WPR_HTTP_PORT,MAP *:$HTTPS_PORT 127.0.0.1:$WPR_HTTPS_PORT,EXCLUDE localhost" --video --visualMetrics --pageCompleteCheck "$WAIT_SCRIPT" --connectivity.engine throttle --connectivity.throttle.localhost --connectivity.profile custom --connectivity.latency $LATENCY "$@" &
+  webpagereplaywrapper record --stop $WPR_PARAMS
 
-          PID=$!
+  webpagereplaywrapper replay --start $WPR_PARAMS
 
-          trap shutdown SIGTERM SIGINT
-          wait $PID
-          kill -s SIGTERM $replay_pid
+  exec $BROWSERTIME --firefox.acceptInsecureCerts --firefox.preference network.dns.forceResolve:127.0.0.1 --chrome.args host-resolver-rules="MAP *:$HTTP_PORT 127.0.0.1:$WPR_HTTP_PORT,MAP *:$HTTPS_PORT 127.0.0.1:$WPR_HTTPS_PORT,EXCLUDE localhost" --video --speedIndex --pageCompleteCheck "return (function() {try { if (performance.now() > ((performance.timing.loadEventEnd - performance.timing.navigationStart) + $WAIT)) {return true;} else return false;} catch(e) {return true;}})()" --connectivity.engine throttle --connectivity.throttle.localhost --connectivity.profile custom --connectivity.latency $LATENCY "$@" &
 
-        else
-          echo "Replay server didn't start correctly" >&2
-          exit 1
-        fi
-    else
-      echo "Recording or accessing the URL failed, will not replay" >&2
-      exit 1
-  fi
+  PID=$!
+
+  trap shutdown SIGTERM SIGINT
+  wait $PID
+
+  webpagereplaywrapper replay --stop $WPR_PARAMS
 }
 
 
@@ -135,7 +93,7 @@ setupADB
 
 if [ $REPLAY ]
 then
-  runWebPageReplay "$@"
+  runWebPageReplay $@
 else
-  runBrowsertime "$@"
+  runBrowsertime $@
 fi

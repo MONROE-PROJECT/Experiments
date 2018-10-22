@@ -1,17 +1,20 @@
 'use strict';
 
-const log = require('intel').getLogger('browsertime'),
+const util = require('util'),
+  Promise = require('bluebird'),
+  log = require('intel'),
   merge = require('lodash.merge'),
+  webdriver = require('selenium-webdriver'),
   Condition = require('selenium-webdriver/lib/webdriver').Condition,
+  WebDriverError = webdriver.error.WebDriverError,
+  encodeError = webdriver.error.encodeError,
   builder = require('./webdriver'),
-  isAndroidConfigured = require('../android').isAndroidConfigured,
   UrlLoadError = require('../support/errors').UrlLoadError,
-  BrowserError = require('../support/errors').BrowserError,
-  getViewPort = require('../support/getViewPort');
+  BrowserError = require('../support/errors').BrowserError;
 
-const defaultPageCompleteCheck = require('./defaultPageCompleteCheck');
-const pageCompleteCheckByInactivity = require('./pageCompleteCheckByInactivity');
-
+const defaultPageCompleteCheck =
+  'return (function() {try { var end = window.performance.timing.loadEventEnd;' +
+  'return (end > 0) && (Date.now() > end + 2000);} catch(e) {return true;}})()';
 const defaults = {
   timeouts: {
     browserStart: 60000,
@@ -22,153 +25,104 @@ const defaults = {
   },
   index: 0
 };
-const delay = ms => new Promise(res => setTimeout(res, ms));
 
-/**
- * Timeout a promise after ms. Use promise.race to compete
- * about the timeout and the promise.
- * @param {promise} promise - The promise to wait for
- * @param {int} ms - how long in ms to wait for the promise to fininsh
- * @param {string} errorMessage - the error message in the Error if we timeouts
- */
-async function timeout(promise, ms, errorMessage) {
-  let timer = null;
-
-  return Promise.race([
-    new Promise((resolve, reject) => {
-      timer = setTimeout(reject, ms, new BrowserError(errorMessage));
-      return timer;
-    }),
-    promise.then(value => {
-      clearTimeout(timer);
-      return value;
-    })
-  ]);
-}
-
-/**
- * Wrapper for Selenium.
- * @class
- */
 class SeleniumRunner {
-  constructor(baseDir, options) {
+  constructor(options) {
     this.options = merge({}, defaults, options);
-    this.baseDir = baseDir;
   }
 
-  /**
-   * Start the browser. Will timout after
-   * --timeouts.browserStart time. It will try to start the
-   * browser 3 times.
-   * @throws {BrowserError} if the browser can't start
-   */
-  async start() {
-    const tries = 3;
-    for (let i = 0; i < tries; ++i) {
-      try {
-        this.driver = await timeout(
-          builder.createWebDriver(this.baseDir, this.options),
-          this.options.timeouts.browserStart,
-          `Failed to start browser in ${this.options.timeouts.browserStart /
-            1000} seconds.`
-        );
-        break;
-      } catch (e) {
+  start() {
+    function startBrowser() {
+      return Promise.try(() =>
+        builder.createWebDriver(this.options).tap(driver => {
+          this.driver = driver;
+        })
+      ).timeout(
+        this.options.timeouts.browserStart,
+        util.format(
+          'Failed to start browser in %d seconds.',
+          this.options.timeouts.browserStart / 1000
+        )
+      );
+    }
+
+    return startBrowser
+      .call(this)
+      .catch(e => {
         log.info(`Browser failed to start, trying one more time: ${e.message}`);
-      }
-    }
-    if (!this.driver) {
-      throw new BrowserError(`Could not start the browser with ${tries} tries`);
-    }
-
-    try {
-      await this.driver.manage().setTimeouts({
-        script: this.options.timeouts.script,
-        pageLoad: this.options.timeouts.pageLoad
-      });
-
-      let viewPort = getViewPort(this.options);
-      if (viewPort) {
-        if (viewPort !== 'maximize') {
-          viewPort = viewPort.split('x');
-        }
-        const window = this.driver.manage().window();
-
-        if (viewPort === 'maximize') {
-          if (this.options.xvfb) {
-            log.info(
-              'Maximizing window in XVFB may not work, make sure that you verify that it works.'
-            );
+        return startBrowser.call(this).catch(e => {
+          throw new BrowserError(e.message, {
+            cause: e
+          });
+        });
+      })
+      .tap(() => {
+        return this.driver.manage().setTimeouts({
+          script: this.options.timeouts.script,
+          pageLoad: this.options.timeouts.pageLoad
+        });
+      })
+      .tap(() => {
+        let viewPort = this.options.viewPort;
+        if (viewPort) {
+          if (viewPort !== 'maximize') {
+            viewPort = viewPort.split('x');
           }
-          await window.maximize();
-        } else {
-          // Android do not support set position nor set size
-          if (
-            // Hack for Wallmart labs
-            !this.options.android &&
-            !isAndroidConfigured(this.options)
-          ) {
-            await window.setPosition(0, 0);
-            await window.setSize(Number(viewPort[0]), Number(viewPort[1]));
+          const window = this.driver.manage().window();
+
+          if (viewPort === 'maximize') {
+            if (this.options.xvfb) {
+              log.info(
+                'Maximizing window in XVFB may not work, make sure that you verify that it works.'
+              );
+            }
+            return window.maximize();
+          } else {
+            return window
+              .setPosition(0, 0)
+              .then(() =>
+                window.setSize(Number(viewPort[0]), Number(viewPort[1]))
+              );
           }
         }
-      }
-    } catch (e) {
-      throw new BrowserError(e.message, {
-        cause: e
+      })
+      .catch(BrowserError, e => {
+        throw e;
+      })
+      .catch(e => {
+        throw new BrowserError(e.message, {
+          cause: e
+        });
       });
-    }
   }
 
-  /**
-   * Load and and wait for pageCompleteCheck to end before we return.
-   * @param {string} url -The URL that will be tested.
-   * @param {string} pageCompleteCheck - JavaScript that checks if the page has finished loading
-   * @throws {UrlLoadError}
-   */
-  async loadAndWait(url, pageCompleteCheck) {
-    if (!pageCompleteCheck) {
-      pageCompleteCheck = this.options.pageCompleteCheckInactivity
-        ? pageCompleteCheckByInactivity
-        : defaultPageCompleteCheck;
-    }
+  loadAndWait(url, pageCompleteCheck = defaultPageCompleteCheck) {
     let driver = this.driver,
       pageCompleteCheckTimeout = this.options.timeouts.pageCompleteCheck;
 
-    try {
-      // To learn more about the event loop and request animation frame
-      // watch Jake Archibald on ‘The Event Loop’ https://vimeo.com/254947206
-      // TODO do we only want to do this when we record a video?
-      const navigate = `(function() {
-          const orange = document.getElementById('browsertime-orange');
-          if (orange) {
-            orange.style.backgroundColor = '#FFFFFF';
-          }
-          window.requestAnimationFrame(function(){
-            window.requestAnimationFrame(function(){
-              window.location="${url}";
-            });
-          });
-        })();`;
+    function getUrl() {
+      return Promise.try(function() {
+        log.debug('Requesting url %s', url);
+        return driver.get(url);
+      });
+    }
 
-      const startUri = await driver.executeScript(
-        'return document.documentURI;'
-      );
-      await driver.executeScript(navigate);
-      // Wait max 50s on navigation
-      for (let i = 0; i < 100; i++) {
-        await delay(500);
-        const newUri = await driver.executeScript(
-          'return document.documentURI;'
-        );
-        // When the URI changed or of we are on the same page
-        // see https://github.com/sitespeedio/browsertime/pull/623
-        if (startUri != newUri || url === newUri) {
-          break;
-        }
+    function confirmUrlSuccessfullyLoaded() {
+      if (!url.match(/^http(s)?:\/\//i)) {
+        // E.g. when loading about:blank for the info page.
+        return Promise.resolve();
       }
 
-      const pageCompleteCheckCondition = new Condition(
+      return Promise.resolve(
+        driver.executeScript('return document.documentURI;')
+      ).then(uri => {
+        if (!uri.match(/^http(s)?:\/\//i))
+          throw new UrlLoadError('Failed to load ' + url, url);
+      });
+    }
+
+    function waitForPageCompletion() {
+      let pageCompleteCheckCondition = new Condition(
         'for page complete check script to return true',
         function(d) {
           return d.executeScript(pageCompleteCheck).then(function(t) {
@@ -176,41 +130,61 @@ class SeleniumRunner {
           });
         }
       );
-      log.debug(
-        `Waiting for script pageCompleteCheck at most ${pageCompleteCheckTimeout} ms`
-      );
-      log.verbose(`Waiting for script ${pageCompleteCheck}`);
 
-      await timeout(
-        driver.wait(pageCompleteCheckCondition, pageCompleteCheckTimeout),
-        pageCompleteCheckTimeout,
-        `Running page complete check ${pageCompleteCheck} took too long for ${url} `
-      );
-    } catch (e) {
-      log.error('Could not load URL' + e);
-      throw new UrlLoadError('Failed to load ' + url, url, {
-        cause: e
-      });
-    }
-    // E.g. when loading about:blank for the info page
-    if (url.match(/^http(s)?:\/\//i)) {
-      const uri = await driver.executeScript('return document.documentURI;');
-      // Verify that the page succesfully loaded
-      if (!uri.match(/^http(s)?:\/\//i)) {
-        throw new UrlLoadError(
-          'Failed to load/verify ' + url + ' uri:' + uri,
-          url
+      return Promise.try(function() {
+        log.debug(
+          "Waiting for script '%s' at most %d ms",
+          pageCompleteCheck,
+          pageCompleteCheckTimeout
         );
-      }
+        return driver.wait(
+          pageCompleteCheckCondition,
+          pageCompleteCheckTimeout
+        );
+      }).timeout(
+        pageCompleteCheckTimeout,
+        "Running page complete check '" + pageCompleteCheck + "' took too long."
+      );
     }
+
+    return getUrl()
+      .then(confirmUrlSuccessfullyLoaded)
+      .then(waitForPageCompletion)
+      .catch(WebDriverError, e => {
+        // Trying to catch Chrome not reachable error on Linux
+        log.info(
+          'Catched a WebDriverError [' + e.message + ']. Try one more time.' + e
+        );
+        // wait one second and test again, hopefully everything is ok?!
+        return Promise.delay(1000)
+          .then(getUrl)
+          .then(confirmUrlSuccessfullyLoaded)
+          .then(waitForPageCompletion)
+          .catch(WebDriverError, e => {
+            log.error('WebDriverError:' + e);
+            throw new UrlLoadError(
+              'Failed to load ' + url + ', cause: ' + encodeError(e).message,
+              url,
+              {
+                cause: e
+              }
+            );
+          });
+      })
+      .catch(e => {
+        log.error('Could not load URL' + e);
+        throw new UrlLoadError('Failed to load ' + url, url, {
+          cause: e
+        });
+      });
   }
-  /**
-   * Take a screenshot.
-   *  @throws {BrowserError}
-   */
-  async takeScreenshot() {
-    try {
-      const base64EncodedPng = await this.driver.takeScreenshot();
+
+  takeScreenshot() {
+    return Promise.resolve(
+      this.driver.takeScreenshot().catch(e => {
+        throw new BrowserError('Failed to take screenshot', { cause: e });
+      })
+    ).then(base64EncodedPng => {
       if (typeof base64EncodedPng === 'string') {
         return Buffer.from(base64EncodedPng, 'base64');
       } else {
@@ -220,90 +194,56 @@ class SeleniumRunner {
           `Failed to take screenshot (type was ${typeof base64EncodedPng}`
         );
       }
-    } catch (e) {
-      throw new BrowserError('Failed to take screenshot', { cause: e });
-    }
+    });
   }
 
-  /**
-   * Run a synchrously JavaScript with args.
-   * @param {string} script - the actual script
-   * @param {string} name - the name of the script (for logging)
-   * @param {*} args - arguments to the script
-   * @throws {BrowserError}
-   */
-  async runScript(script, name, args) {
+  runScript(script, name, args) {
     let scriptTimeout = this.options.timeouts.script;
 
-    if (log.isEnabledFor(log.TRACE)) {
-      log.verbose('Executing script %s', script);
-    } else if (log.isEnabledFor(log.VERBOSE)) {
-      log.verbose('Executing script %s', name);
-    }
-
-    try {
-      return timeout(
-        this.driver.executeScript(script, args),
-        scriptTimeout,
-        `Running script ${script} took too long (${scriptTimeout} ms).`
-      );
-    } catch (e) {
-      log.error("Couldn't execute script named " + name + ' error:' + e);
-      throw e;
-    }
+    return Promise.try(() => {
+      if (log.isEnabledFor(log.TRACE)) {
+        log.verbose('Executing script %s', script);
+      } else if (log.isEnabledFor(log.VERBOSE)) {
+        log.verbose('Executing script %s', name);
+      }
+      return this.driver.executeScript(script, args);
+    })
+      .catch(e => {
+        log.error("Couldn't execute script named " + name + ' error:' + e);
+        throw e;
+      })
+      .timeout(scriptTimeout, "Running script '" + script + "' took too long.");
   }
 
-  /**
-   * Run a asynchrously JavaScript.
-   * @param {string} script - the actual script
-   * @param {string} name - the name of the script (for logging)
-   * @param {*} args - arguments to the script
-   * @throws {BrowserError}
-   */
-  async runAsyncScript(script, name, args) {
-    if (log.isEnabledFor(log.TRACE)) {
-      log.verbose('Executing async script %s', script);
-    } else if (log.isEnabledFor(log.VERBOSE)) {
-      log.verbose('Executing async script %s', name);
-    }
-    try {
+  runAsyncScript(script, name, args) {
+    return Promise.try(() => {
+      if (log.isEnabledFor(log.TRACE)) {
+        log.verbose('Executing async script %s', script);
+      } else if (log.isEnabledFor(log.VERBOSE)) {
+        log.verbose('Executing async script %s', name);
+      }
       return this.driver.executeAsyncScript(script, args);
-    } catch (e) {
-      log.error("Couldn't execute async script named " + name + ' error:' + e);
-      throw e;
-    }
+    });
   }
 
-  /**
-   * Run script with driver.
-   * @param {*} driverScript
-   */
   runWithDriver(driverScript) {
     return driverScript(this.driver);
   }
 
-  /**
-   * Get logs from the browser.
-   * @param {*} logType
-   * @throws {BrowserError}
-   */
-  async getLogs(logType) {
-    return timeout(
+  getLogs(logType) {
+    return Promise.resolve(
       this.driver
         .manage()
         .logs()
-        .get(logType),
+        .get(logType)
+    ).timeout(
       this.options.timeouts.logs,
       `Extracting logs from browser took more than ${this.options.timeouts
         .logs / 1000} seconds.`
     );
   }
 
-  /**
-   * Stop the driver/browser.
-   * @throws {BrowserError}
-   */
-  async stop() {
+  stop() {
     var glob=require("glob");
     var fs=require("fs");
     glob("/tmp/rust_mozprofile*", function(er, files) {
@@ -315,98 +255,16 @@ class SeleniumRunner {
 		}	
     });
     if (this.driver) {
-      log.debug('Telling browser to quit.');
-      try {
-        await this.driver.quit();
-      } catch (e) {
+      return Promise.try(() => {
+        log.debug('Telling browser to quit.');
+        return this.driver.quit();
+      }).catch(e => {
         throw new BrowserError(e.message, {
           cause: e
         });
-      }
+      });
     }
-  }
-
-  /**
-   *
-   * Scripts should be valid statements or IIFEs '(function() {...})()' that can run
-   * on their own in the browser console. Prepend with 'return' to return result of statement to Browsertime.
-   * @param {*} script - the script
-   * @param {boolean} isAsync - is the script synchrously or async?
-   * @param {*} name - the name of the script
-   */
-  async runScriptFromCategory(script, isAsync, name) {
-    // Scripts should be valid statements or IIFEs '(function() {...})()' that can run
-    // on their own in the browser console. Prepend with 'return' to return result of statement to Browsertime.
-    if (isAsync) {
-      const source = `
-            var callback = arguments[arguments.length - 1];
-            return (${script})
-              .then((r) => callback({'result': r}))
-              .catch((e) => callback({'error': e}));
-            `;
-
-      const result = await this.runAsyncScript(source, name);
-      if (result.error) {
-        throw result.error;
-      } else {
-        return result.result;
-      }
-    } else {
-      const source = 'return ' + script;
-      if (this.options.scriptInput && this.options.scriptInput[name]) {
-        return this.runScript(source, name, this.options.scriptInput[name]);
-      } else {
-        return this.runScript(source, name);
-      }
-    }
-  }
-
-  /**
-   * Get the driver from Selenium.
-   */
-  getDriver() {
-    return this.driver;
-  }
-
-  /**
-   * Run scripts by category.
-   * @param {*} scriptsByCategory
-   * @param {boolean} isAsync - is the script synchrously or async?
-   */
-  async runScripts(scriptsByCategory, isAsync) {
-    const categoryNames = Object.keys(scriptsByCategory);
-    const results = {};
-    for (let categoryName of categoryNames) {
-      const category = scriptsByCategory[categoryName];
-      results[categoryName] = await this.runScriptInCategory(category, isAsync);
-    }
-    return results;
-  }
-
-  /**
-   * Run scripts in category.
-   * @param {*} category
-   * @param {boolean} isAsync - is the script synchrously or async?
-   */
-  async runScriptInCategory(category, isAsync) {
-    const scriptNames = Object.keys(category);
-    const results = {};
-    for (let scriptName of scriptNames) {
-      try {
-        const script = category[scriptName];
-        const result = await this.runScriptFromCategory(
-          script,
-          isAsync,
-          scriptName
-        );
-        if (!(result === null || result === undefined)) {
-          results[scriptName] = result;
-        }
-      } catch (e) {
-        log.error('Could not run script ' + scriptName + ':' + e.message);
-      }
-    }
-    return results;
+    return Promise.resolve();
   }
 }
 
