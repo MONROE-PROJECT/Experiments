@@ -75,6 +75,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     # Dumb init
     && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
     && dpkg -i dumb-init.deb \
+    #
+    # pip install adafruit-ampy \  for pycom boards 
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup
