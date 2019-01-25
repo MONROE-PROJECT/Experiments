@@ -18,6 +18,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     fping \
     net-tools \
     tcpdump \
+    curl \
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
     # Cleanup

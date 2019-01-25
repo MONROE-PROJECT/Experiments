@@ -28,6 +28,14 @@ done
 echo -e "Disk : \n $(df -h)"
 echo -e "Mem : \n $(free -h)"
 echo -e "cpu : \n $(cat /proc/cpuinfo)"
+if curl --silent --output /dev/null 172.17.0.1:45888/cib
+then
+	echo -e "neat enabled : yes \n"
+	echo -e "--> (neat) PIB : \n $(curl --silent 172.17.0.1:45888/pib |jq .[])"
+	echo -e "--> (neat) CIB : \n $(curl --silent 172.17.0.1:45888/cib |jq .[])"	
+else
+	echo -e "neat enabled : no \n"
+fi
 grep -q ^flags.*\ hypervisor /proc/cpuinfo && echo "--> This machine is a VM"
 echo -e "--> 10 highest CPU processes : \n $(ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%cpu | head -n11)"
 echo "cpu : $(uname -a)"
