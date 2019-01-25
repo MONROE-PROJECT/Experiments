@@ -6,12 +6,11 @@ MAINTAINER jonas.karlsson@kau.se
 ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
 
 ENV NPM_CONFIG_LOGLEVEL info
-ENV NODE_VERSION 8.7.0
+ENV NODE_VERSION 8.12.0
 ENV LC_ALL C
 ENV DEBCONF_NONINTERACTIVE_SEEN true
-ENV FIREFOX_VERSION 56.0.1
-# Version 64 is deprecated on googles repo so in the future we need to upgrade or download from the unoffical (untested) repo here: https://www.slimjet.com/chrome/download-chrome.php?file=lnx%2Fchrome64_64.0.3282.140.deb
-ENV CHROME_VERSION 64.*
+ENV FIREFOX_VERSION 62.0
+ENV CHROME_VERSION 69.*
 #ENV GECKODRIVER_VERSION 0.20.0
 #ENV CHROMEDRIVER_VERSION 2.37
 ENV FONTS fonts-ipafont-gothic fonts-ipafont-mincho ttf-wqy-microhei fonts-wqy-microhei fonts-tlwg-loma fonts-tlwg-loma-otf fonts-gargi
@@ -32,17 +31,12 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install ${APT_OPTS} \
-    google-chrome-stable=${CHROME_VERSION} \
-    xvfb \
-    xauth \
-    libgtk-3-0 \
-    libasound2 \
-    dbus \
-    libdbus-glib-1-2 \
-    libgtk2.0-0 \
-    libgtk2.0-common \
     python-pip \
+    python-psutil \
     unzip \
+    libdbus-glib-1-2 \
+    $xvfbDeps \
+    google-chrome-stable=${CHROME_VERSION} \
     && pip install pyvirtualdisplay selenium python-dateutil \
     && wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 \
     && tar -xjf firefox-${FIREFOX_VERSION}.tar.bz2  \
