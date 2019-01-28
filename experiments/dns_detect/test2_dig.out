@@ -1,0 +1,42 @@
+
+; <<>> DiG 9.10.3-P4-Debian <<>> -b 172.18.1.2 ds.serving-sys.com +subnet=178.232.66.190/32 @89.9.255.1 +noquestion
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 52670
+;; flags: qr rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 9, ADDITIONAL: 9
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; CLIENT-SUBNET: 178.232.66.190/32/0
+;; ANSWER SECTION:
+ds.serving-sys.com.	440	IN	CNAME	www.eyeblaster-ds.com.edgesuite.net.
+www.eyeblaster-ds.com.edgesuite.net. 7671 IN CNAME a50.g2.akamai.net.
+a50.g2.akamai.net.	20	IN	A	80.239.159.18
+a50.g2.akamai.net.	20	IN	A	80.239.159.16
+
+;; AUTHORITY SECTION:
+g2.akamai.net.		1991	IN	NS	n0g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	n2g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	n3g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	n1g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	n5g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	n6g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	n7g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	n4g2.akamai.net.
+g2.akamai.net.		1991	IN	NS	a0g2.akamai.net.
+
+;; ADDITIONAL SECTION:
+n0g2.akamai.net.	425	IN	A	88.221.81.192
+n1g2.akamai.net.	4067	IN	A	193.212.170.47
+n2g2.akamai.net.	815	IN	A	80.239.159.13
+n3g2.akamai.net.	1400	IN	A	193.212.170.46
+n4g2.akamai.net.	3345	IN	A	193.212.170.68
+n5g2.akamai.net.	4576	IN	A	193.212.170.69
+n6g2.akamai.net.	1694	IN	A	193.212.170.77
+n7g2.akamai.net.	5512	IN	A	193.212.178.68
+
+;; Query time: 44 msec
+;; SERVER: 89.9.255.1#53(89.9.255.1)
+;; WHEN: Tue Nov 28 04:26:53 UTC 2017
+;; MSG SIZE  rcvd: 467
+

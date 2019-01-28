@@ -1,0 +1,7 @@
+FROM monroe/base
+
+MAINTAINER andra@simula.no
+
+COPY files/* /opt/monroe/
+
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/dig_experiment.py"]

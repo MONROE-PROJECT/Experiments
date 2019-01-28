@@ -1,0 +1,10 @@
+FROM monroe/base
+
+MAINTAINER andra@simula.no
+
+# allow -i option to traceroute for non-root users:
+RUN setcap cap_net_raw+ep /usr/bin/traceroute.db
+
+COPY files/* /opt/monroe/
+
+ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/ping_traceroute.py"]

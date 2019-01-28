@@ -1,0 +1,58 @@
+--- /usr/lib/python2.7/dist-packages/ooni/ui/cli.py	2016-11-22 12:33:11.000000000 +0000
++++ cli.py	2017-10-07 19:43:03.973400906 +0000
+@@ -174,7 +174,12 @@
+ 
+ def initializeOoniprobe(global_options):
+     print("It looks like this is the first time you are running ooniprobe")
+-    if not sys.stdin.isatty():
++    should_upload = True
++    include_ip = True
++    include_asn = True
++    include_country = True
++    preferred_backend = 'onion'
++'''    if not sys.stdin.isatty():
+         print("ERROR: STDIN is not attached to a tty. Quiting.")
+         sys.exit(8)
+ 
+@@ -195,24 +200,20 @@
+     print("")
+     print("Now help us configure some things!")
+     answer = raw_input('Should we upload measurements to a collector? (Y/n) ')
+-    should_upload = True
+     if answer.lower().startswith("n"):
+         should_upload = False
+ 
+     answer = raw_input('Should we include your IP in measurements? (y/N) ')
+     include_ip = False
+     if answer.lower().startswith("y"):
+-        include_ip = True
+ 
+     answer = raw_input('Should we include your ASN (your network) in '
+                        'measurements? (Y/n) ')
+-    include_asn = True
+     if answer.lower().startswith("n"):
+         include_asn = False
+ 
+     answer = raw_input('Should we include your Country in '
+                        'measurements? (Y/n) ')
+-    include_country = True
+     if answer.lower().startswith("n"):
+         include_country = False
+ 
+@@ -223,7 +224,6 @@
+     if answer.lower().startswith("https"):
+         preferred_backend = 'https'
+     elif answer.lower().startswith("cloudfront"):
+-        preferred_backend = 'cloudfront'
+ 
+     config.create_config_file(include_ip=include_ip,
+                               include_asn=include_asn,
+@@ -231,7 +231,7 @@
+                               should_upload=should_upload,
+                               preferred_backend=preferred_backend)
+     config.set_initialized()
+-    print("ooniprobe is now initialized. You can begin using it!")
++    print("ooniprobe is now initialized. You can begin using it!")'''
+ 
+ def setupGlobalOptions(logging, start_tor, check_incoherences):
+     global_options = parseOptions()

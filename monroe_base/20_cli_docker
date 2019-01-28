@@ -10,6 +10,7 @@ ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-
 
 ############## Add 3: party repositories ########################
 # OML (per Turin F2F workshop 2016-01-28)
+## Tagged for possible removal in future releases of the base image 
 ADD http://download.opensuse.org/repositories/devel:tools:mytestbed:stable/Debian_7.0/Release.key oml2.key
 RUN echo 'deb http://download.opensuse.org/repositories/devel:/tools:/mytestbed:/stable/Debian_7.0/ /' > /etc/apt/sources.list.d/oml2.list \
     && apt-key add oml2.key \
@@ -54,8 +55,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     iperf3 \
     mgen \
     d-itg \
-    oml2 \
-    oml2-apps \
     tcpdump \
     net-tools \
     rsync \
@@ -73,6 +72,11 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     default-jre-headless \
     speedtest-cli \
     netcat \
+    # BEGIN Tagged for possible removal in future releases
+    oml2 \
+    oml2-apps \
+    # END Tagged for possible removal in future releases
+    # Dumb init
     # Dumb init
     && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
     && dpkg -i dumb-init.deb \
