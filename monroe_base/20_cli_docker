@@ -3,7 +3,7 @@ FROM monroe/base:virt
 MAINTAINER jonas.karlsson@kau.se
 
 # DumbInit
-ENV DI_VER 1.2.1
+ENV DI_VER 1.2.2
 
 #APT OPTS
 ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
@@ -72,6 +72,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     scamper \
     default-jre-headless \
     speedtest-cli \
+    netcat \
     # Dumb init
     && curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" \
     && dpkg -i dumb-init.deb \

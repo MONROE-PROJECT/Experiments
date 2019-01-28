@@ -6,16 +6,13 @@ MAINTAINER jonas.karlsson@kau.se
 ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
 
 ENV NPM_CONFIG_LOGLEVEL info
-ENV NODE_VERSION 8.12.0
+ENV NODE_VERSION 10.13.0
 ENV LC_ALL C
 ENV DEBCONF_NONINTERACTIVE_SEEN true
-ENV FIREFOX_VERSION 62.0
-ENV CHROME_VERSION 69.*
-#ENV GECKODRIVER_VERSION 0.20.0
-#ENV CHROMEDRIVER_VERSION 2.37
-ENV FONTS fonts-ipafont-gothic fonts-ipafont-mincho ttf-wqy-microhei fonts-wqy-microhei fonts-tlwg-loma fonts-tlwg-loma-otf fonts-gargi
-# firefox-locale-hi a font that does not exist in debian
-ENV XVFBDEPS libgl1-mesa-dri xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic dbus-x11
+ENV FIREFOX_VERSION 64.0
+ENV CHROME_VERSION 71.*
+ENV FONTS fonts-ipafont-gothic fonts-ipafont-mincho ttf-wqy-microhei fonts-wqy-microhei fonts-tlwg-loma fonts-tlwg-loma-otf firefox-locale-hi fonts-gargi
+ENV XVFBDEPS xvfb libgl1-mesa-dri xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic dbus-x11 
 ENV BROWSERTIME_XVFB true
 ENV BROWSERTIME_CONNECTIVITY__ENGINE external
 ENV BROWSERTIME_DOCKER true
@@ -35,7 +32,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     python-psutil \
     unzip \
     libdbus-glib-1-2 \
-    $xvfbDeps \
+    $XVFBDEPS \
     google-chrome-stable=${CHROME_VERSION} \
     && pip install pyvirtualdisplay selenium python-dateutil \
     && wget https://ftp.mozilla.org/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 \
@@ -43,10 +40,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && rm -rf /opt/firefox \
     && mv firefox /opt/ \
     && ln -s /opt/firefox/firefox /usr/local/bin/firefox  \
-#    && curl -L -o geckodriver.tgz "https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz" \
-#    && tar -C /usr/bin -zxf geckodriver.tgz \
-#    && curl -L -o chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" \
-#    && unzip -o -q chromedriver.zip -d /usr/bin/ \
     && curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz" \
     && tar -xJf "node-v$NODE_VERSION-linux-x64.tar.xz" -C /usr/local --strip-components=1 \
     && rm "node-v$NODE_VERSION-linux-x64.tar.xz" \
@@ -54,13 +47,17 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get remove ${APT_OPTS} python-pip \
     # Fix missing packages
     && apt-get update ${APT_OPTS} --fix-missing \
+    # Install NPM
+    && cd /opt/monroe/ \
+    && npm install --production \
+    && npm audit fix \
     # Cleanup
+    && apt-get ${APT_OPTS} remove $BUILDDEPS \
     && apt-get clean ${APT_OPTS} \
     && apt-get autoremove ${APT_OPTS} \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old firefox.tbz2 firefox-${FIREFOX_VERSION}.tar.bz2  geckodriver.tgz dumb-init.deb chromedriver.zip
 
 WORKDIR /opt/monroe/
-RUN npm install --production
 
 # Reuse browsertime installed gecko and chrome driver
 RUN ln -s /opt/monroe/node_modules/alto-saxophone/vendor/chromedriver /usr/bin/ \

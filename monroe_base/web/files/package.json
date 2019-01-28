@@ -1,15 +1,16 @@
 {
   "description": "Browsertime",
-  "version": "3.3.1",
+  "version": "4.0.3",
   "bin": "./bin/browsertime.js",
   "dependencies": {
-    "@sitespeed.io/throttle": "0.4.3",
+    "@sitespeed.io/throttle": "0.5.0",
     "adbkit": "2.11.0",
-    "alto-saxophone": "2.41.0",
-    "chrome-har": "0.4.1",
-    "chrome-trace": "0.1.0",
-    "execa": "0.10.0",
-    "fast-stats": "0.0.3",
+    "@sitespeed.io/chromedriver": "2.44.1",
+    "chrome-har": "0.9.1",
+    "chrome-trace": "0.2.1",
+    "dayjs": "1.7.8",
+    "execa": "1.0.0",
+    "fast-stats": "0.0.4",
     "hasbin": "1.2.3",
     "intel": "1.2.0",
     "lodash.foreach": "4.5.0",
@@ -21,13 +22,12 @@
     "lodash.remove": "4.7.0",
     "lodash.set": "4.3.2",
     "mkdirp": "0.5.1",
-    "moment": "2.22.1",
     "selenium-webdriver": "3.6.0",
-    "sharp": "0.20.2",
-    "soprano-saxophone": "0.21.0",
+    "sharp": "0.21.1",
+    "@sitespeed.io/geckodriver": "0.23.1",
     "valid-url": "1.0.9",
-    "xvfb": "0.2.3",
-    "yargs": "11.0.0"
+    "@cypress/xvfb": "1.2.4",
+    "yargs": "12.0.5"
   },
   "devDependencies": {
     "bluebird": "3.5.1",
@@ -42,7 +42,7 @@
     "sequencediagrams": "0.0.8"
   },
   "engines": {
-    "node": ">=8.9.0"
+    "node": ">=10.13.0"
   },
   "files": [
     "CHANGELOG.md",
@@ -61,9 +61,10 @@
   ],
   "main": "index.js",
   "scripts": {
-    "test": "mocha test/unitTests test/browserTests",
+    "test": "mocha test/unitTests test/browserTests test/commandTests",
     "test:unit": "mocha test/unitTests",
     "test:browser": "mocha test/browserTests",
+    "test:commands": "mocha test/commandTests",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "eslint-check": "eslint --print-config .eslintrc.json | eslint-config-prettier-check",
