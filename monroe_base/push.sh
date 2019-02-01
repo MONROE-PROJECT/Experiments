@@ -25,7 +25,8 @@ fi
 
 for l in ${LEVELS[*]}
 do
-    tag="$(echo ${dockerfile}|cut -f2 -d"_")"
+    dockerfile="$(ls ${l}_*_docker)"
+    tag="$(echo ${dockerfile}|cut -f2 -d'_')"
     patchlevel=${l:1:1}
     if [ ${patchlevel} == 0 ]; then
 	    patchlevel=""
