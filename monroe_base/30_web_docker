@@ -60,5 +60,5 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 WORKDIR /opt/monroe/
 
 # Reuse browsertime installed gecko and chrome driver
-RUN ln -s /opt/monroe/node_modules/alto-saxophone/vendor/chromedriver /usr/bin/ \
-    && ln -s /opt/monroe/node_modules/soprano-saxophone/vendor/geckodriver /usr/bin/
+RUN ln -s '/opt/monroe/node_modules/@sitespeed.io/chromedriver/vendor/chromedriver' /usr/bin/ \
+    && ln -s '/opt/monroe/node_modules/@sitespeed.io/geckodriver/vendor/geckodriver' /usr/bin/
