@@ -86,15 +86,15 @@ def run_iperf(server, sourceip, protocol):
     if output and  len(output.split(',')) > 8:
         csv = output.split(',')
         msg = {
-            "timestamp" : csv[0],
-            "source_address": csv[1],
-            "source_port": csv[2],
-            "destination_address": csv[3],
-            "destination_port": csv[4],
-            "transferID": csv[5],
-            "interval": csv[6],
-            "transferred_bytes": csv[7],
-            "bits_per_second": csv[8]
+            "timestamp" : float(csv[0]),
+            "source_address": str(csv[1]),
+            "source_port": int(csv[2]),
+            "destination_address": str(csv[3]),
+            "destination_port": int(csv[4]),
+            "transferID": int(csv[5]),
+            "interval": str(csv[6]),
+            "transferred_bytes": int(csv[7]),
+            "bits_per_second": int(csv[8])
         }
     else:
         msg = {
