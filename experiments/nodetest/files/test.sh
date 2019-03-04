@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 cd /opt/monroe/
 NODEID=$(cat /nodeid)
@@ -27,18 +26,27 @@ do
 done
 echo -e "Disk : \n $(df -h)"
 echo -e "Mem : \n $(free -h)"
-echo -e "cpu : \n $(cat /proc/cpuinfo)"
+echo -e "Cpu : \n $(cat /proc/cpuinfo)"
+grep -q ^flags.*\ hypervisor /proc/cpuinfo && echo "--> This machine is a VM"
+echo -e "--> 10 highest CPU processes : \n $(ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%cpu | head -n11)"
+echo "Kernel : $(uname -a)"
+# Is neat proxy enabled 
 if curl --silent --output /dev/null 172.17.0.1:45888/cib
 then
 	echo -e "neat enabled : yes \n"
 	echo -e "--> (neat) PIB : \n $(curl --silent 172.17.0.1:45888/pib |jq .[])"
 	echo -e "--> (neat) CIB : \n $(curl --silent 172.17.0.1:45888/cib |jq .[])"	
-else
-	echo -e "neat enabled : no \n"
+#else
+#	echo -e "neat enabled : no \n"
 fi
-grep -q ^flags.*\ hypervisor /proc/cpuinfo && echo "--> This machine is a VM"
-echo -e "--> 10 highest CPU processes : \n $(ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%cpu | head -n11)"
-echo "cpu : $(uname -a)"
+# Is there any Pycom boards connected
+if [ -d "/dev/pycom" ]
+then 
+	echo -e "IoT enabled (Pycom LoRa/NB-Iot) : yes \n"
+	echo -e "--> (IoT) boards connected $(ls /dev/pycom |wc -l)"
+#else
+#	echo -e "IoT enabled (Pycom LoRa/NB-Iot) : no \n"
+fi
 echo -e "CONFIG : \n $(cat /monroe/config|jq .)"
 echo "Routing :"
 echo -e "--> route -n : \n $(route -n)"
