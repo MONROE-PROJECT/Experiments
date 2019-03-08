@@ -1,10 +1,9 @@
 'use strict';
 
-let Promise = require('bluebird'),
-  webdriver = require('selenium-webdriver'),
-  isEmpty = require('lodash.isempty'),
-  chrome = require('./chrome'),
-  firefox = require('./firefox');
+const webdriver = require('selenium-webdriver');
+const isEmpty = require('lodash.isempty');
+const chrome = require('../../chrome/webdriver/');
+const firefox = require('../../firefox/webdriver/');
 
 /**
  * Create a new WebDriver instance based on the specified options.
@@ -12,7 +11,7 @@ let Promise = require('bluebird'),
  * @returns {!Promise<webdriver.WebDriver>} a promise that resolves to the webdriver,
  * or rejects if the current configuration is invalid.
  */
-module.exports.createWebDriver = function(options) {
+module.exports.createWebDriver = async function(baseDir, options) {
   const browser = options.browser || 'chrome';
   const seleniumUrl = options.selenium ? options.selenium.url : undefined;
   const capabilities = options.selenium
@@ -31,16 +30,16 @@ module.exports.createWebDriver = function(options) {
 
   switch (browser) {
     case 'chrome':
-      chrome.configureBuilder(builder, options);
+      chrome.configureBuilder(builder, baseDir, options);
       break;
 
     case 'firefox':
-      firefox.configureBuilder(builder, options);
+      firefox.configureBuilder(builder, baseDir, options);
       break;
 
     default:
       return Promise.reject(new Error('Unsupported browser: ' + browser));
   }
 
-  return Promise.try(() => builder.build());
+  return builder.build();
 };

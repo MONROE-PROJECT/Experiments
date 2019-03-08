@@ -35,6 +35,7 @@ import shlex
 import socket
 import struct
 import random
+import psutil
 import netifaces as ni
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
@@ -68,6 +69,12 @@ first_run=1
 DEBUG = False
 CONFIGFILE = '/monroe/config'
 
+quic_urls=[
+             "www.litespeedtech.com",
+             "www.keycdn.com",
+             "wwww.meetup.com",
+             "www.free-power-point-templates.com"
+             ]
 # Default values (overwritable from the scheduler)
 # Can only be updated from the main thread and ONLY before any
 # other processes are started
@@ -88,21 +95,37 @@ EXPCONFIG = {
 	"verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
-	"urls": ['www.facebook.com/telia/','www.wikipedia.org',
+        "urls": ['www.facebook.com/telia/','www.wikipedia.org/wiki/Fyre_Festival',
         'www.reddit.com',
         'www.instagram.com/leomessi/',
         'www.ebay.com','www.twitter.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
         'www.tmall.com','www.stackoverflow.com',
         'www.live.com','www.microsoft.com',
-        'www.kayak.com','www.yelp.com','www.etsy.com', 
-        'www.flickr.com', 'www.coursera.com',
-        'www.imgur.com'],
-	"http_protocols":["h1s","h2"],
-	"browsers":["firefox","chrome"],
-	"iterations": 1,
-	"allowed_interfaces": ["op0","op1","op2"],  # Interfaces to run the experiment on
+        'www.kayak.com','www.yelp.com','www.etsy.com',
+        'www.flickr.com',
+        'www.imgur.com',
+        "www.litespeedtech.com",
+        "www.keycdn.com",
+        "wwww.meetup.com",
+        "www.free-power-point-templates.com"
+       ],
+        "http_protocols":["h1s","h2","quic"],
+        "browsers":["firefox","chrome"],
+        "iterations": 1,
+	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
 	}
+
+def check_system():
+    cpu_percent = psutil.cpu_percent()
+    memory_percent = psutil.virtual_memory()[2]
+    disk_percent = psutil.disk_usage('/')[3]
+    disk_percent_2 = psutil.disk_usage('/dev/shm/')[3]
+    response = "Current disk_percent is %s percent.  " % disk_percent
+    response = "Current shared memory disk_percent is %s percent.  " % disk_percent_2
+    response += "Current CPU utilization is %s percent.  " % cpu_percent
+    response += "Current memory utilization is %s percent. " % memory_percent
+    print response
 
 def set_source(ifname):
 	cmd1=["route",
@@ -222,6 +245,9 @@ def run_exp(meta_info, expconfig, url,count):
 		print ("Error: %s - %s." % (e.filename,e.strerror))
 	
 	har_stats={}
+
+	#check_system()
+
 	if browser_kind=="chrome":
 		har_stats=run_experiment.browse_chrome(ifname,url,getter_version)
 	else:
@@ -580,6 +606,10 @@ if __name__ == '__main__':
 					browser_kind=browser 
 					if browser == "firefox" and protocol == "quic":
 						continue
+                                        elif browser == "chrome" and protocol == "quic" and (url not in quic_urls and url !="www.youtube.com/watch?v=544vEgMiMG0"):
+                                                continue
+                                        #elif protocol != "quic" and browser == "firefox" and url in quic_urls:
+                                         #   continue
 					for run in range(start_count, iterations):
 						# Create a experiment process and start it
 						print "Browsing {} with {} browser and {} protocol".format(url,browser,protocol) 

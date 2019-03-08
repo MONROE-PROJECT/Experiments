@@ -30,17 +30,18 @@ def process_har_files():
     objs=[]
     pageSize=0
     processed_har={}
+    print "We are here"
     try:
         with open("web-res/browsertime.har") as f:
             har=json.load(f)
             num_of_objects=0
-
             for entry in har["log"]["entries"]:
                 try:
                     obj={}
                     obj["url"]=entry["request"]["url"]
-                    obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                    pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
+		    if entry["response"]["bodySize"] is not None and entry["response"]["headersSize"] is not None:
+	                    obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
+        	            pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
                     obj["mimeType"]=entry["response"]["content"]["mimeType"]
                     obj["startedDateTime"]=entry["startedDateTime"]
                     obj["time"]=entry["time"]
@@ -77,56 +78,57 @@ def browse_chrome(iface,url,getter_version):
 	try:
 		if getter_version == 'HTTP1.1/TLS':
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'disable-http2',  
 				'--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="HTTP2":
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="QUIC":
 			cmd=['bin/browsertime.js',"https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--chrome.args','enable-quic',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140  Mobile Safari/537.36"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+			output=check_output(" ".join(cmd), shell=True)
                 print "Processing the HAR files ..."
+		har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-			har_stats = json.load(data_file)
-                        har_stats["info"].pop('connectivity',None)
-			har_stats["info"]=str(har_stats["info"])
-                        har_stats["pageinfo"]=str(har_stats["browserScripts"][0]["pageinfo"])
-                        har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
-                        har_stats["fullyLoaded"]=har_stats["browserScripts"][0]["timings"]['fullyLoaded']
-                        har_stats["browserScripts"][0]["timings"].pop('fullyLoaded',None)
-                        har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
-                        har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                        har_stats["navigationTiming"]=str(har_stats["browserScripts"][0]["timings"]['navigationTiming'])
-                        har_stats["pageTimings"]=str(har_stats["browserScripts"][0]["timings"]['pageTimings'])
-			har_stats["browserScripts"][0].pop('pageinfo',None)
-                        har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
-                        har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
-                        har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
-                        har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
-                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
-                        har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
-                        har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
-                        har_stats.pop('browserScripts',None)
-                        har_stats.pop('statistics',None)
-                        har_stats.pop('visualMetrics',None)
-                        har_stats.pop('timestamps',None)
+                        	har_stats = json.load(data_file)
+	                        har_stats[0]["info"].pop('connectivity',None)
+	                        har["info"]=str(har_stats[0]["info"])
+	                        har["pageinfo"]=str(har_stats[0]["browserScripts"][0]["pageinfo"])
+	                        har["rumSpeedIndex"]=har_stats[0]["browserScripts"][0]["timings"]['rumSpeedIndex']
+	                        har["fullyLoaded"]=har_stats[0]["fullyLoaded"]
+	                        har_stats[0].pop('fullyLoaded',None)
+	                        har["firstPaint"]=har_stats[0]["browserScripts"][0]["timings"]['firstPaint']
+	                        har['pageLoadTime']=har_stats[0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+                                har["navigationTiming"]=str(har_stats[0]["browserScripts"][0]["timings"]['navigationTiming'])
+                                har["pageTimings"]=str(har_stats[0]["browserScripts"][0]["timings"]['pageTimings'])
+                                har_stats[0]["browserScripts"][0].pop('pageinfo',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('firstPaint',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('navigationTiming',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('pageTimings',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('userTimings',None)
+                                har_stats[0].pop('browserScripts',None)
+                                har_stats[0].pop('statistics',None)
+                                har_stats[0].pop('visualMetrics',None)
+                                har_stats[0].pop('timestamps',None)
                 except IOError:
                     print "No output found"
 
-                #har_stats["har"]=process_har_files()
-		har_stats["browser"]="Chrome"
-		har_stats["protocol"]=getter_version
+                har["har"]=process_har_files()
+		har["browser"]="Chrome"
+		har["protocol"]=getter_version
 		#har_stats["cache"]=1
 
 	except CalledProcessError as e:
@@ -135,7 +137,7 @@ def browse_chrome(iface,url,getter_version):
 			loading=False
 	
 	if loading:
-		return har_stats
+		return har
 
 
 def browse_firefox(iface,url,getter_version):
@@ -177,49 +179,50 @@ def browse_firefox(iface,url,getter_version):
 	try:
 		if getter_version == 'HTTP1.1/TLS':
 			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
+				'-n','1','--resultDir','web-res',
 				'--firefox.preference', 'network.http.spdy.enabled:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-				'--userAgent', '"Mozilla/5.0 (Android 4.4; Mobile; rv:56.0) Gecko/56.0 Firefox/56.0"']
-			output=check_output(cmd)
+				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
 
 		else:
 			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
-				'-n','1','--resultDir','web-res','--skipHar',
-				'--userAgent', '"Mozilla/5.0 (Android 4.4; Mobile; rv:56.0) Gecko/56.0 Firefox/56.0"']
-			output=check_output(cmd)
-			
+				'-n','1','--resultDir','web-res',
+				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+			#output=check_output(cmd)
+			output=check_output(" ".join(cmd), shell=True)
+		#print  os.listdir("web-res")	
+                har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-			har_stats = json.load(data_file)
-                        har_stats["info"].pop('connectivity',None)
-			har_stats["info"]=str(har_stats["info"])
-                        har_stats["pageinfo"]=str(har_stats["browserScripts"][0]["pageinfo"])
-                        har_stats["rumSpeedIndex"]=har_stats["browserScripts"][0]["timings"]['rumSpeedIndex']
-                        har_stats["fullyLoaded"]=har_stats["browserScripts"][0]["timings"]['fullyLoaded']
-                        har_stats["browserScripts"][0]["timings"].pop('fullyLoaded',None)
-                        har_stats["firstPaint"]=har_stats["browserScripts"][0]["timings"]['firstPaint']
-                        har_stats["pageLoadTime"]=har_stats["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                        har_stats["navigationTiming"]=str(har_stats["browserScripts"][0]["timings"]['navigationTiming'])
-                        har_stats["pageTimings"]=str(har_stats["browserScripts"][0]["timings"]['pageTimings'])
-			har_stats["browserScripts"][0].pop('pageinfo',None)
-                        har_stats["browserScripts"][0]["timings"].pop('firstPaint',None)
-                        har_stats["browserScripts"][0]["timings"].pop('navigationTiming',None)
-                        har_stats["browserScripts"][0]["timings"].pop('pageTimings',None)
-                        har_stats["resourceTimings"]=str(har_stats["browserScripts"][0]["timings"]['resourceTimings'])
-                        har_stats["browserScripts"][0]["timings"].pop('resourceTimings',None)
-                        har_stats["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
-                        har_stats["browserScripts"][0]["timings"].pop('userTimings',None)
-                        har_stats.pop('browserScripts',None)
-                        har_stats.pop('statistics',None)
-                        har_stats.pop('visualMetrics',None)
-                        har_stats.pop('timestamps',None)
+			        har_stats = json.load(data_file)
+	                        har_stats[0]["info"].pop('connectivity',None)
+	                        har["info"]=str(har_stats[0]["info"])
+	                        har["pageinfo"]=str(har_stats[0]["browserScripts"][0]["pageinfo"])
+	                        har["rumSpeedIndex"]=har_stats[0]["browserScripts"][0]["timings"]['rumSpeedIndex']
+	                        har["fullyLoaded"]=har_stats[0]["fullyLoaded"]
+	                        har_stats[0].pop('fullyLoaded',None)
+	                        har["firstPaint"]=har_stats[0]["browserScripts"][0]["timings"]['firstPaint']
+	                        har['pageLoadTime']=har_stats[0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+                                har["navigationTiming"]=str(har_stats[0]["browserScripts"][0]["timings"]['navigationTiming'])
+                                har["pageTimings"]=str(har_stats[0]["browserScripts"][0]["timings"]['pageTimings'])
+                                har_stats[0]["browserScripts"][0].pop('pageinfo',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('firstPaint',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('navigationTiming',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('pageTimings',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
+                                har_stats[0]["browserScripts"][0]["timings"].pop('userTimings',None)
+                                har_stats[0].pop('browserScripts',None)
+                                har_stats[0].pop('statistics',None)
+                                har_stats[0].pop('visualMetrics',None)
+                                har_stats[0].pop('timestamps',None)
                 except IOError:
                     print "No output found"
-                #har_stats["har"]=process_har_files()
-		har_stats["browser"]="Firefox"
-		har_stats["protocol"]=getter_version
+                har["har"]=process_har_files()
+		har["browser"]="Firefox"
+		har["protocol"]=getter_version
 		#har_stats["cache"]=0
                 #clear the copied contents from /opt/monroe/browsersupport/firefox-profile folder
 	        if os.path.exists(browser_cache):	
@@ -254,4 +257,4 @@ def browse_firefox(iface,url,getter_version):
 	
 	#print har_stats["browserScripts"][0]["timings"]["pageTimings"]["pageLoadTime"]
 	if loading:
-		return har_stats
+		return har

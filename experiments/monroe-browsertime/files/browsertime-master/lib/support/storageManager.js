@@ -1,18 +1,21 @@
 'use strict';
 
-const fs = require('fs'),
-  isEmpty = require('lodash.isempty'),
-  Promise = require('bluebird'),
-  path = require('path'),
-  crypto = require('crypto'),
-  urlParser = require('url'),
-  moment = require('moment');
+const { promisify } = require('util');
+const fs = require('fs');
+const isEmpty = require('lodash.isempty');
+const path = require('path');
+const crypto = require('crypto');
+const zlib = require('zlib');
+const urlParser = require('url');
+const dayjs = require('dayjs');
 
-Promise.promisifyAll(fs);
-const mkdirp = Promise.promisify(require('mkdirp'));
+const writeFile = promisify(fs.writeFile);
+const gzip = promisify(zlib.gzip);
+const unlink = promisify(fs.unlink);
+const mkdirp = promisify(require('mkdirp'));
 
 const defaultDir = 'browsertime-results';
-let timestamp = moment()
+let timestamp = dayjs()
   .format()
   .replace(/:/g, '');
 
@@ -44,30 +47,40 @@ class StorageManager {
     this.jsonIndentation = prettyPrint ? 2 : 0;
   }
 
-  createDataDir() {
-    return mkdirp(this.baseDir).then(() => this.baseDir);
+  async createDataDir() {
+    await mkdirp(this.baseDir);
+    return this.baseDir;
   }
 
-  createSubDataDir(...name) {
+  async createSubDataDir(...name) {
     const dir = path.join(this.baseDir, ...name);
-    return mkdirp(dir).then(() => dir);
+    await mkdirp(dir);
+    return dir;
   }
 
-  writeData(filename, data) {
-    return Promise.join(
-      this.createDataDir(),
-      filename,
-      data,
-      (dirPath, filename, data) =>
-        fs.writeFileAsync(path.join(dirPath, filename), data)
-    );
+  async rm(filename) {
+    return unlink(path.join(this.baseDir, filename));
   }
 
-  writeJson(filename, json) {
-    return this.writeData(
-      filename,
-      JSON.stringify(json, null, this.jsonIndentation)
-    );
+  async writeData(filename, data, subdir) {
+    let dirPath;
+    if (subdir) {
+      dirPath = await this.createSubDataDir(subdir);
+    } else {
+      dirPath = await this.createDataDir();
+    }
+
+    return writeFile(path.join(dirPath, filename), data);
+  }
+
+  async writeJson(filename, json, shouldGzip) {
+    if (shouldGzip) {
+      const data = await gzip(Buffer.from(JSON.stringify(json)), { level: 1 });
+      await this.writeData(`${filename}.gz`, data);
+    } else {
+      const data = JSON.stringify(json, null, this.jsonIndentation);
+      await this.writeData(filename, data);
+    }
   }
 
   get directory() {
