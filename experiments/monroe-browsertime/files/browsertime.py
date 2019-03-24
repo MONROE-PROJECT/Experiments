@@ -1,9 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Author: Mohammad Rajiullah (Used general experiment logic from 
-# Jonas Karlsson)
-# Date: October 2016
+# Author: Mohammad Rajiullah 
+# Date: October 2018
 # License: GNU General Public License v3
 # Developed for use by the EU H2020 MONROE project
 
@@ -74,6 +73,21 @@ quic_urls=[
              "www.keycdn.com",
              "wwww.meetup.com",
              "www.free-power-point-templates.com"
+	    # "www.corrieredellosport.it",
+            # "www.t-nation.com",
+            # "www.geforce.com",
+            # "www.zaobao.com.sg",
+            # "www.claro.com.br",
+            # "www.net.com.br",
+            # "www.vivastreet.co.uk",
+            # "www.fantia.jp",
+            # "www.tripadvisor.co.za",
+            #"www.waldenu.edu",
+            #"www.yves-rocher.fr"
+            #"www.litespeedtech.com",
+            #"www.keycdn.com",
+            #"wwww.meetup.com",
+            #"www.free-power-point-templates.com"
              ]
 # Default values (overwritable from the scheduler)
 # Can only be updated from the main thread and ONLY before any
@@ -95,7 +109,19 @@ EXPCONFIG = {
 	"verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
-        "urls": ['www.facebook.com/telia/','www.wikipedia.org/wiki/Fyre_Festival',
+        "urls": [
+	     #"www.corrieredellosport.it",
+             #"www.t-nation.com",
+             #"www.geforce.com",
+             #"www.zaobao.com.sg",
+             #"www.claro.com.br",
+             #"www.net.com.br",
+             #"www.vivastreet.co.uk",
+             #"www.fantia.jp",
+             #"www.tripadvisor.co.za",
+            #"www.waldenu.edu",
+            #"www.yves-rocher.fr"
+	'www.facebook.com/telia/','www.wikipedia.org/wiki/Fyre_Festival',
         'www.reddit.com',
         'www.instagram.com/leomessi/',
         'www.ebay.com','www.twitter.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
