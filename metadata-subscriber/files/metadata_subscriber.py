@@ -126,7 +126,12 @@ while True:
         if not DEBUG:
             msg = json.loads(msgdata)
             # Some zmq messages do not have nodeid information so I set it here
-            msg['NodeId'] = CONFIG['nodeid']
+            msg['NodeId'] = str(CONFIG['nodeid'])
+            #Check so we have all mandatory fields
+            str(msg['DataId'])
+            int(msg['DataVersion'])
+            float(msg['Timestamp'])
+            int(msg['SequenceNumber'])
         else:
             msg = msgdata
     except:
