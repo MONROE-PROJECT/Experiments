@@ -41,6 +41,7 @@ EXPCONFIG = {
         "server": "8.8.8.8",  # ping target
         "interval": 1000,  # time in milliseconds between successive packets
         "dataversion": 2,
+	"size":56,
         "dataid": "MONROE.EXP.PING",
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "ifup_interval_check": 5,  # Interval to check if interface is up
@@ -67,6 +68,7 @@ def run_exp(meta_info, expconfig):
     cmd = ["fping",
            "-I", ifname,
            "-D",
+	   "-b",str(expconfig['size']),
            "-c", "1",
            server]
     # Regexp to parse fping ouput from command
