@@ -73,21 +73,19 @@ quic_urls=[
              "www.keycdn.com",
              "wwww.meetup.com",
              "www.free-power-point-templates.com"
-	    # "www.corrieredellosport.it",
-            # "www.t-nation.com",
-            # "www.geforce.com",
-            # "www.zaobao.com.sg",
-            # "www.claro.com.br",
-            # "www.net.com.br",
-            # "www.vivastreet.co.uk",
-            # "www.fantia.jp",
-            # "www.tripadvisor.co.za",
-            #"www.waldenu.edu",
-            #"www.yves-rocher.fr"
-            #"www.litespeedtech.com",
-            #"www.keycdn.com",
-            #"wwww.meetup.com",
-            #"www.free-power-point-templates.com"
+	     "www.corrieredellosport.it",
+             "www.t-nation.com",
+             "www.geforce.com",
+             "www.zaobao.com.sg",
+             "www.claro.com.br",
+             "www.net.com.br",
+             "www.vivastreet.co.uk",
+             "www.fantia.jp",
+             "www.tripadvisor.co.za",
+            "www.waldenu.edu",
+            "www.yves-rocher.fr"
+            "www.litespeedtech.com",
+	      "www.google.com"	
              ]
 # Default values (overwritable from the scheduler)
 # Can only be updated from the main thread and ONLY before any
@@ -110,30 +108,23 @@ EXPCONFIG = {
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
         "urls": [
-	     #"www.corrieredellosport.it",
-             #"www.t-nation.com",
-             #"www.geforce.com",
-             #"www.zaobao.com.sg",
-             #"www.claro.com.br",
-             #"www.net.com.br",
-             #"www.vivastreet.co.uk",
-             #"www.fantia.jp",
-             #"www.tripadvisor.co.za",
-            #"www.waldenu.edu",
-            #"www.yves-rocher.fr"
-	'www.facebook.com/telia/','www.wikipedia.org/wiki/Fyre_Festival',
-        'www.reddit.com',
-        'www.instagram.com/leomessi/',
-        'www.ebay.com','www.twitter.com','www.theguardian.com/international','www.youtube.com/watch?v=544vEgMiMG0',
-        'www.tmall.com','www.stackoverflow.com',
-        'www.live.com','www.microsoft.com',
-        'www.kayak.com','www.yelp.com','www.etsy.com',
-        'www.flickr.com',
-        'www.imgur.com',
-        "www.litespeedtech.com",
-        "www.keycdn.com",
-        "wwww.meetup.com",
-        "www.free-power-point-templates.com"
+	     "www.corrieredellosport.it",
+             "www.t-nation.com",
+             "www.geforce.com",
+             "www.zaobao.com.sg",
+             "www.claro.com.br",
+             "www.net.com.br",
+             "www.vivastreet.co.uk",
+             "www.fantia.jp",
+             "www.tripadvisor.co.za",
+             "www.waldenu.edu",
+             "www.yves-rocher.fr",
+	     "www.youtube.com/watch?v=544vEgMiMG0",
+             "www.litespeedtech.com",
+             "www.keycdn.com",
+             "wwww.meetup.com",
+             "www.free-power-point-templates.com",
+	     "www.google.com"
        ],
         "http_protocols":["h1s","h2","quic"],
         "browsers":["firefox","chrome"],
@@ -632,8 +623,8 @@ if __name__ == '__main__':
 					browser_kind=browser 
 					if browser == "firefox" and protocol == "quic":
 						continue
-                                        elif browser == "chrome" and protocol == "quic" and (url not in quic_urls and url !="www.youtube.com/watch?v=544vEgMiMG0"):
-                                                continue
+                                        #elif browser == "chrome" and protocol == "quic" and (url not in quic_urls and url !="www.youtube.com/watch?v=544vEgMiMG0"):
+                                         #       continue
                                         #elif protocol != "quic" and browser == "firefox" and url in quic_urls:
                                          #   continue
 					for run in range(start_count, iterations):
