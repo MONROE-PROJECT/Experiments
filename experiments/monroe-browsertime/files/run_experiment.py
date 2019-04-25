@@ -30,7 +30,6 @@ def process_har_files():
     objs=[]
     pageSize=0
     processed_har={}
-    #print "We are here"
     try:
         with open("web-res/browsertime.har") as f:
             har=json.load(f)

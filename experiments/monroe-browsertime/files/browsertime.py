@@ -98,7 +98,7 @@ EXPCONFIG = {
 	"zmqport": "tcp://172.17.0.1:5556",
 	"modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
 	"dataversion": 1,
-	"dataid": "MONROE.EXP.HEADLESS.BROWSERTIME",
+	"dataid": "MONROE.EXP.HEADLESS.BROWSERTIME.CHROME",
 	"nodeid": "fake.nodeid",
 	"meta_grace": 120,  # Grace period to wait for interface metadata
 	"exp_grace": 120,  # Grace period before killing experiment
@@ -122,12 +122,12 @@ EXPCONFIG = {
 	     "www.youtube.com/watch?v=544vEgMiMG0",
              "www.litespeedtech.com",
              "www.keycdn.com",
-             "wwww.meetup.com",
+             "www.meetup.com",
              "www.free-power-point-templates.com",
 	     "www.google.com"
        ],
         "http_protocols":["h1s","h2","quic"],
-        "browsers":["firefox","chrome"],
+        "browsers":["chrome"],
         "iterations": 1,
 	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
