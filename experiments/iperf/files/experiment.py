@@ -37,6 +37,8 @@ EXPCONFIG = {
         "resultdir": "/monroe/results/",
         "server": "130.243.27.222",
         "protocol": "tcp",
+	"duration": 10,
+	"bandwidth": 0,   #Default for TCP for UDP is 1M default
         "interfaces": [ "eth0" ],
         "iperfversion": 3
         }
@@ -46,20 +48,23 @@ def check_if(ifname):
     return (ifname in netifaces.interfaces() and
             netifaces.AF_INET in netifaces.ifaddresses(ifname))
 
-def run_iperf3(server, sourceip, protocol):
+def run_iperf3(server, sourceip, protocol, duration, bandwidth):
     """Runs iperf3 and returns the resluts as a dictionary."""
     cmd = [ "iperf3", 
             "--json", 
-            "--bind", sourceip, 
+            "--bind", sourceip,
+	    "--time", duration,
+	    "--bandwidth", bandwidth, 
             "--client", server 
             ]
     if protocol == "udp":
         cmd.append("--udp")
+	
     popen = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     msg = json.load(popen.stdout)
     return msg
 
-def run_iperf(server, sourceip, protocol):
+def run_iperf(server, sourceip, protocol, duration, bandwidth):
     """
     Runs iperf and returns the resluts (or error message) as a dictionary.
     Headers are from https://bit.ly/2EmbVSV and https://bit.ly/2VpGNc8
@@ -75,7 +80,9 @@ def run_iperf(server, sourceip, protocol):
     """
     cmd = [ "iperf", 
             "--enhancedreports", 
-            "--reportstyle", "C", 
+            "--reportstyle", "C",
+	    "--time", duration,
+            "--bandwidth", bandwidth, 
             "--bind", sourceip, 
             "--client", server 
             ]
@@ -111,7 +118,12 @@ if __name__ == '__main__':
         # Try to get the experiment config as provided by the scheduler
         try:
             with open(CONFIGFILE) as configfd:
-                EXPCONFIG.update(json.load(configfd))
+		fileconfig = json.load(configfd)
+		#Set the default values for iperf
+		if 'bandwidth' not in fileconfig and fileconfig.get('protocol') == 'udp':
+		  fileconfig['bandwidth'] = '1M'
+
+                EXPCONFIG.update(fileconfig)
         except Exception as e:
             print ("Cannot retrive expconfig {}".format(e))
             raise e
@@ -132,6 +144,8 @@ if __name__ == '__main__':
         server = str(EXPCONFIG['server'])
         version = int(EXPCONFIG['iperfversion'])
         protocol = str(EXPCONFIG['protocol'])
+	duration = str(int(EXPCONFIG['duration']))
+ 	bandwidth = str(EXPCONFIG['bandwidth'])
     except Exception as e:
         print ("Missing or wrong format on expconfig variable {}".format(e))
         raise e
@@ -160,21 +174,27 @@ if __name__ == '__main__':
             for ip in ips:
                 if verbosity > 2:
                         print (("Executing iperf{version}(3/2) from {ifname}({ip}) "
-                                "to {server} using {protocol}").format(version=version,
+                                "to {server} using {protocol} with {bandwidth} for {duration} seconds").format(version=version,
                                                                        ifname=ifname,
                                                                        ip=ip, 
                                                                        server=server,
-                                                                       protocol=protocol))
+                                                                       protocol=protocol,
+								       duration=duration, 
+                                             			       bandwidth=bandwidth))
 
                 try:
                     if version == 3:
                         exp_res = run_iperf3(server=server,
                                              sourceip=ip,
-                                             protocol=protocol)
+                                             protocol=protocol,
+					     duration=duration,
+					     bandwidth=bandwidth)
                     else:
                         exp_res = run_iperf(server=server,
                                             sourceip=ip, 
-                                            protocol=protocol)
+                                            protocol=protocol,
+					    duration=duration, 
+                                            bandwidth=bandwidth)
                 except Exception as e:
                     print "Could not execute iperf{}, error: {}".format(version,e)
                     raise e
