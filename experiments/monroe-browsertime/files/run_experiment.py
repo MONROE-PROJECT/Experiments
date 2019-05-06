@@ -30,6 +30,7 @@ def process_har_files():
     objs=[]
     pageSize=0
     processed_har={}
+    protocols={}
     try:
         with open("web-res/browsertime.har") as f:
             har=json.load(f)
@@ -45,10 +46,17 @@ def process_har_files():
                     obj["startedDateTime"]=entry["startedDateTime"]
                     obj["time"]=entry["time"]
                     obj["timings"]=entry["timings"]
-                    objs.append(obj)
+		    obj["request_protocol"]=entry["request"]["httpVersion"]
+		    obj["response_protocol"]=entry["response"]["httpVersion"]
+                    if obj["response_protocol"] in protocols:
+			protocols[obj["response_protocol"]] +=1
+		    else:
+                        protocols[obj["response_protocol"]]=1
+		    objs.append(obj)
                     num_of_objects=num_of_objects+1
                 except KeyError:
                     pass
+	    processed_har["used_protocols"]=protocols
             processed_har["Objects"]=objs
             processed_har["NumObjects"]=num_of_objects
             processed_har["PageSize"]=pageSize
