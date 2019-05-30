@@ -115,6 +115,8 @@ def browse_chrome(iface,url,getter_version):
 	                        har["pageinfo"]=str(har_stats[0]["browserScripts"][0]["pageinfo"])
 	                        har["rumSpeedIndex"]=har_stats[0]["browserScripts"][0]["timings"]['rumSpeedIndex']
 	                        har["fullyLoaded"]=har_stats[0]["fullyLoaded"]
+	                        har["visualMetrics"]=str(har_stats[0]["visualMetrics"])
+	                        har["speedIndex"]=har_stats[0]["visualMetrics"][0]["SpeedIndex"]
 	                        har_stats[0].pop('fullyLoaded',None)
 	                        har["firstPaint"]=har_stats[0]["browserScripts"][0]["timings"]['firstPaint']
 	                        har['pageLoadTime']=har_stats[0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
@@ -128,7 +130,7 @@ def browse_chrome(iface,url,getter_version):
                                 har_stats[0]["browserScripts"][0]["timings"].pop('userTimings',None)
                                 har_stats[0].pop('browserScripts',None)
                                 har_stats[0].pop('statistics',None)
-                                har_stats[0].pop('visualMetrics',None)
+                                #har_stats[0].pop('visualMetrics',None)
                                 har_stats[0].pop('timestamps',None)
                 except IOError:
                     print "No output found"

@@ -108,25 +108,18 @@ EXPCONFIG = {
 	"resultdir": "/monroe/results/",
 	"modeminterfacename": "InternalInterface",
         "urls": [
-	     "www.corrieredellosport.it",
-             "www.t-nation.com",
-             "www.geforce.com",
              "www.zaobao.com.sg",
              "www.claro.com.br",
              "www.net.com.br",
-             "www.vivastreet.co.uk",
              "www.fantia.jp",
-             "www.tripadvisor.co.za",
-             "www.waldenu.edu",
-             "www.yves-rocher.fr",
 	     "www.youtube.com/watch?v=544vEgMiMG0",
              "www.litespeedtech.com",
              "www.keycdn.com",
-             "www.meetup.com",
              "www.free-power-point-templates.com",
 	     "www.google.com"
+	     "www.facebook.com"
        ],
-        "http_protocols":["h1s","h2","quic"],
+        "http_protocols":["h2","quic"],
         "browsers":["chrome"],
         "iterations": 1,
 	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
@@ -388,10 +381,10 @@ def run_exp(meta_info, expconfig, url,count):
 	if expconfig['verbosity'] > 2:
 		#print json.dumps(har_stats, indent=4, sort_keys=True)
 		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
-		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["protocol"],har_stats["url"], har_stats["pageLoadTime"]))
+		print("Done with Browser: {}, HTTP protocol: {}, url: {}, SpeedIndex: {}".format(har_stats["browser"],har_stats["protocol"],har_stats["url"], har_stats["speedIndex"]))
 	if not DEBUG:
 		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
-		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["protocol"],har_stats["url"], har_stats["pageLoadTime"]))
+		print("Done with Browser: {}, HTTP protocol: {}, url: {}, SPeedIndex: {}".format(har_stats["browser"],har_stats["protocol"],har_stats["url"], har_stats["speedIndex"]))
 		if first_run==0:
 			monroe_exporter.save_output(har_stats, expconfig['resultdir'])
 	
