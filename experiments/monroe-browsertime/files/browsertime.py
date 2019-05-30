@@ -116,7 +116,7 @@ EXPCONFIG = {
              "www.litespeedtech.com",
              "www.keycdn.com",
              "www.free-power-point-templates.com",
-	     "www.google.com"
+	     "www.google.com",
 	     "www.facebook.com"
        ],
         "http_protocols":["h2","quic"],
