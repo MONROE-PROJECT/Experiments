@@ -70,6 +70,10 @@ COPY files/user-experiment.sh /opt/monroe/
 RUN chmod ugo+x /opt/monroe/user-experiment.sh
 
 RUN export DEBIAN_FRONTEND=noninteractive \
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
+    && apt-get install ${APT_OPTS} \
+    curl \
     && dpkg -i *.deb \
     && apt-get clean ${APT_OPTS} \
     && apt-get autoremove ${APT_OPTS} \
