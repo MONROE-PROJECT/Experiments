@@ -9,7 +9,8 @@
 """
 Simple wrapper to run ping on a pycom device using nb-iot.
 
-The script will run forever on the specified interface.
+The script will run a limited set of times (default 4) on the specified
+interface, count < 1 it will run forever.
 All default values are configurable from the scheduler.
 The output will be formated into a json object suitable for storage in the
 MONROE db.
@@ -29,6 +30,7 @@ EXPCONFIG = {
         "server": "8.8.8.8",  # ping target
         "interval": 5000,  # time in milliseconds between successive packets
         "dataversion": 1,
+        "count": 4,
 	    "size":56,
         "device": "/dev/pycom/board0",
 #        "device": "/dev/tty.usbserial-DQ00DARH",
@@ -81,6 +83,7 @@ if __name__ == '__main__':
         apn=EXPCONFIG['apn']
         interval = float(EXPCONFIG['interval']/1000.0)
         server = EXPCONFIG['server']
+        count = EXPCONFIG['count']
         pktsize = EXPCONFIG['size']
         dns_servers = EXPCONFIG['dns_servers']
         iptype = EXPCONFIG['type']
@@ -130,7 +133,10 @@ if __name__ == '__main__':
     cmd = 'ping(host="{}", count=1, size={})'.format(server, pktsize)
 
     seq = 0
-    while "Connected" == pyexec('get_connection_status()', pyb):
+    if verbosity > 1:
+        print("Starting experiment with {} runs: {}".format(count, cmd))
+    while ("Connected" == pyexec('get_connection_status()', pyb) and
+            (seq < count or count < 1)):
         if verbosity > 2:
             print('Executing {}: '.format(cmd), end = '', flush=True)
         try:

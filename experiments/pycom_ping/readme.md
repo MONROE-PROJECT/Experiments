@@ -2,7 +2,8 @@
 # Experiment
 The experiments measure IP RTT by over NB IOT connections by continuously send ping packets to a configurable server (default 8.8.8.8, google public dns).
 
-The experiment will send 1 Echo Request (ICMP type 8) packet every 5 seconds to a server over the NBIOT interface until aborted.
+The experiment will send 1 Echo Request (ICMP type 8) packet every 5 seconds to a server over the NBIOT interface until aborted or count is reached.
+If count is set to < 1 the experiment will run forever.
 RTT is measured as the time between the Echo request and the Echo reply
 (ICMP type 0) is received from the server.
 
@@ -19,6 +20,7 @@ The default values are (can be overridden by a /monroe/config):
     "interval": 5000,  # time in milliseconds between successive packets
     "dataversion": 1,
     "size":56,
+    "count":4,
     "device": "/dev/pycom/board0",
     "apn": "lpwa.telia.iot",
     "type": "LTE.IP",  #LTE.IP or LTE.IPV4V6 defualt LTE.IP
