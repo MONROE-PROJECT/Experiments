@@ -96,43 +96,43 @@ if __name__ == '__main__':
 
     #Load the helper functions
     if verbosity > 1:
-        print(f"Loading the board: {device_path}")
+        print("Loading the board: {}".format(device_path))
     pyb = pyboard.Pyboard(device=device_path)
     if verbosity > 1:
-        print(f"Initalizing the board: {device_path}")
+        print("Initalizing the board: {}".format(device_path))
     pyb.enter_raw_repl()
     if pyb.execfile(filename="fipy-helper-functions.py") != b'':
         print("Failed to load pycom helper functions")
         raise Exception("Failed to load pycom helper functions")
 
     if verbosity > 1:
-        print(f"Getting ICCID: ", end = '', flush=True)
+        print("Getting ICCID: ", end = '', flush=True)
     iccid = pyexec('get_iccid()', pyb)
     if verbosity > 1:
-        print(f"{iccid}")
+        print("{}".format(iccid))
 
     assert(iccid)
 
     #Setup connections
     if verbosity > 1:
-        print(f"Setting up dns {dns_servers}: ", end = '', flush=True)
-    res = pyexec(f'set_dns({dns_servers})', pyb)
+        print("Setting up dns {}: ".format(dns_servers), end = '', flush=True)
+    res = pyexec('set_dns({})'.format(dns_servers), pyb)
     if verbosity > 1:
-        print(f"{res}")
+        print("{}".format(res))
 
     if verbosity > 1:
-        print(f'Setting up nbiot (apn="{apn}",band={band}, type={iptype}): ', end = '', flush=True)
-    res = pyexec(f'set_nbiot(apn="{apn}",band={band}, type={iptype})', pyb)
+        print('Setting up nbiot (apn="{}",band={}, type={}): '.format(apn, band, iptype), end = '', flush=True)
+    res = pyexec('set_nbiot(apn="{}",band={}, type={})'.format(apn, band, iptype), pyb)
     if verbosity > 1:
-        print(f"{res}")
+        print("{}".format(res))
 
     # TODO: Check if lte is setup ok ....
-    cmd = f'ping(host="{server}", count=1, size={pktsize})'
+    cmd = 'ping(host="{}", count=1, size={})'.format(server, pktsize)
 
     seq = 0
     while "Connected" == pyexec('get_connection_status()', pyb):
         if verbosity > 2:
-            print(f'Executing {cmd}: ', end = '', flush=True)
+            print('Executing {}: '.format(cmd), end = '', flush=True)
         try:
             res = ""
             res = pyexec(cmd, pyb)
@@ -140,7 +140,7 @@ if __name__ == '__main__':
         except Exception as e:
             if verbosity > 2:
                 print('---> ', end = '', flush=True)
-            print(f"Failed execution/parsing of {cmd} (got {res})")
+            print("Failed execution/parsing of {} (got {})".format(cmd, res))
             raise e
 
         if exp_result and exp_result.get("n_recv",0) > 0:
