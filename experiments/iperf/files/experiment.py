@@ -5,7 +5,7 @@
 # Date:February 2019
 # License: GNU General Public License v3
 
-""" 
+"""
 Simple wrapper to run iperf/iperf3 on a given host.
 
 The script will run on all specified interfaces.
@@ -19,6 +19,7 @@ from datetime import datetime
 import time
 import subprocess
 import netifaces
+from flatten_json import flatten
 
 # Configuration
 DEBUG = False
@@ -35,13 +36,38 @@ EXPCONFIG = {
         "dataid": "5GENESIS.EXP.IPERF",
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
+        "flatten_delimiter": '.',
         "server": "130.243.27.222",
         "protocol": "tcp",
-	"duration": 10,
-	"bandwidth": 0,   #Default for TCP for UDP is 1M default
+        "duration": 10,
+        "bandwidth": 0,   #Default for TCP for UDP is 1M default
         "interfaces": [ "eth0" ],
         "iperfversion": 3
         }
+
+def get_recursively(search_dict, field):
+    """
+    Takes a dict with nested lists and dicts,
+    and searches all dicts for a key which consists
+    of the field provided.
+    Adapted from : https://stackoverflow.com/a/20254842
+    """
+    fields_found = []
+
+    for key, value in search_dict.iteritems():
+        if field in key:
+            fields_found.append(key)
+        elif isinstance(value, dict):
+            results = get_recursively(value, field)
+            for result in results:
+                fields_found.append(result)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    more_results = get_recursively(item, field)
+                    for another_result in more_results:
+                        fields_found.append(another_result)
+    return fields_found
 
 def check_if(ifname):
     """Check if interface is up and have got an IP address."""
@@ -50,16 +76,16 @@ def check_if(ifname):
 
 def run_iperf3(server, sourceip, protocol, duration, bandwidth):
     """Runs iperf3 and returns the resluts as a dictionary."""
-    cmd = [ "iperf3", 
-            "--json", 
+    cmd = [ "iperf3",
+            "--json",
             "--bind", sourceip,
-	    "--time", duration,
-	    "--bandwidth", bandwidth, 
-            "--client", server 
+            "--time", duration,
+            "--bandwidth", bandwidth,
+            "--client", server
             ]
     if protocol == "udp":
         cmd.append("--udp")
-	
+
     popen = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     msg = json.load(popen.stdout)
     return msg
@@ -73,18 +99,18 @@ def run_iperf(server, sourceip, protocol, duration, bandwidth):
     source_port,
     destination_address,
     destination_port,
-    tarnsferID, 
+    transferID,
     interval,
     transferred_bytes,
     bits_per_second
     """
-    cmd = [ "iperf", 
-            "--enhancedreports", 
+    cmd = [ "iperf",
+            "--enhancedreports",
             "--reportstyle", "C",
-	    "--time", duration,
-            "--bandwidth", bandwidth, 
-            "--bind", sourceip, 
-            "--client", server 
+            "--time", duration,
+            "--bandwidth", bandwidth,
+            "--bind", sourceip,
+            "--client", server
             ]
     if protocol == "udp":
         cmd.append("--udp")
@@ -144,8 +170,9 @@ if __name__ == '__main__':
         server = str(EXPCONFIG['server'])
         version = int(EXPCONFIG['iperfversion'])
         protocol = str(EXPCONFIG['protocol'])
-	duration = str(int(EXPCONFIG['duration']))
- 	bandwidth = str(EXPCONFIG['bandwidth'])
+        duration = str(int(EXPCONFIG['duration']))
+        bandwidth = str(EXPCONFIG['bandwidth'])
+        flatten_delimiter = str(EXPCONFIG['flatten_delimiter'])
     except Exception as e:
         print ("Missing or wrong format on expconfig variable {}".format(e))
         raise e
@@ -154,7 +181,7 @@ if __name__ == '__main__':
         print EXPCONFIG
 
     # Attach to the ZeroMQ socket as a subscriber and start listen to
-    # metadata, this does notning for now 
+    # metadata, this does notning for now
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
     socket.connect(zmqport)
@@ -166,34 +193,35 @@ if __name__ == '__main__':
 
     for ifname in interfaces:
         if check_if(ifname):
-            # We are all good 
+            # We are all good
             ips = [x.get('addr',None) for x in netifaces.ifaddresses(ifname)[netifaces.AF_INET]]
             if verbosity > 2:
                 print ("Interface {} is up with ip(s) : {}".format(ifname, ips))
-        
+
             for ip in ips:
                 if verbosity > 2:
                         print (("Executing iperf{version}(3/2) from {ifname}({ip}) "
-                                "to {server} using {protocol} with {bandwidth} for {duration} seconds").format(version=version,
-                                                                       ifname=ifname,
-                                                                       ip=ip, 
-                                                                       server=server,
-                                                                       protocol=protocol,
-								       duration=duration, 
-                                             			       bandwidth=bandwidth))
+                                "to {server} using {protocol} with {bandwidth} for "
+                                "{duration} seconds").format(version=version,
+                                                            ifname=ifname,
+                                                            ip=ip,
+                                                            server=server,
+                                                            protocol=protocol,
+                                                            duration=duration,
+                                                            bandwidth=bandwidth))
 
                 try:
                     if version == 3:
                         exp_res = run_iperf3(server=server,
                                              sourceip=ip,
                                              protocol=protocol,
-					     duration=duration,
-					     bandwidth=bandwidth)
+                                             duration=duration,
+                                             bandwidth=bandwidth)
                     else:
                         exp_res = run_iperf(server=server,
-                                            sourceip=ip, 
+                                            sourceip=ip,
                                             protocol=protocol,
-					    duration=duration, 
+                                            duration=duration,
                                             bandwidth=bandwidth)
                 except Exception as e:
                     print "Could not execute iperf{}, error: {}".format(version,e)
@@ -211,7 +239,7 @@ if __name__ == '__main__':
                 if protocol == "udp" and version != 3:
                     msg["Note"] = "Warning: UDP results is only stable with iperf3"
                     print ("Warning: UDP results is only stable with iperf3")
-                
+
                 path = ("{resultdir}/{dataid}.{version}.{protocol}"
                         "_{nodeid}_{ts}_{ifname}_{ip}.json").format(resultdir=resultdir,
                                                                     dataid=dataid,
@@ -221,12 +249,18 @@ if __name__ == '__main__':
                                                                     ts=msg['Timestamp'],
                                                                     ifname=ifname,
                                                                     ip=ip)
-                
+
+                # Flatten the output
+                problematic_keys = get_recursively(msg, flatten_delimiter)
+                if problematic_keys and verbosity > 1:
+                    print ("Warning: these keys might be compromised by flattening:"
+                           " {}".format(problematic_keys))
+                msg = flatten(msg, flatten_delimiter)
                 if verbosity > 2:
                     print ("Saving experiment results to {}".format(path))
                     print (json.dumps(msg,indent=4, sort_keys=True))
-                
-                # Save the file 
+
+                # Save the file
                 with open(path, 'w') as outfile:
                     json.dump(msg, outfile)
     if verbosity > 1:
