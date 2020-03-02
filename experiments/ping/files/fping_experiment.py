@@ -24,6 +24,7 @@ import re
 import time
 import signal
 import monroe_exporter
+from flatten_json import flatten
 
 # Configuration
 # Configuration
@@ -42,6 +43,7 @@ EXPCONFIG = {
         "interval": 1000,  # time in milliseconds between successive packets
         "dataversion": 2,
         "dataid": "MONROE.EXP.PING",
+        "flatten_delimiter": '.',
         "meta_grace": 120,  # Grace period to wait for interface metadata
         "ifup_interval_check": 5,  # Interval to check if interface is up
         "export_interval": 5.0,
@@ -53,6 +55,29 @@ EXPCONFIG = {
                                         "wlan0"]  # Manual metadata on these IF
         }
 
+def get_recursively(search_dict, field):
+    """
+    Takes a dict with nested lists and dicts,
+    and searches all dicts for a key which consists
+    of the field provided.
+    Adapted from : https://stackoverflow.com/a/20254842
+    """
+    fields_found = []
+
+    for key, value in search_dict.iteritems():
+        if field in key:
+            fields_found.append(key)
+        elif isinstance(value, dict):
+            results = get_recursively(value, field)
+            for result in results:
+                fields_found.append(result)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    more_results = get_recursively(item, field)
+                    for another_result in more_results:
+                        fields_found.append(another_result)
+    return fields_found
 
 def run_exp(meta_info, expconfig):
 
@@ -64,6 +89,7 @@ def run_exp(meta_info, expconfig):
     ifname = meta_info[expconfig["modeminterfacename"]]
     interval = float(expconfig['interval']/1000.0)
     server = expconfig['server']
+    flatten_delimiter = str(expconfig['flatten_delimiter'])
     cmd = ["fping",
            "-I", ifname,
            "-D",
@@ -111,7 +137,12 @@ def run_exp(meta_info, expconfig):
                             "Iccid": meta_info["ICCID"],
                             "Operator": meta_info["Operator"]
                    }
-
+        # Flatten the output
+        problematic_keys = get_recursively(msg, flatten_delimiter)
+        if problematic_keys and expconfig['verbosity'] > 1:
+            print ("Warning: these keys might be compromised by flattening:"
+                   " {}".format(problematic_keys))
+        msg = flatten(msg, flatten_delimiter)
         if expconfig['verbosity'] > 2:
             print msg
         if not DEBUG:
@@ -226,6 +257,7 @@ if __name__ == '__main__':
         EXPCONFIG['resultdir']
         EXPCONFIG['export_interval']
         EXPCONFIG['modeminterfacename']
+        str(EXPCONFIG['flatten_delimiter'])
     except Exception as e:
         print "Missing expconfig variable {}".format(e)
         raise e
