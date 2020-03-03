@@ -51,8 +51,7 @@ EXPCONFIG = {
         "resultdir": "/monroe/results/",
         "modeminterfacename": "InternalInterface",
         "interfacename": "eth0",  # Interface to run the experiment on
-        "interfaces_without_metadata": ["eth0",
-                                        "wlan0"]  # Manual metadata on these IF
+        "interfaces_without_metadata": "eth0,wlan0"  # Manual metadata on these IF
         }
 
 def get_recursively(search_dict, field):
@@ -246,7 +245,7 @@ if __name__ == '__main__':
     # Short hand variables and check so we have all variables we need
     try:
         ifname = EXPCONFIG['interfacename']
-        if_without_metadata = EXPCONFIG['interfaces_without_metadata']
+        if_without_metadata = str(EXPCONFIG['interfaces_without_metadata']).split(',')
         meta_grace = EXPCONFIG['meta_grace']
         ifup_interval_check = EXPCONFIG['ifup_interval_check']
         EXPCONFIG['guid']
@@ -264,6 +263,7 @@ if __name__ == '__main__':
 
     if EXPCONFIG['verbosity'] > 2:
         print EXPCONFIG
+        print if_without_metadata
     # Create a process for getting the metadata
     # (could have used a thread as well but this is true multiprocessing)
     meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
