@@ -40,8 +40,8 @@ EXPCONFIG = {
         "server": "130.243.27.222",
         "protocol": "tcp",
         "duration": 10,
-        "bandwidth": 0,   #Default for TCP for UDP is 1M default
-        "interfaces": [ "eth0" ],
+        "bandwidth": 0,   # Default for TCP for UDP is 1M default
+        "interfaces": "eth0" ,  # delimited by ',', eg "eth0,eth1"
         "iperfversion": 3
         }
 
@@ -159,7 +159,7 @@ if __name__ == '__main__':
 
     # Short hand variables and assertion/check so we have all variables we need
     try:
-        interfaces = list(EXPCONFIG['interfaces'])
+        interfaces = list(str(EXPCONFIG['interfaces']).split(','))
         guid = str(EXPCONFIG['guid'])
         dataid = str(EXPCONFIG['dataid'])
         nodeid = str(EXPCONFIG['nodeid'])
@@ -179,6 +179,7 @@ if __name__ == '__main__':
 
     if verbosity > 2:
         print EXPCONFIG
+        print interfaces
 
     # Attach to the ZeroMQ socket as a subscriber and start listen to
     # metadata, this does notning for now
