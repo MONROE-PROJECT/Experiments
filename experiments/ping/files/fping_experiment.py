@@ -83,6 +83,30 @@ def run_exp(meta_info, expconfig):
                                  stdout=subprocess.PIPE,
                                  bufsize=1)
         output = popen.stdout.readline()
+        r_ = subprocess.Popen(['curl','http://172.17.0.1:80/modems/update'],
+                              stdout=subprocess.PIPE,
+                              bufsize=1)
+        meta_ = json.loads(r_.stdout.read())
+        r_.stdout.close()
+        r_.terminate()
+        r_.kill()
+
+        rssi = None
+        rsrp = None
+        rsrq = None
+        snr  = None
+        freq = None
+        band = None
+
+        for modem_ in meta_:
+            if modem_.get('iccid') == meta_info["ICCID"]:
+                snr = modem_.get('lte_snr')
+                freq = modem_.get('lte_freq')
+                band = modem_.get('lte_band')
+                rssi = modem_.get('lte_rssi')
+                rsrp = modem_.get('lte_rsrp')
+                rsrq = modem_.get('lte_rsrq')
+
         m = r.match(output)
         if m is not None:  # We could send and got a reply
             # keys are defined in regexp compilation. Nice!
@@ -99,7 +123,15 @@ def run_exp(meta_info, expconfig):
                             "DataVersion": expconfig['dataversion'],
                             "NodeId": expconfig['nodeid'],
                             "Iccid": meta_info["ICCID"],
-                            "Operator": meta_info["Operator"]
+                            "Operator": meta_info["Operator"],
+
+                            "RSSI": rssi,
+                            "RSRP": rsrp,
+                            "RSRQ": rsrq,
+                            "SNR": snr,
+                            "Frequency": freq,
+                            "Band": band
+
                   }
         else:  # We lost the interface or did not get a reply
             msg = {
@@ -111,7 +143,14 @@ def run_exp(meta_info, expconfig):
                             "DataVersion": expconfig['dataversion'],
                             "NodeId": expconfig['nodeid'],
                             "Iccid": meta_info["ICCID"],
-                            "Operator": meta_info["Operator"]
+                            "Operator": meta_info["Operator"],
+
+                            "RSSI": rssi,
+                            "RSRP": rsrp,
+                            "RSRQ": rsrq,
+                            "SNR": snr,
+                            "Frequency": freq,
+                            "Band": band
                    }
 
         if expconfig['verbosity'] > 2:
