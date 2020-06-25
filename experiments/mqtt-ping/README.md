@@ -23,12 +23,13 @@ The default values can be overridden by scheduling parameters
 
 ## Output
 The container vill produce three files,
-* mqtt_ping-<GUID>-<DATE>.log
+* `mqtt_ping-<GUID>-<DATE>.log`
     * Stdout
-* <GUID>-MONROE.EXP.IOT.MQTT.PING-<ts>.log
+* `<GUID>-MONROE.EXP.IOT.MQTT.PING-<ts>.log`
     * The receive log
-* <GUID>-MONROE.EXP.IOT.MQTT.PING-<ts>.json
-Example:
+* `<GUID>-MONROE.EXP.IOT.MQTT.PING-<ts>.json`
+
+### Example:
 ```json
 {
   "Guid": "sha256:0b09af15580e40ba6b9d206066b524786618d8e036eb5d1d537e551d68658345.1509351.232.1",
