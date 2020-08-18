@@ -12,6 +12,7 @@ RUN apt-get update -y && apt-get install -y \
   python-nose \
   --no-install-recommends --force-yes && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
   python -m pip install pyssim && \
+  pip install "flatten_json==0.1.7" && \
   wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
   tar --strip-components 1 -C /usr/bin -xf ffmpeg-release-amd64-static.tar.xz --wildcards */ffmpeg */ffprobe && \
   rm ffmpeg-release-amd64-static.tar.xz && \

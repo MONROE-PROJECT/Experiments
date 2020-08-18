@@ -38,6 +38,7 @@ import psutil
 import netifaces as ni
 from subprocess import check_output, CalledProcessError
 from multiprocessing import Process, Manager
+from flatten_json import flatten
 
 import shutil
 import stat
@@ -106,6 +107,7 @@ EXPCONFIG = {
 	"time_between_experiments": 5,
 	"verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
 	"resultdir": "/monroe/results/",
+        "flatten_delimiter": '.',
 	"modeminterfacename": "InternalInterface",
         "urls": [
 	     "www.youtube.com/watch?v=544vEgMiMG0",
@@ -113,12 +115,37 @@ EXPCONFIG = {
 	     "www.google.com",
 	     "www.facebook.com"
        ],
-        "http_protocols":["h1s","h2","quic"],
+        "http_protocols":["h2"],
         "browsers":["chrome"],
         "iterations": 1,
 	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
 	}
+
+def get_recursively(search_dict, field):
+    """
+    Takes a dict with nested lists and dicts,
+    and searches all dicts for a key which consists
+    of the field provided.
+    Adapted from : https://stackoverflow.com/a/20254842
+    """
+    fields_found = []
+
+    for key, value in search_dict.iteritems():
+        if field in key:
+            fields_found.append(key)
+        elif isinstance(value, dict):
+            results = get_recursively(value, field)
+            for result in results:
+                fields_found.append(result)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    more_results = get_recursively(item, field)
+                    for another_result in more_results:
+                        fields_found.append(another_result)
+    return fields_found
+
 
 def check_system():
     cpu_percent = psutil.cpu_percent()
@@ -369,6 +396,12 @@ def run_exp(meta_info, expconfig, url,count):
 
         #print "First Run {}".format(first_run)
 	#msg=json.dumps(har_stats)
+    	# Flatten the output
+    	problematic_keys = get_recursively(har_stats, flatten_delimiter)
+    	if problematic_keys and verbosity > 1:
+        	print ("Warning: these keys might be compromised by flattening:"
+                           " {}".format(problematic_keys))
+    	har_stats = flatten(har_stats, flatten_delimiter)
 	with open('/tmp/'+str(har_stats["NodeId"])+'_'+str(har_stats["DataId"])+'_'+str(har_stats["Timestamp"])+'.json', 'w') as outfile:
 		json.dump(har_stats, outfile)
 	print "Saving browsing information ..."
@@ -483,6 +516,7 @@ if __name__ == '__main__':
 		exp_grace = EXPCONFIG['exp_grace']
 		ifup_interval_check = EXPCONFIG['ifup_interval_check']
 		time_between_experiments = EXPCONFIG['time_between_experiments']
+		flatten_delimiter = str(EXPCONFIG['flatten_delimiter'])
 		EXPCONFIG['guid']
 		EXPCONFIG['modem_metadata_topic']
 		EXPCONFIG['zmqport']
