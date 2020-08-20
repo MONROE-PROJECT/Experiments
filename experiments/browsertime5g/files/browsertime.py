@@ -517,6 +517,7 @@ if __name__ == '__main__':
 		ifup_interval_check = EXPCONFIG['ifup_interval_check']
 		time_between_experiments = EXPCONFIG['time_between_experiments']
 		flatten_delimiter = str(EXPCONFIG['flatten_delimiter'])
+		verbosity=EXPCONFIG['verbosity']
 		EXPCONFIG['guid']
 		EXPCONFIG['modem_metadata_topic']
 		EXPCONFIG['zmqport']
