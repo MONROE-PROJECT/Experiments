@@ -114,8 +114,8 @@ EXPCONFIG = {
         "http_protocols":["h2"],
         "browsers":["chrome"],
         "iterations": 1,
-	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
-	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
+	"allowed_interfaces": ["ens160", "ens192", "eth0","op0","op1","op2"],  # Interfaces to run the experiment on
+	"interfaces_without_metadata": ["eth0", "ens160", "ens192"]  # Manual metadata on these IF
 	}
 
 def get_recursively(search_dict, field):
@@ -130,6 +130,7 @@ def get_recursively(search_dict, field):
     for key, value in search_dict.iteritems():
         if field in key:
             fields_found.append(key)
+            search_dict[key.replace(field, '_')] = search_dict.pop(key)
         elif isinstance(value, dict):
             results = get_recursively(value, field)
             for result in results:
