@@ -22,4 +22,6 @@ COPY files/browsertime.py /opt/monroe/
 COPY files/browsertime-dbg.py /opt/monroe/
 COPY files/start.sh /opt/monroe/start.sh
 
+WORKDIR /opt/monroe/
+
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]

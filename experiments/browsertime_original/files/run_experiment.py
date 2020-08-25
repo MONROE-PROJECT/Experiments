@@ -18,10 +18,6 @@ def copytree(src, dst, symlinks=True, ignore=None):
 			copytree(s, d, symlinks, ignore)
 		elif os.path.islink(s):
 			pass
-			#linkto=os.readlink(s)
-			#if not os.path.exists(d
-			#if not filecmp.cmp(s,d):
-			#os.symlink(linkto,d)
 		else:
 			if not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
 				shutil.copy2(s, d)
@@ -38,31 +34,21 @@ def process_har_files():
             for entry in har["log"]["entries"]:
                 try:
                     obj={}
-                    obj["url"]=entry["request"]["url"]
 		    if entry["response"]["bodySize"] is not None and entry["response"]["headersSize"] is not None:
-	                    obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
         	            pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                    obj["mimeType"]=entry["response"]["content"]["mimeType"]
-                    obj["startedDateTime"]=entry["startedDateTime"]
-                    obj["time"]=entry["time"]
-                    obj["timings"]=entry["timings"]
-		    obj["request_protocol"]=entry["request"]["httpVersion"]
-		    obj["response_protocol"]=entry["response"]["httpVersion"]
-                    if obj["response_protocol"] in protocols:
-			protocols[obj["response_protocol"]] +=1
+		    request_protocol=entry["request"]["httpVersion"]
+		    response_protocol=entry["response"]["httpVersion"]
+                    if response_protocol in protocols:
+			protocols[response_protocol] +=1
 		    else:
-                        protocols[obj["response_protocol"]]=1
-		    objs.append(obj)
+                        protocols[response_protocol]=1
                     num_of_objects=num_of_objects+1
                 except KeyError:
                     pass
-	    processed_har["used_protocols"]=protocols
-            processed_har["Objects"]=objs
-            processed_har["NumObjects"]=num_of_objects
-            processed_har["PageSize"]=pageSize
-            processed_har["browser"]=har["log"]["browser"]
-            processed_har["creator"]=har["log"]["creator"]
-            return processed_har
+	    har["used_protocols"]=protocols
+            har["NumObjects"]=num_of_objects
+            har["PageSize"]=pageSize
+            return har
     except IOError:
         print "HAR file not found ..."
 
@@ -109,33 +95,13 @@ def browse_chrome(iface,url,getter_version):
 		har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-                        	har_stats = json.load(data_file)
-	                        har_stats[0]["info"].pop('connectivity',None)
-	                        har["info"]=str(har_stats[0]["info"])
-	                        har["pageinfo"]=str(har_stats[0]["browserScripts"][0]["pageinfo"])
-	                        har["rumSpeedIndex"]=har_stats[0]["browserScripts"][0]["timings"]['rumSpeedIndex']
-	                        har["fullyLoaded"]=har_stats[0]["fullyLoaded"]
-	                        #har["visualMetrics"]=str(har_stats[0]["visualMetrics"])
-	                        #har["speedIndex"]=har_stats[0]["visualMetrics"][0]["SpeedIndex"]
-	                        har_stats[0].pop('fullyLoaded',None)
-	                        har["firstPaint"]=har_stats[0]["browserScripts"][0]["timings"]['firstPaint']
-	                        har['pageLoadTime']=har_stats[0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                                har["navigationTiming"]=str(har_stats[0]["browserScripts"][0]["timings"]['navigationTiming'])
-                                har["pageTimings"]=str(har_stats[0]["browserScripts"][0]["timings"]['pageTimings'])
-                                har_stats[0]["browserScripts"][0].pop('pageinfo',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('firstPaint',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('navigationTiming',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('pageTimings',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('userTimings',None)
-                                har_stats[0].pop('browserScripts',None)
-                                har_stats[0].pop('statistics',None)
-                                har_stats[0].pop('visualMetrics',None)
-                                har_stats[0].pop('timestamps',None)
+                        	har["browsertime-json"] = json.load(data_file)
+				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+
                 except IOError:
                     print "No output found"
 
-                har["har"]=process_har_files()
+                har["browsertime-har"]=process_har_files()
 		har["browser"]="Chrome"
 		har["protocol"]=getter_version
 		#har_stats["cache"]=1
@@ -206,29 +172,12 @@ def browse_firefox(iface,url,getter_version):
                 har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-			        har_stats = json.load(data_file)
-	                        har_stats[0]["info"].pop('connectivity',None)
-	                        har["info"]=str(har_stats[0]["info"])
-	                        har["pageinfo"]=str(har_stats[0]["browserScripts"][0]["pageinfo"])
-	                        har["rumSpeedIndex"]=har_stats[0]["browserScripts"][0]["timings"]['rumSpeedIndex']
-	                        har["fullyLoaded"]=har_stats[0]["fullyLoaded"]
-	                        har_stats[0].pop('fullyLoaded',None)
-	                        har["firstPaint"]=har_stats[0]["browserScripts"][0]["timings"]['firstPaint']
-	                        har['pageLoadTime']=har_stats[0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                                har["navigationTiming"]=str(har_stats[0]["browserScripts"][0]["timings"]['navigationTiming'])
-                                har["pageTimings"]=str(har_stats[0]["browserScripts"][0]["timings"]['pageTimings'])
-                                har_stats[0]["browserScripts"][0].pop('pageinfo',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('firstPaint',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('navigationTiming',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('pageTimings',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('userTimings',None)
-                                har_stats[0].pop('browserScripts',None)
-                                har_stats[0].pop('statistics',None)
-                                har_stats[0].pop('visualMetrics',None)
-                                har_stats[0].pop('timestamps',None)
+			        har["browsertime-json"] = json.load(data_file)
+				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+
                 except IOError:
                     print "No output found"
+                har["browsertime-har"]=process_har_files()
                 har["har"]=process_har_files()
 		har["browser"]="Firefox"
 		har["protocol"]=getter_version
