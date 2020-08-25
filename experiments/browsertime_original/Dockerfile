@@ -18,4 +18,6 @@ COPY files/* /opt/monroe/
 
 WORKDIR /opt/monroe/
 
+WORKDIR /opt/monroe/
+
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]
