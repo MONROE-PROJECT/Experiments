@@ -16,7 +16,6 @@ RUN mkdir -p /monroe/results
 
 COPY files/* /opt/monroe/
 
-WORKDIR /opt/monroe/
 
 WORKDIR /opt/monroe/
 
