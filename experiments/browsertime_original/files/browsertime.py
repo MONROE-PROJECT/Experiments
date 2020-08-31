@@ -107,7 +107,7 @@ EXPCONFIG = {
 	     "www.google.com",
 	     "www.facebook.com"
        ],
-        "http_protocols":["h2"],
+        "http_protocols":["h2","h1s","quic"],
         "browsers":["chrome"],
         "iterations": 1,
 	"allowed_interfaces": ["ens160", "ens192", "eth0","op0","op1","op2"],  # Interfaces to run the experiment on
