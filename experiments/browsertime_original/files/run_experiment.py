@@ -96,6 +96,7 @@ def browse_chrome(iface,url,getter_version):
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
                         	har["browsertime-json"] = json.load(data_file)
+                        	har["browsertime-json"][0].pop('statistics',None)#These fileds are only relevant when multiple runs are done and a statistics is required
 				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
 
                 except IOError:
