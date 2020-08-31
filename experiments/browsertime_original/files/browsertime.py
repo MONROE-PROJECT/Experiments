@@ -2,17 +2,13 @@
 # -*- coding: utf-8 -*-
 
 # Author: Mohammad Rajiullah
-# Date: October 2018
+# Date: August 2020
 # License: GNU General Public License v3
 # Developed for use by the EU H2020 MONROE project
 
 """
-headless firefox browsing using selenium web driver.
-The browsing can make request using h1, h2 or h1 over tls.
-The script will execute one experiment for each of the allowed_interfaces.
-All default values are configurable from the scheduler.
-The output will be formated into a json object suitable for storage in the
-MONROE db.
+Browsertime uses Selenium NodeJS to drive the browser (latest version of firefox and chrome). 
+It starts the browser, load a URL, executes configurable Javascripts to collect metrics, collect a HAR file.
 """
 
 import sys, getopt
