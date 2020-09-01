@@ -159,14 +159,14 @@ def browse_firefox(iface,url,getter_version):
 				'--firefox.preference', 'network.http.spdy.enabled:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:80.0) Gecko/20100101 Firefox/80.0"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 
 		else:
 			cmd=['/usr/src/app/bin/browsertime.js','-b',"firefox","https://"+str(url), 
 				'-n','1','--resultDir','web-res',
-				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:80.0) Gecko/20100101 Firefox/80.0"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		#print  os.listdir("web-res")	
