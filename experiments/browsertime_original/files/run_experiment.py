@@ -74,14 +74,14 @@ def browse_chrome(iface,url,getter_version):
 				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'disable-http2',  
 				'--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 10; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83  Mobile Safari/537.36"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="HTTP2":
 			cmd=['/usr/src/app/bin/browsertime.js',"https://"+str(url), 
 				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 10; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83  Mobile Safari/537.36"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="QUIC":
@@ -89,7 +89,7 @@ def browse_chrome(iface,url,getter_version):
 				'-n','1','--resultDir','web-res',
 				'--chrome.args','enable-quic',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 10; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83  Mobile Safari/537.36"']
 			output=check_output(" ".join(cmd), shell=True)
                 print "Processing the HAR files ..."
 		har={}
@@ -159,14 +159,14 @@ def browse_firefox(iface,url,getter_version):
 				'--firefox.preference', 'network.http.spdy.enabled:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 
 		else:
 			cmd=['/usr/src/app/bin/browsertime.js','-b',"firefox","https://"+str(url), 
 				'-n','1','--resultDir','web-res',
-				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		#print  os.listdir("web-res")	
