@@ -117,7 +117,7 @@ def browse_chrome(iface,url,getter_version):
 
 
 def browse_firefox(iface,url,getter_version):
-        browser_cache="/opt/monroe/browsersupport/firefox-profile"
+        browser_cache="/usr/src/app/browsersupport/firefox-profile"
 	if "1.1" in getter_version:
 		protocol="h1s"
 	else:
@@ -151,7 +151,7 @@ def browse_firefox(iface,url,getter_version):
 			shutil.rmtree(common_cache_folder)
 		except:
 			print "Exception ",str(sys.exc_info())
-        print os.listdir("browsersupport/firefox-profile")
+        print os.listdir("/usr/src/app/browsersupport/firefox-profile")
 	try:
 		if getter_version == 'HTTP1.1/TLS':
 			cmd=['/usr/src/app/bin/browsertime.js','-b',"firefox","https://"+str(url), 
@@ -183,7 +183,7 @@ def browse_firefox(iface,url,getter_version):
 		har["browser"]="Firefox"
 		har["protocol"]=getter_version
 		#har_stats["cache"]=0
-                #clear the copied contents from /opt/monroe/browsersupport/firefox-profile folder
+                #clear the copied contents from /usr/src/app/browsersupport/firefox-profile folder
 	        if os.path.exists(browser_cache):	
 		    try:
 			print "Deleting the browser cache dir {}".format(browser_cache)
@@ -192,7 +192,7 @@ def browse_firefox(iface,url,getter_version):
 			print "Exception ",str(sys.exc_info())
 	        if os.path.exists("/opt/monroe/basic_browser_repo"):	
 		    try:
-			copytree("/opt/monroe/basic_browser_repo","/opt/monroe/browsersupport/")
+			copytree("/opt/monroe/basic_browser_repo","/usr/src/app/browsersupport/")
 		    except shutil.Error as e:
 			print('Directory not copied. Error: %s' % e)
 		    except OSError as e:
