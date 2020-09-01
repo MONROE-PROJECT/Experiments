@@ -16,5 +16,6 @@ RUN mkdir -p /monroe/results
 
 COPY files/* /opt/monroe/
 
+WORKDIR /opt/monroe
 
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]
