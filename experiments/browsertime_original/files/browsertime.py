@@ -275,7 +275,8 @@ def run_exp(meta_info, expconfig, url,count):
 	if browser_kind=="chrome":
 		har_stats=run_experiment.browse_chrome(ifname,url,getter_version)
 	else:
-		har_stats=run_experiment.browse_firefox(ifname,url,getter_version)
+		if (getter_versionr !="quic"):
+			har_stats=run_experiment.browse_firefox(ifname,url,getter_version)
 
 	if bool(har_stats):
 		shutil.rmtree('web-res')
