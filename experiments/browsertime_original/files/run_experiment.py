@@ -118,6 +118,19 @@ def browse_chrome(iface,url,getter_version):
 
 def browse_firefox(iface,url,getter_version):
         browser_cache="/usr/src/app/browsersupport/firefox-profile"
+        if !os.path.exists("/opt/monroe/basic_browser_repo"):
+                 try:
+			fname="/opt/monroe/basic_browser_repo"
+                        print "Creating the dir {}".format("fname")
+                        os.makedirs(fname)
+                 except OSError as e:
+                        if e.errno != errno.EEXIST:
+                                raise
+        	 try:
+                	copytree("/usr/src/app/browsersupport/",fname)
+		 except shutil.Error as e:
+                        print('Directory not copied. Error: %s' % e)
+		
 	if "1.1" in getter_version:
 		protocol="h1s"
 	else:

@@ -15,7 +15,7 @@ RUN curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/downloa
 RUN mkdir -p /monroe/results
 
 COPY files/* /opt/monroe/
-COPY /usr/src/app/browsersupport/ /opt/monroe/basic_browser_repo
+#COPY /usr/src/app/browsersupport/ /opt/monroe/basic_browser_repo
 
 WORKDIR /opt/monroe
 
