@@ -118,7 +118,7 @@ def browse_chrome(iface,url,getter_version):
 
 def browse_firefox(iface,url,getter_version):
         browser_cache="/usr/src/app/browsersupport/firefox-profile"
-        if !os.path.exists("/opt/monroe/basic_browser_repo"):
+        if not os.path.exists("/opt/monroe/basic_browser_repo"):
                  try:
 			fname="/opt/monroe/basic_browser_repo"
                         print "Creating the dir {}".format("fname")
