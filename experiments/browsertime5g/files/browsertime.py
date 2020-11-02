@@ -2,28 +2,20 @@
 # -*- coding: utf-8 -*-
 
 # Author: Mohammad Rajiullah
-# Date: October 2018
+# Date: August 2020
 # License: GNU General Public License v3
 # Developed for use by the EU H2020 MONROE project
 
 """
-headless firefox browsing using selenium web driver.
-The browsing can make request using h1, h2 or h1 over tls.
-The script will execute one experiment for each of the allowed_interfaces.
-All default values are configurable from the scheduler.
-The output will be formated into a json object suitable for storage in the
-MONROE db.
+Browsertime uses Selenium NodeJS to drive the browser (latest version of firefox and chrome). 
+It starts the browser, load a URL, executes configurable Javascripts to collect metrics, collect a HAR file.
 """
 
 import sys, getopt
 import time, os
 import fileinput
-from pyvirtualdisplay import Display
-from selenium import webdriver
 import datetime
 from dateutil.parser import parse
-from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import json
 import zmq
 import re
@@ -115,11 +107,11 @@ EXPCONFIG = {
 	     "www.google.com",
 	     "www.facebook.com"
        ],
-        "http_protocols":["h2"],
+        "http_protocols":["h2","h1s","quic"],
         "browsers":["chrome"],
         "iterations": 1,
-	"allowed_interfaces": ["eth0","op0","op1","op2"],  # Interfaces to run the experiment on
-	"interfaces_without_metadata": ["eth0"]  # Manual metadata on these IF
+	"allowed_interfaces": ["ens160", "ens192", "eth0","op0","op1","op2"],  # Interfaces to run the experiment on
+	"interfaces_without_metadata": ["eth0", "ens160", "ens192"]  # Manual metadata on these IF
 	}
 
 def get_recursively(search_dict, field):
@@ -134,6 +126,7 @@ def get_recursively(search_dict, field):
     for key, value in search_dict.iteritems():
         if field in key:
             fields_found.append(key)
+            search_dict[key.replace(field, '_')] = search_dict.pop(key)
         elif isinstance(value, dict):
             results = get_recursively(value, field)
             for result in results:
@@ -282,7 +275,8 @@ def run_exp(meta_info, expconfig, url,count):
 	if browser_kind=="chrome":
 		har_stats=run_experiment.browse_chrome(ifname,url,getter_version)
 	else:
-		har_stats=run_experiment.browse_firefox(ifname,url,getter_version)
+		if (getter_version !="quic"):
+			har_stats=run_experiment.browse_firefox(ifname,url,getter_version)
 
 	if bool(har_stats):
 		shutil.rmtree('web-res')

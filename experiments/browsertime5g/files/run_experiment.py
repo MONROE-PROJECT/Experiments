@@ -18,10 +18,6 @@ def copytree(src, dst, symlinks=True, ignore=None):
 			copytree(s, d, symlinks, ignore)
 		elif os.path.islink(s):
 			pass
-			#linkto=os.readlink(s)
-			#if not os.path.exists(d
-			#if not filecmp.cmp(s,d):
-			#os.symlink(linkto,d)
 		else:
 			if not os.path.exists(d) or os.stat(s).st_mtime - os.stat(d).st_mtime > 1:
 				shutil.copy2(s, d)
@@ -38,31 +34,21 @@ def process_har_files():
             for entry in har["log"]["entries"]:
                 try:
                     obj={}
-                    obj["url"]=entry["request"]["url"]
 		    if entry["response"]["bodySize"] is not None and entry["response"]["headersSize"] is not None:
-	                    obj["objectSize"]=entry["response"]["bodySize"]+entry["response"]["headersSize"]
         	            pageSize=pageSize+entry["response"]["bodySize"]+entry["response"]["headersSize"]
-                    obj["mimeType"]=entry["response"]["content"]["mimeType"]
-                    obj["startedDateTime"]=entry["startedDateTime"]
-                    obj["time"]=entry["time"]
-                    obj["timings"]=entry["timings"]
-		    obj["request_protocol"]=entry["request"]["httpVersion"]
-		    obj["response_protocol"]=entry["response"]["httpVersion"]
-                    if obj["response_protocol"] in protocols:
-			protocols[obj["response_protocol"]] +=1
+		    request_protocol=entry["request"]["httpVersion"]
+		    response_protocol=entry["response"]["httpVersion"]
+                    if response_protocol in protocols:
+			protocols[response_protocol] +=1
 		    else:
-                        protocols[obj["response_protocol"]]=1
-		    objs.append(obj)
+                        protocols[response_protocol]=1
                     num_of_objects=num_of_objects+1
                 except KeyError:
                     pass
-	    processed_har["used_protocols"]=protocols
-            processed_har["Objects"]=objs
-            processed_har["NumObjects"]=num_of_objects
-            processed_har["PageSize"]=pageSize
-            processed_har["browser"]=har["log"]["browser"]
-            processed_har["creator"]=har["log"]["creator"]
-            return processed_har
+	    har["used_protocols"]=protocols
+            har["NumObjects"]=num_of_objects
+            har["PageSize"]=pageSize
+            return har
     except IOError:
         print "HAR file not found ..."
 
@@ -84,58 +70,39 @@ def browse_chrome(iface,url,getter_version):
 	loading=True
 	try:
 		if getter_version == 'HTTP1.1/TLS':
-			cmd=['bin/browsertime.js',"https://"+str(url), 
+			cmd=['/usr/src/app/bin/browsertime.js',"https://"+str(url), 
 				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'disable-http2',  
 				'--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 10; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83  Mobile Safari/537.36"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="HTTP2":
-			cmd=['bin/browsertime.js',"https://"+str(url), 
+			cmd=['/usr/src/app/bin/browsertime.js',"https://"+str(url), 
 				'-n','1','--resultDir','web-res',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 10; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83  Mobile Safari/537.36"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		elif getter_version=="QUIC":
-			cmd=['bin/browsertime.js',"https://"+str(url), 
+			cmd=['/usr/src/app/bin/browsertime.js',"https://"+str(url), 
 				'-n','1','--resultDir','web-res',
 				'--chrome.args','enable-quic',
 				'--chrome.args', 'no-sandbox','--chrome.args', 'user-data-dir=/opt/monroe/'+folder_name+"/",
-				'--userAgent', '"Mozilla/5.0 (Linux; Android 8.0.0; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98  Mobile Safari/537.36"']
+				'--userAgent', '"Mozilla/5.0 (Linux; Android 10; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83  Mobile Safari/537.36"']
 			output=check_output(" ".join(cmd), shell=True)
                 print "Processing the HAR files ..."
 		har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-                        	har_stats = json.load(data_file)
-	                        har_stats[0]["info"].pop('connectivity',None)
-	                        har["info"]=str(har_stats[0]["info"])
-	                        har["pageinfo"]=str(har_stats[0]["browserScripts"][0]["pageinfo"])
-	                        har["rumSpeedIndex"]=har_stats[0]["browserScripts"][0]["timings"]['rumSpeedIndex']
-	                        har["fullyLoaded"]=har_stats[0]["fullyLoaded"]
-	                        #har["visualMetrics"]=str(har_stats[0]["visualMetrics"])
-	                        #har["speedIndex"]=har_stats[0]["visualMetrics"][0]["SpeedIndex"]
-	                        har_stats[0].pop('fullyLoaded',None)
-	                        har["firstPaint"]=har_stats[0]["browserScripts"][0]["timings"]['firstPaint']
-	                        har['pageLoadTime']=har_stats[0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                                har["navigationTiming"]=str(har_stats[0]["browserScripts"][0]["timings"]['navigationTiming'])
-                                har["pageTimings"]=str(har_stats[0]["browserScripts"][0]["timings"]['pageTimings'])
-                                har_stats[0]["browserScripts"][0].pop('pageinfo',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('firstPaint',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('navigationTiming',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('pageTimings',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('userTimings',None)
-                                har_stats[0].pop('browserScripts',None)
-                                har_stats[0].pop('statistics',None)
-                                har_stats[0].pop('visualMetrics',None)
-                                har_stats[0].pop('timestamps',None)
+                        	har["browsertime-json"] = json.load(data_file)
+                        	har["browsertime-json"][0].pop('statistics',None)#These fileds are only relevant when multiple runs are done and a statistics is required
+				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+
                 except IOError:
                     print "No output found"
 
-                har["har"]=process_har_files()
+                har["browsertime-har"]=process_har_files()
 		har["browser"]="Chrome"
 		har["protocol"]=getter_version
 		#har_stats["cache"]=1
@@ -150,7 +117,20 @@ def browse_chrome(iface,url,getter_version):
 
 
 def browse_firefox(iface,url,getter_version):
-        browser_cache="/opt/monroe/browsersupport/firefox-profile"
+        browser_cache="/usr/src/app/browsersupport/firefox-profile"
+        if not os.path.exists("/opt/monroe/basic_browser_repo"):
+                 try:
+			fname="/opt/monroe/basic_browser_repo"
+                        print "Creating the dir {}".format("fname")
+                        os.makedirs(fname)
+                 except OSError as e:
+                        if e.errno != errno.EEXIST:
+                                raise
+        	 try:
+                	copytree("/usr/src/app/browsersupport/",fname)
+		 except shutil.Error as e:
+                        print('Directory not copied. Error: %s' % e)
+		
 	if "1.1" in getter_version:
 		protocol="h1s"
 	else:
@@ -184,56 +164,39 @@ def browse_firefox(iface,url,getter_version):
 			shutil.rmtree(common_cache_folder)
 		except:
 			print "Exception ",str(sys.exc_info())
-        print os.listdir("browsersupport/firefox-profile")
+        print os.listdir("/usr/src/app/browsersupport/firefox-profile")
 	try:
 		if getter_version == 'HTTP1.1/TLS':
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
+			cmd=['/usr/src/app/bin/browsertime.js','-b',"firefox","https://"+str(url), 
 				'-n','1','--resultDir','web-res',
 				'--firefox.preference', 'network.http.spdy.enabled:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.http2:false', 
 				'--firefox.preference', 'network.http.spdy.enabled.v3-1:false',  
-				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:80.0) Gecko/20100101 Firefox/80.0"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 
 		else:
-			cmd=['bin/browsertime.js','-b',"firefox","https://"+str(url), 
+			cmd=['/usr/src/app/bin/browsertime.js','-b',"firefox","https://"+str(url), 
 				'-n','1','--resultDir','web-res',
-				'--userAgent', '"Mozilla/5.0 (Android 8.0.0; Mobile; rv:61.0) Gecko/61.0 Firefox/61.0"']
+				'--userAgent', '"Mozilla/5.0 (Android 10; Mobile; rv:80.0) Gecko/20100101 Firefox/80.0"']
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		#print  os.listdir("web-res")	
                 har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-			        har_stats = json.load(data_file)
-	                        har_stats[0]["info"].pop('connectivity',None)
-	                        har["info"]=str(har_stats[0]["info"])
-	                        har["pageinfo"]=str(har_stats[0]["browserScripts"][0]["pageinfo"])
-	                        har["rumSpeedIndex"]=har_stats[0]["browserScripts"][0]["timings"]['rumSpeedIndex']
-	                        har["fullyLoaded"]=har_stats[0]["fullyLoaded"]
-	                        har_stats[0].pop('fullyLoaded',None)
-	                        har["firstPaint"]=har_stats[0]["browserScripts"][0]["timings"]['firstPaint']
-	                        har['pageLoadTime']=har_stats[0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
-                                har["navigationTiming"]=str(har_stats[0]["browserScripts"][0]["timings"]['navigationTiming'])
-                                har["pageTimings"]=str(har_stats[0]["browserScripts"][0]["timings"]['pageTimings'])
-                                har_stats[0]["browserScripts"][0].pop('pageinfo',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('firstPaint',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('navigationTiming',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('pageTimings',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('rumSpeedIndex',None)
-                                har_stats[0]["browserScripts"][0]["timings"].pop('userTimings',None)
-                                har_stats[0].pop('browserScripts',None)
-                                har_stats[0].pop('statistics',None)
-                                har_stats[0].pop('visualMetrics',None)
-                                har_stats[0].pop('timestamps',None)
+			        har["browsertime-json"] = json.load(data_file)
+				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+
                 except IOError:
                     print "No output found"
+                har["browsertime-har"]=process_har_files()
                 har["har"]=process_har_files()
 		har["browser"]="Firefox"
 		har["protocol"]=getter_version
 		#har_stats["cache"]=0
-                #clear the copied contents from /opt/monroe/browsersupport/firefox-profile folder
+                #clear the copied contents from /usr/src/app/browsersupport/firefox-profile folder
 	        if os.path.exists(browser_cache):	
 		    try:
 			print "Deleting the browser cache dir {}".format(browser_cache)
@@ -242,7 +205,7 @@ def browse_firefox(iface,url,getter_version):
 			print "Exception ",str(sys.exc_info())
 	        if os.path.exists("/opt/monroe/basic_browser_repo"):	
 		    try:
-			copytree("/opt/monroe/basic_browser_repo","/opt/monroe/browsersupport/")
+			copytree("/opt/monroe/basic_browser_repo","/usr/src/app/browsersupport/")
 		    except shutil.Error as e:
 			print('Directory not copied. Error: %s' % e)
 		    except OSError as e:

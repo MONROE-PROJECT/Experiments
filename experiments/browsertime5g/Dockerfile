@@ -1,37 +1,23 @@
-FROM monroe/base:web
+FROM sitespeedio/browsertime
 
-RUN apt-get update -y && apt-get install -y \
-  imagemagick \
-  python-pil \
-  python-numpy \
-  python-scipy \
-  python-matplotlib \
-  python-pandas \
-  python-pip \
-  python-sympy \
-  python-nose \
-  --no-install-recommends --force-yes && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-  python -m pip install pyssim && \
-  pip install "flatten_json==0.1.7" && \
-  wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
-  tar --strip-components 1 -C /usr/bin -xf ffmpeg-release-amd64-static.tar.xz --wildcards */ffmpeg */ffprobe && \
-  rm ffmpeg-release-amd64-static.tar.xz && \
-  apt-get purge -y --auto-remove python-pip
-
-#WORKDIR /opt/monroe/
-#RUN npm install 
 ENV BROWSERTIME_XVFB true
 ENV BROWSERTIME_CONNECTIVITY__ENGINE external
 ENV BROWSERTIME_DOCKER true
 ENV BROWSERTIME_VIDEO true
 ENV BROWSERTIME_visualMetrics true
+# DumbInit
+ENV DI_VER 1.2.2
 
+RUN pip install flatten_json pyzmq
+RUN apt install -y python-psutil fping python-netifaces python-dateutil curl dnsutils
+RUN curl -L -o dumb-init.deb "https://github.com/Yelp/dumb-init/releases/download/v${DI_VER}/dumb-init_${DI_VER}_amd64.deb" && dpkg -i dumb-init.deb
 
-COPY files/browsertime-master /opt/monroe/
-COPY files/browsertime-master/browsersupport/ /opt/monroe/basic_browser_repo
-COPY files/run_experiment.py /opt/monroe/
-COPY files/browsertime.py /opt/monroe/
-COPY files/browsertime-dbg.py /opt/monroe/
-COPY files/start.sh /opt/monroe/start.sh
+RUN mkdir -p /monroe/results
+
+COPY files/* /opt/monroe/
+#COPY /usr/src/app/browsersupport/ /opt/monroe/basic_browser_repo
+RUN /opt/monroe/patch.sh
+
+WORKDIR /opt/monroe
 
 ENTRYPOINT ["dumb-init", "--", "/bin/bash", "/opt/monroe/start.sh"]
