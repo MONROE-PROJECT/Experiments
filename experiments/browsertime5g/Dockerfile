@@ -16,7 +16,7 @@ RUN mkdir -p /monroe/results
 
 COPY files/* /opt/monroe/
 #COPY /usr/src/app/browsersupport/ /opt/monroe/basic_browser_repo
-RUN /opt/monroe/patch.sh
+#RUN /opt/monroe/patch.sh
 
 WORKDIR /opt/monroe
 
