@@ -92,19 +92,19 @@ def browse_chrome(iface,url,getter_version):
 				'--userAgent', '"Mozilla/5.0 (Linux; Android 10; SM-G950F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83  Mobile Safari/537.36"']
 			output=check_output(" ".join(cmd), shell=True)
                 print "Processing the HAR files ..."
-		har={}
+		output={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-                        	har["browsertime-json"] = json.load(data_file)
-                        	har["browsertime-json"][0].pop('statistics',None)#These fileds are only relevant when multiple runs are done and a statistics is required
-				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+                        	output["browsertime_json"] = json.load(data_file)
+                        	output["browsertime_json"][0].pop('statistics',None)#These fileds are only relevant when multiple runs are done and a statistics is required
+				output['pageLoadTime']=output["browsertime_json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
 
                 except IOError:
                     print "No output found"
 
-                har["browsertime-har"]=process_har_files()
-		har["browser"]="Chrome"
-		har["protocol"]=getter_version
+                output["browsertime_har"]=process_har_files()
+		output["browser"]="Chrome"
+		output["protocol"]=getter_version
 		#har_stats["cache"]=1
 
 	except CalledProcessError as e:
@@ -113,7 +113,7 @@ def browse_chrome(iface,url,getter_version):
 			loading=False
 	
 	if loading:
-		return har
+		return output
 
 
 def browse_firefox(iface,url,getter_version):
@@ -183,18 +183,18 @@ def browse_firefox(iface,url,getter_version):
 			#output=check_output(cmd)
 			output=check_output(" ".join(cmd), shell=True)
 		#print  os.listdir("web-res")	
-                har={}
+                output={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-			        har["browsertime-json"] = json.load(data_file)
-				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
+			        output["output_json"] = json.load(data_file)
+				output['pageLoadTime']=output["output_json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
 
                 except IOError:
                     print "No output found"
-                har["browsertime-har"]=process_har_files()
-                har["har"]=process_har_files()
-		har["browser"]="Firefox"
-		har["protocol"]=getter_version
+                output["output_har"]=process_har_files()
+                output["har"]=process_har_files()
+		output["browser"]="Firefox"
+		output["protocol"]=getter_version
 		#har_stats["cache"]=0
                 #clear the copied contents from /usr/src/app/browsersupport/firefox-profile folder
 	        if os.path.exists(browser_cache):	
@@ -227,6 +227,5 @@ def browse_firefox(iface,url,getter_version):
 			print "Time limit exceeded"
 			loading=False
 	
-	#print har_stats["browserScripts"][0]["timings"]["pageTimings"]["pageLoadTime"]
 	if loading:
-		return har
+		return output

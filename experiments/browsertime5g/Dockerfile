@@ -1,5 +1,6 @@
 FROM sitespeedio/browsertime
 
+RUN apt-get update && apt-get upgrade -y
 ENV BROWSERTIME_XVFB true
 ENV BROWSERTIME_CONNECTIVITY__ENGINE external
 ENV BROWSERTIME_DOCKER true
