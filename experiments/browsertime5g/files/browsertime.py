@@ -53,6 +53,7 @@ h1='http://'
 h1s='https://'
 h2='https://'
 quic='https://'
+http3='https://'
 current_directory =''
 har_directory =''
 
@@ -61,25 +62,6 @@ first_run=1
 DEBUG = False
 CONFIGFILE = '/monroe/config'
 
-quic_urls=[
-             "www.litespeedtech.com",
-             "www.keycdn.com",
-             "wwww.meetup.com",
-             "www.free-power-point-templates.com"
-	     "www.corrieredellosport.it",
-             "www.t-nation.com",
-             "www.geforce.com",
-             "www.zaobao.com.sg",
-             "www.claro.com.br",
-             "www.net.com.br",
-             "www.vivastreet.co.uk",
-             "www.fantia.jp",
-             "www.tripadvisor.co.za",
-            "www.waldenu.edu",
-            "www.yves-rocher.fr"
-            "www.litespeedtech.com",
-	      "www.google.com"
-             ]
 # Default values (overwritable from the scheduler)
 # Can only be updated from the main thread and ONLY before any
 # other processes are started
@@ -102,13 +84,18 @@ EXPCONFIG = {
         "flatten_delimiter": '.',
 	"modeminterfacename": "InternalInterface",
         "urls": [
-	     "www.youtube.com/watch?v=544vEgMiMG0",
-             "www.keycdn.com",
+	     "www.youtube.com",
+             "www.instagram.com",
 	     "www.google.com",
+	     "www.myshopify.com",
+	     "www.google.com.hk",
+	     "www.google.co.in",
+             "www.google.co.jp",	
+             "www.google.com.br",	
 	     "www.facebook.com"
        ],
-        "http_protocols":["h2","h1s","quic"],
-        "browsers":["chrome"],
+        "http_protocols":["h2","h1s","http3"],
+        "browsers":["chrome","firefox"],
         "iterations": 1,
 	"allowed_interfaces": ["ens160", "ens192", "eth0","op0","op1","op2"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0", "ens160", "ens192"]  # Manual metadata on these IF
@@ -386,22 +373,19 @@ def run_exp(meta_info, expconfig, url,count):
 		print("NWMCCMNC info is not available")
 	har_stats["SequenceNumber"]= count
 
-
-
-        #print "First Run {}".format(first_run)
-	#msg=json.dumps(har_stats)
     	# Flatten the output
     	problematic_keys = get_recursively(har_stats, flatten_delimiter)
     	if problematic_keys and verbosity > 1:
         	print ("Warning: these keys might be compromised by flattening:"
                            " {}".format(problematic_keys))
     	har_stats = flatten(har_stats, flatten_delimiter)
+
+
+
 	with open('/tmp/'+str(har_stats["NodeId"])+'_'+str(har_stats["DataId"])+'_'+str(har_stats["Timestamp"])+'.json', 'w') as outfile:
 		json.dump(har_stats, outfile)
 	print "Saving browsing information ..."
 	if expconfig['verbosity'] > 2:
-		#print json.dumps(har_stats, indent=4, sort_keys=True)
-		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
 		print("Done with Browser: {}, HTTP protocol: {}, url: {}, PLT: {}".format(har_stats["browser"],har_stats["protocol"],har_stats["url"], har_stats["pageLoadTime"]))
 	if not DEBUG:
 		#print har_stats["browser"],har_stats["Protocol"],har_stats["url"]
@@ -631,8 +615,11 @@ if __name__ == '__main__':
 				elif protocol == 'quic':
 					getter = quic
 					getter_version = 'QUIC'
+				elif protocol == 'http3':
+					getter = http3
+					getter_version = 'HTTP3'
 				else:
-					print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2/quic>'
+					print 'Unknown HTTP Scheme: <HttpMethod:h1/h1s/h2/quic/Http3>'
 					sys.exit()
 				random.shuffle(browsers)
 				for browser in browsers:
