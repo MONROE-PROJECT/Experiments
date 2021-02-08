@@ -97,7 +97,7 @@ EXPCONFIG = {
         "http_protocols":["h2","h1s","http3"],
         "browsers":["chrome","firefox"],
         "iterations": 1,
-	"allowed_interfaces": ["ens160", "ens192", "eth0","op0","op1","op2"],  # Interfaces to run the experiment on
+	"allowed_interfaces": ["ens160", "ens192", "eth0"],  # Interfaces to run the experiment on
 	"interfaces_without_metadata": ["eth0", "ens160", "ens192"]  # Manual metadata on these IF
 	}
 
