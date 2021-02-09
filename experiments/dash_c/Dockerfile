@@ -63,7 +63,7 @@ RUN apt-get update && apt-get install ${APT_OPTS} \
     libffi6 && \
     apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
-Copy only the relevant parts from the build stage
+#Copy only the relevant parts from the build stage
 COPY --from=build /dashc/dashc.exe /opt/monroe/
 
 # This is the experiment that should run once the container is started
