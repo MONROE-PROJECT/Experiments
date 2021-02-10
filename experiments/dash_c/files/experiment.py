@@ -2,30 +2,25 @@
 # -*- coding: utf-8 -*-
 
 # Author: Jonas Karlsson
-# Date: May 2016
+# Date:April 2020
 # License: GNU General Public License v3
-# Developed for use by the EU H2020 MONROE project
 
 """
-Simple wrapper to run fping on a given host.
+Simple wrapper to run dashc on a given host.
 
-The script will run forever on the specified interface.
-All default values are configurable from the scheduler.
-The output will be formated into a json object suitable for storage in the
-MONROE db.
+The script will use the default route (ie no interface can be specified).
+All default values are configurable from the scheduler/elcm.
+The output will be formated into a json object suitable for db import.
 """
+
 import zmq
 import json
-import sys
-from multiprocessing import Process, Manager
+from datetime import datetime
+import time
 import subprocess
 import netifaces
-import re
-import time
-import signal
-import monroe_exporter
+from flatten_json import flatten
 
-# Configuration
 # Configuration
 DEBUG = False
 CONFIGFILE = '/monroe/config'
@@ -34,247 +29,173 @@ CONFIGFILE = '/monroe/config'
 # Can only be updated from the main thread and ONLY before any
 # other processes are started
 EXPCONFIG = {
-        "guid": "no.guid.in.config.file",  # Should be overridden by scheduler
         "zmqport": "tcp://172.17.0.1:5556",
-        "nodeid": "fake.nodeid",
-        "modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
-        "server": "8.8.8.8",  # ping target
-        "interval": 1000,  # time in milliseconds between successive packets
-        "dataversion": 2,
-	"size":56,
-        "dataid": "MONROE.EXP.PING",
-        "meta_grace": 120,  # Grace period to wait for interface metadata
-        "ifup_interval_check": 5,  # Interval to check if interface is up
-        "export_interval": 5.0,
+        "guid": "fake.guid",  # Need to be overriden
+        "nodeid": "virtual",
+        "metadata_topic": "MONROE.META",
+        "dataid": "5GENESIS.EXP.DASHC",
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
-        "modeminterfacename": "InternalInterface",
-        "interfacename": "eth0",  # Interface to run the experiment on
-        "interfaces_without_metadata": ["eth0",
-                                        "wlan0"]  # Manual metadata on these IF
+        "flatten_delimiter": '.',
+        #www.cs.ucc.ie
+        "url": "http://143.239.75.241/~jq5/www_dataset_temp/x264_4sec/bbb_10min/DASH_Files/VOD/bbb_enc_10min_x264_dash.mpd",
+        "duration": 900,
         }
 
-
-def run_exp(meta_info, expconfig):
-
-    global FPING_PROCESS
-    # Set some variables for saving data every export_interval
-    monroe_exporter.initalize(expconfig['export_interval'],
-                              expconfig['resultdir'])
-
-    ifname = meta_info[expconfig["modeminterfacename"]]
-    interval = float(expconfig['interval']/1000.0)
-    server = expconfig['server']
-    cmd = ["fping",
-           "-I", ifname,
-           "-D",
-	   "-b",str(expconfig['size']),
-           "-c", "1",
-           server]
-    # Regexp to parse fping ouput from command
-    r = re.compile(r'^\[(?P<ts>[0-9]+\.[0-9]+)\] (?P<host>[^ ]+) : \[(?P<seq>[0-9]+)\], (?P<bytes>\d+) bytes, (?P<rtt>[0-9]+(?:\.[0-9]+)?) ms \(.*\)$')
-
-    # This is the inner loop where we wait for output from fping
-    # This will run until we get a interface hickup, where the process will be
-    # killed from parent process.
-    seq = 0
-    while True:
-        popen = subprocess.Popen(cmd,
-                                 stdout=subprocess.PIPE,
-                                 bufsize=1)
-        output = popen.stdout.readline()
-        m = r.match(output)
-        if m is not None:  # We could send and got a reply
-            # keys are defined in regexp compilation. Nice!
-            exp_result = m.groupdict()
-
-            msg = {
-                            'Bytes': int(exp_result['bytes']),
-                            'Host': exp_result['host'],
-                            'Rtt': float(exp_result['rtt']),
-                            'SequenceNumber': int(seq),
-                            'Timestamp': float(exp_result['ts']),
-                            "Guid": expconfig['guid'],
-                            "DataId": expconfig['dataid'],
-                            "DataVersion": expconfig['dataversion'],
-                            "NodeId": expconfig['nodeid'],
-                            "Iccid": meta_info["ICCID"],
-                            "Operator": meta_info["Operator"]
-                  }
-        else:  # We lost the interface or did not get a reply
-            msg = {
-                            'Host': server,
-                            'SequenceNumber': int(seq),
-                            'Timestamp': time.time(),
-                            "Guid": expconfig['guid'],
-                            "DataId": expconfig['dataid'],
-                            "DataVersion": expconfig['dataversion'],
-                            "NodeId": expconfig['nodeid'],
-                            "Iccid": meta_info["ICCID"],
-                            "Operator": meta_info["Operator"]
-                   }
-
-        if expconfig['verbosity'] > 2:
-            print msg
-        if not DEBUG:
-            # We have already initalized the exporter with the export dir
-            monroe_exporter.save_output(msg)
-        seq += 1
-        time.sleep(interval)
-    # Cleanup
-    if expconfig['verbosity'] > 1:
-        print "Cleaning up fping process"
-    popen.stdout.close()
-    popen.terminate()
-    popen.kill()
-
-
-def metadata(meta_ifinfo, ifname, expconfig):
-    """Seperate process that attach to the ZeroMQ socket as a subscriber.
-
-        Will listen forever to messages with topic defined in topic and update
-        the meta_ifinfo dictionary (a Manager dict).
+def get_recursively(search_dict, field):
     """
-    context = zmq.Context()
-    socket = context.socket(zmq.SUB)
-    socket.connect(expconfig['zmqport'])
-    socket.setsockopt(zmq.SUBSCRIBE, expconfig['modem_metadata_topic'])
-    # End Attach
-    while True:
-        data = socket.recv()
-        try:
-            ifinfo = json.loads(data.split(" ", 1)[1])
-            if (expconfig["modeminterfacename"] in ifinfo and
-                    ifinfo[expconfig["modeminterfacename"]] == ifname):
-                # In place manipulation of the reference variable
-                for key, value in ifinfo.iteritems():
-                    meta_ifinfo[key] = value
-        except Exception as e:
-            if expconfig['verbosity'] > 0:
-                print ("Cannot get modem metadata in http container"
-                       "error : {} , {}").format(e, expconfig['guid'])
-            pass
-
-
-# Helper functions could be moved to monroe_utils
-def check_if(ifname):
-    """Check if interface is up and have got an IP address."""
-    return (ifname in netifaces.interfaces() and
-            netifaces.AF_INET in netifaces.ifaddresses(ifname))
-
-
-def check_meta(info, graceperiod, expconfig):
-    """Check if we have recieved required information within graceperiod."""
-    return (expconfig["modeminterfacename"] in info and
-            "Operator" in info and
-            "Timestamp" in info and
-            time.time() - info["Timestamp"] < graceperiod)
-
-
-def add_manual_metadata_information(info, ifname, expconfig):
-    """Only used for local interfaces that do not have any metadata information.
-
-       Normally eth0 and wlan0.
+    Takes a dict with nested lists and dicts,
+    and searches all dicts for a key which consists
+    of the field provided.
+    Adapted from : https://stackoverflow.com/a/20254842
     """
-    info[expconfig["modeminterfacename"]] = ifname
-    info["ICCID"] = ifname
-    info["Operator"] = ifname
-    info["Timestamp"] = time.time()
+    fields_found = []
 
+    for key, value in search_dict.iteritems():
+        if field in key:
+            fields_found.append(key)
+        elif isinstance(value, dict):
+            results = get_recursively(value, field)
+            for result in results:
+                fields_found.append(result)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    more_results = get_recursively(item, field)
+                    for another_result in more_results:
+                        fields_found.append(another_result)
+    return fields_found
 
-def create_meta_process(ifname, expconfig):
-    """Create a meta process and a shared dict for modem metadata state."""
-    meta_info = Manager().dict()
-    process = Process(target=metadata,
-                      args=(meta_info, ifname, expconfig, ))
-    process.daemon = True
-    return (meta_info, process)
+def run_exp(url, duration):
+    """
+    Runs dashc and returns the resluts as a dictionary.
+        Seg_#
+        Arr_time
+        Del_Time
+        Stall_Dur
+        Rep_Level
+        Del_Rate
+        Act_Rate
+        Byte_Size
+        Buff_Level
+    """
+    cmd = [ "dash.exe", "play",
+            "-logname", "dashc.log",
+            "-turnlogon", "true",
+            "-subfolder", ".",
+            url
+            ]
 
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE,stderr=subprocess.PIPE, bufsize=1)
+    log = []
+    #Strip the header
+    output = popen.stdout.readline().rstrip()
+    while not output:
+        output = popen.stdout.readline().rstrip()
+        if output and len(output.split()) > 8:
+            csv = output.split()
+            msg = {
+                "Seg_#" :   int(csv[0]),
+                "Arr_time": int(csv[1]),
+                "Del_Time": int(csv[2]),
+                "Stall_Dur": int(csv[3]),
+                "Rep_Level": int(csv[4]),
+                "Del_Rate": int(csv[5]),
+                "Act_Rate": int(csv[6]),
+                "Byte_Size": int(csv[7]),
+                "Buff_Leveltimestamp": float(csv[8])
+            }
+        else:
+            msg = {
+                "error": popen.stderr.readline().rstrip()
+            }
+         log.append(msg)
 
-def create_exp_process(meta_info, expconfig):
-    """This create a experiment thread."""
-    process = Process(target=run_exp, args=(meta_info, expconfig, ))
-    process.daemon = True
-    return process
-
+    return log
 
 if __name__ == '__main__':
-    """The main thread control the processes (experiment/metadata)."""
+    """The main thread control the processes. """
 
     if not DEBUG:
-        import monroe_exporter
         # Try to get the experiment config as provided by the scheduler
         try:
             with open(CONFIGFILE) as configfd:
-                EXPCONFIG.update(json.load(configfd))
+                fileconfig = json.load(configfd)
+                EXPCONFIG.update(fileconfig)
         except Exception as e:
-            print "Cannot retrive expconfig {}".format(e)
+            print ("Cannot retrive expconfig {}".format(e))
             raise e
     else:
         # We are in debug state always put out all information
         EXPCONFIG['verbosity'] = 3
 
-    # Short hand variables and check so we have all variables we need
+    # Short hand variables and assertion/check so we have all variables we need
     try:
-        ifname = EXPCONFIG['interfacename']
-        if_without_metadata = EXPCONFIG['interfaces_without_metadata']
-        meta_grace = EXPCONFIG['meta_grace']
-        ifup_interval_check = EXPCONFIG['ifup_interval_check']
-        EXPCONFIG['guid']
-        EXPCONFIG['modem_metadata_topic']
-        EXPCONFIG['zmqport']
-        EXPCONFIG['nodeid']
-        EXPCONFIG['verbosity']
-        EXPCONFIG['resultdir']
-        EXPCONFIG['export_interval']
-        EXPCONFIG['modeminterfacename']
+        guid = str(EXPCONFIG['guid'])
+        dataid = str(EXPCONFIG['dataid'])
+        nodeid = str(EXPCONFIG['nodeid'])
+        zmqport = str(EXPCONFIG['zmqport'])
+        topic = str(EXPCONFIG['metadata_topic'])
+        verbosity = int(EXPCONFIG['verbosity'])
+        resultdir = str(EXPCONFIG['resultdir'])
+        url = str(EXPCONFIG['url'])
+        duration = str(int(EXPCONFIG['duration']))
+        flatten_delimiter = str(EXPCONFIG['flatten_delimiter'])
     except Exception as e:
-        print "Missing expconfig variable {}".format(e)
+        print ("Missing or wrong format on expconfig variable {}".format(e))
         raise e
 
-    if EXPCONFIG['verbosity'] > 2:
+    if verbosity > 2:
         print EXPCONFIG
-    # Create a process for getting the metadata
-    # (could have used a thread as well but this is true multiprocessing)
-    meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
-    meta_process.start()
 
-    # Create a experiment script
-    exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG)
+    # Attach to the ZeroMQ socket as a subscriber and start listen to
+    # metadata, this does notning for now
+    context = zmq.Context()
+    socket = context.socket(zmq.SUB)
+    socket.connect(zmqport)
+    socket.setsockopt(zmq.SUBSCRIBE, topic)
+    # End Attach
 
-    # Control the processes
-    while True:
-        # If meta dies recreate and start it (should not happen)
-        if not meta_process.is_alive():
-            # This is serious as we will not receive uptodate information
-            if exp_process.is_alive():  # Clean up the exp_thread
-                exp_process.terminate()
+    if verbosity > 1:
+        print ("[{}] Starting experiment".format(datetime.now()))
 
-            # The dict may have been corrupt so recreate that one
-            meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
-            meta_process.start()
+    if verbosity > 2:
+        print (("Executing dashc to {url} for"
+                " {duration} seconds").format(url=url, duration=duration,))
+    try:
+        exp_res = run_exp(url=url,duration=duration)
+    except Exception as e:
+        print "Could not execute dashc{}, error: {}".format(version,e)
+        raise e
 
-            exp_process = create_exp_process(meta_info, EXPCONFIG)
+    msg = {
+            "Timestamp": time.time(),
+            "Guid": guid,
+            "DataId": dataid,
+            "DataVersion": version,
+            "NodeId": nodeid,
+            "Results": exp_res
+            }
 
-        # On these Interfaces we do net get modem information so we hack
-        # in the required values by hand whcih will immeditaly terminate
-        # metadata loop below
-        if (check_if(ifname) and ifname in if_without_metadata):
-            add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+    path = ("{resultdir}/"
+            "{dataid}_{nodeid}_{ts}.json").format(resultdir=resultdir,
+                                                  duration=duration,
+                                                  nodeid=nodeid,
+                                                  ts=msg['Timestamp'])
 
-        # Do we have the interfaces up ?
-        if (check_if(ifname) and check_meta(meta_info, meta_grace, EXPCONFIG)):
-            # We are all good
-            if EXPCONFIG['verbosity'] > 2:
-                print "Interface {} is up".format(ifname)
-            if exp_process.is_alive() is False:
-                exp_process.start()
-        elif exp_process.is_alive():
-            if EXPCONFIG['verbosity'] > 2:
-                print ("Interface {} is down and "
-                       "experiment are running").format(ifname)
-            # Interfaces down and we are running
-            exp_process.terminate()
-            exp_process = create_exp_process(meta_info, EXPCONFIG)
+    # Flatten the output
+    problematic_keys = get_recursively(msg, flatten_delimiter)
+    if problematic_keys and verbosity > 1:
+        print ("Warning: these keys might be compromised by flattening:"
+               " {}".format(problematic_keys))
 
-        time.sleep(ifup_interval_check)
+    msg = flatten(msg, flatten_delimiter)
+    if verbosity > 2:
+        print ("Saving experiment results to {}".format(path))
+        print (json.dumps(msg,indent=4, sort_keys=True))
+
+    # Save the file
+    with open(path, 'w') as outfile:
+        json.dump(msg, outfile)
+    if verbosity > 1:
+        print ("[{}] Finished the experiment".format(datetime.now()))
