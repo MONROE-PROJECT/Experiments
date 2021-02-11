@@ -11,13 +11,21 @@ Simple wrapper to run dashc on a given host.
 The script will use the default route (ie no interface can be specified).
 All default values are configurable from the scheduler/elcm.
 The output will be formated into a json object suitable for db import.
+Example dash file from :
+`
+Jason J. Quinlan, Ahmed H. Zahran, Cormac J. Sreenan,
+"Datasets for AVC (H.264) and HEVC (H.265) Evaluation of Dynamic Adaptive
+Streaming over HTTP (DASH)". In Proceedings of the 7th ACM Multimedia Systems
+Conference 2016, Klagenfurt am Wörthersee, Austria. May 10-13, 2016.
+`
+URL: http://143.239.75.241/~jq5/www_dataset_temp/
 """
 
 import zmq
 import json
 from datetime import datetime
 import time
-import subprocess
+import subprocess32 as subprocess
 import netifaces
 from flatten_json import flatten
 
@@ -34,6 +42,7 @@ EXPCONFIG = {
         "nodeid": "virtual",
         "metadata_topic": "MONROE.META",
         "dataid": "5GENESIS.EXP.DASHC",
+        "dataversion": 1,
         "verbosity": 2,  # 0 = "Mute", 1=error, 2=Information, 3=verbose
         "resultdir": "/monroe/results/",
         "flatten_delimiter": '.',
@@ -66,7 +75,7 @@ def get_recursively(search_dict, field):
                         fields_found.append(another_result)
     return fields_found
 
-def run_exp(url, duration):
+def run_exp(url, duration, resultdir):
     """
     Runs dashc and returns the resluts as a dictionary.
         Seg_#
@@ -79,37 +88,51 @@ def run_exp(url, duration):
         Byte_Size
         Buff_Level
     """
-    cmd = [ "dash.exe", "play",
+    cmd = [ "dashc.exe", "play",
             "-logname", "dashc.log",
             "-turnlogon", "true",
-            "-subfolder", ".",
+            "-subfolder", resultdir,
             url
             ]
 
-    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE,stderr=subprocess.PIPE, bufsize=1)
+    try:
+        subprocess.run(cmd, timeout=duration)
+    except subprocess.TimeoutExpired as e:
+        if verbosity > 2:
+            print ("Terminated after {}".format(duration))
+    else:
+        if verbosity > 2:
+            print ("All downloaded")
+
+    if verbosity > 2:
+        print ("Start parsing of logfile")
+
     log = []
-    #Strip the header
-    output = popen.stdout.readline().rstrip()
-    while not output:
-        output = popen.stdout.readline().rstrip()
-        if output and len(output.split()) > 8:
-            csv = output.split()
-            msg = {
-                "Seg_#" :   int(csv[0]),
-                "Arr_time": int(csv[1]),
-                "Del_Time": int(csv[2]),
-                "Stall_Dur": int(csv[3]),
-                "Rep_Level": int(csv[4]),
-                "Del_Rate": int(csv[5]),
-                "Act_Rate": int(csv[6]),
-                "Byte_Size": int(csv[7]),
-                "Buff_Leveltimestamp": float(csv[8])
-            }
-        else:
-            msg = {
-                "error": popen.stderr.readline().rstrip()
-            }
-         log.append(msg)
+    with open(resultdir+'/dashc.log') as fp:
+        #Skip the headers
+        output = fp.readline()
+        for output in fp:
+            output = output.rstrip()
+            if len(output.split()) > 8:
+                csv = output.split()
+                msg = {
+                    "Seg_#" :   int(csv[0]),
+                    "Arr_time": int(csv[1]),
+                    "Del_Time": int(csv[2]),
+                    "Stall_Dur": int(csv[3]),
+                    "Rep_Level": int(csv[4]),
+                    "Del_Rate": int(csv[5]),
+                    "Act_Rate": int(csv[6]),
+                    "Byte_Size": int(csv[7]),
+                    "Buff_Leveltimestamp": float(csv[8])
+                }
+            else:
+                msg = {
+                    "error": output
+                }
+            if verbosity > 2:
+                print ("{}".format(msg))
+            log.append(msg)
 
     return log
 
@@ -133,20 +156,21 @@ if __name__ == '__main__':
     try:
         guid = str(EXPCONFIG['guid'])
         dataid = str(EXPCONFIG['dataid'])
+        dataversion = int(EXPCONFIG['dataversion'])
         nodeid = str(EXPCONFIG['nodeid'])
         zmqport = str(EXPCONFIG['zmqport'])
         topic = str(EXPCONFIG['metadata_topic'])
         verbosity = int(EXPCONFIG['verbosity'])
         resultdir = str(EXPCONFIG['resultdir'])
         url = str(EXPCONFIG['url'])
-        duration = str(int(EXPCONFIG['duration']))
+        duration = float(EXPCONFIG['duration'])
         flatten_delimiter = str(EXPCONFIG['flatten_delimiter'])
     except Exception as e:
         print ("Missing or wrong format on expconfig variable {}".format(e))
         raise e
 
     if verbosity > 2:
-        print EXPCONFIG
+        print (EXPCONFIG)
 
     # Attach to the ZeroMQ socket as a subscriber and start listen to
     # metadata, this does notning for now
@@ -156,29 +180,31 @@ if __name__ == '__main__':
     socket.setsockopt(zmq.SUBSCRIBE, topic)
     # End Attach
 
+    start_exp = time.time()
     if verbosity > 1:
         print ("[{}] Starting experiment".format(datetime.now()))
 
     if verbosity > 2:
-        print (("Executing dashc to {url} for"
-                " {duration} seconds").format(url=url, duration=duration,))
+        print (("Executing dashc play {url} for (max) "
+                " {duration} seconds").format(url=url, duration=duration))
     try:
-        exp_res = run_exp(url=url,duration=duration)
+        exp_res = run_exp(url=url,duration=duration, resultdir=resultdir)
     except Exception as e:
-        print "Could not execute dashc{}, error: {}".format(version,e)
+        print ("Could not execute dashc, error: {}".format(e))
         raise e
 
     msg = {
             "Timestamp": time.time(),
             "Guid": guid,
             "DataId": dataid,
-            "DataVersion": version,
+            "DataVersion": dataversion,
             "NodeId": nodeid,
             "Results": exp_res
             }
 
     path = ("{resultdir}/"
-            "{dataid}_{nodeid}_{ts}.json").format(resultdir=resultdir,
+            "{dataid}_{nodeid}_{ts}.json").format(dataid=dataid,
+                                                  resultdir=resultdir,
                                                   duration=duration,
                                                   nodeid=nodeid,
                                                   ts=msg['Timestamp'])
@@ -198,4 +224,6 @@ if __name__ == '__main__':
     with open(path, 'w') as outfile:
         json.dump(msg, outfile)
     if verbosity > 1:
-        print ("[{}] Finished the experiment".format(datetime.now()))
+        print ("[{}] Finished the experiment it took {}".format(datetime.now(),
+                                                                (time.time()
+                                                                -start_exp)))
