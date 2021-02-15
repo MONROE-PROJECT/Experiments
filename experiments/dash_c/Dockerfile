@@ -72,6 +72,6 @@ RUN apt-get update && apt-get install ${APT_OPTS} \
 COPY --from=build /dashc/dashc.exe /usr/local/bin/
 
 # This is the experiment that should run once the container is started
-COPY files/experiment.py /opt/monroe/
+COPY files/* /opt/monroe/
 
 ENTRYPOINT ["dumb-init", "--", "/usr/bin/python", "/opt/monroe/experiment.py"]
