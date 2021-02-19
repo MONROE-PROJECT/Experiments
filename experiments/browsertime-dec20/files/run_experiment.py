@@ -103,14 +103,14 @@ def browse_chrome(iface,url,getter_version):
 		har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-                        	har["browsertime-json"] = json.load(data_file)
-                        	har["browsertime-json"][0].pop('statistics',None)#These fileds are only relevant when multiple runs are done and a statistics is required
+                        	har["browsertime_json"] = json.load(data_file)
+                        	har["browsertime_json"][0].pop('statistics',None)#These fileds are only relevant when multiple runs are done and a statistics is required
 				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
 
                 except IOError:
                     print "No output found"
 
-                har["browsertime-har"]=process_har_files()
+                har["browsertime_har"]=process_har_files()
 		har["browser"]="Chrome"
 		har["protocol"]=getter_version
 		#har_stats["cache"]=1
@@ -199,13 +199,13 @@ def browse_firefox(iface,url,getter_version):
                 har={}
                 try:
 		    with open('web-res/browsertime.json') as data_file:    
-			        har["browsertime-json"] = json.load(data_file)
+			        har["browsertime_json"] = json.load(data_file)
 				har['pageLoadTime']=har["browsertime-json"][0]["browserScripts"][0]["timings"]['pageTimings']['pageLoadTime']
 
                 except IOError:
                     print "No output found"
-                har["browsertime-har"]=process_har_files()
-                har["har"]=process_har_files()
+                har["browsertime_har"]=process_har_files()
+                #har["har"]=process_har_files()
 		har["browser"]="Firefox"
 		har["protocol"]=getter_version
 		#har_stats["cache"]=0

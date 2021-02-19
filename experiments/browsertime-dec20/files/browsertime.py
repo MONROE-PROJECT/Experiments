@@ -62,25 +62,6 @@ first_run=1
 DEBUG = False
 CONFIGFILE = '/monroe/config'
 
-quic_urls=[
-             "www.litespeedtech.com",
-             "www.keycdn.com",
-             "wwww.meetup.com",
-             "www.free-power-point-templates.com"
-	     "www.corrieredellosport.it",
-             "www.t-nation.com",
-             "www.geforce.com",
-             "www.zaobao.com.sg",
-             "www.claro.com.br",
-             "www.net.com.br",
-             "www.vivastreet.co.uk",
-             "www.fantia.jp",
-             "www.tripadvisor.co.za",
-            "www.waldenu.edu",
-            "www.yves-rocher.fr"
-            "www.litespeedtech.com",
-	      "www.google.com"
-             ]
 # Default values (overwritable from the scheduler)
 # Can only be updated from the main thread and ONLY before any
 # other processes are started
@@ -92,7 +73,7 @@ EXPCONFIG = {
 	"zmqport": "tcp://172.17.0.1:5556",
 	"modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
 	"dataversion": 1,
-	"dataid": "MONROE.EXP.HEADLESS.BROWSERTIME.CHROME",
+	"dataid": "MONROE.EXP.HEADLESS.BROWSERTIME",
 	"nodeid": "fake.nodeid",
 	"meta_grace": 120,  # Grace period to wait for interface metadata
 	"exp_grace": 120,  # Grace period before killing experiment
@@ -193,7 +174,7 @@ def set_source(ifname):
 			return 0
 	return 1
 
-def check_dns():
+def check_dns(dns_list):
 	cmd=["dig",
 	"www.google.com",
 	"+noquestion", "+nocomments", "+noanswer"]
@@ -606,7 +587,7 @@ if __name__ == '__main__':
 			dns_list=add_dns(str(ifname))
 
 			print "Checking the dns setting..."
-			check_dns()
+			check_dns(dns_list)
 
 
 		if EXPCONFIG['verbosity'] > 1:
