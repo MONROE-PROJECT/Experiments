@@ -205,7 +205,7 @@ def browse_firefox(iface,url,getter_version):
                 except IOError:
                     print "No output found"
                 har["browsertime-har"]=process_har_files()
-                har["har"]=process_har_files()
+                #har["har"]=process_har_files()
 		har["browser"]="Firefox"
 		har["protocol"]=getter_version
 		#har_stats["cache"]=0

@@ -7,7 +7,7 @@
 # Developed for use by the EU H2020 MONROE project
 
 """
-Browsertime uses Selenium NodeJS to drive the browser (latest version of firefox and chrome).
+Browsertime uses Selenium NodeJS to drive the browser (latest version of firefox and chrome). 
 It starts the browser, load a URL, executes configurable Javascripts to collect metrics, collect a HAR file.
 """
 
@@ -60,7 +60,7 @@ har_directory =''
 
 first_run=1
 # Configuration
-DEBUG = False
+DEBUG = True 
 CONFIGFILE = '/monroe/config'
 
 # Default values (overwritable from the scheduler)
@@ -85,15 +85,15 @@ EXPCONFIG = {
         "flatten_delimiter": '.',
 	"modeminterfacename": "InternalInterface",
         "urls": [
-               "www.youtube.com",
-	               "www.instagram.com",
-	  	     "www.google.com",
-	  	     "www.myshopify.com",
-	  	     "www.google.com.hk",
-	  	     "www.google.co.in",
-	               "www.google.co.jp",
-	               "www.google.com.br",
-	  	     "www.facebook.com"
+	     "www.youtube.com",
+             "www.instagram.com",
+	     "www.google.com",
+	     "www.myshopify.com",
+	     "www.google.com.hk",
+	     "www.google.co.in",
+             "www.google.co.jp",	
+             "www.google.com.br",	
+	     "www.facebook.com"
        ],
         "http_protocols":["h2","h1s","http3"],
         "browsers":["chrome","firefox"],
@@ -265,11 +265,12 @@ def add_dns(interface):
 	return str
 
 
-def run_exp(ifname,expconfig, url,count):
+def run_exp(meta_info, expconfig, url,count):
 	"""Seperate process that runs the experiment and collect the ouput.
 
 	Will abort if the interface goes down.
 	"""
+	ifname = meta_info[expconfig["modeminterfacename"]]
 
 	#url=url_list[index]
 
@@ -336,8 +337,93 @@ def run_exp(ifname,expconfig, url,count):
 	har_stats["DataVersion"]= expconfig['dataversion']
 	har_stats["NodeId"]= expconfig['nodeid']
 	har_stats["Timestamp"]= time.time()
+	try:
+		har_stats["Iccid"]= meta_info["ICCID"]
+	except Exception:
+		print("ICCID info is not available")
+	#try:
+	#	har_stats["Operator"]= meta_info["Operator"]
+	#except Exception:
+	#	print("Operator info is not available")
+	try:
+		har_stats["InternalInterface"]=meta_info["InternalInterface"]
+	except Exception:
+		print("InternalInterface info is not available")
+	try:
+		har_stats["IPAddress"]=meta_info["IPAddress"]
+	except Exception:
+		print("IPAddress info is not available")
+	try:
+		har_stats["InternalIPAddress"]=meta_info["InternalIPAddress"]
+	except Exception:
+		print("InternalIPAddress info is not available")
+	try:
+		har_stats["InterfaceName"]=meta_info["InterfaceName"]
+	except Exception:
+		print("InterfaceName info is not available")
+
+
+	try:
+		har_stats["IMSIMCCMNC"]=meta_info["IMSIMCCMNC"]
+
+		if har_stats["IMSIMCCMNC"]==24001:
+			har_stats["Ops"]="Telia (SE)"
+		if har_stats["IMSIMCCMNC"]==24201:
+			har_stats["Ops"]="Telenor (NO)"
+		if har_stats["IMSIMCCMNC"]==24008:
+			har_stats["Ops"]="Telenor (SE)"
+		if har_stats["IMSIMCCMNC"]==24002:
+			har_stats["Ops"]="Tre (SE)"
+		if har_stats["IMSIMCCMNC"]==22201:
+			har_stats["Ops"]="TIM (IT)"
+		if har_stats["IMSIMCCMNC"]==21404:
+			har_stats["Ops"]="Yoigo (ES)"
+
+		if har_stats["IMSIMCCMNC"]==22210:
+			har_stats["Ops"]="Vodafone (IT)"
+		if har_stats["IMSIMCCMNC"]==24202:
+			har_stats["Ops"]="Telia (NO)"
+
+		if har_stats["IMSIMCCMNC"]==24214:
+			har_stats["Ops"]="ICE (NO)"
+		if har_stats["IMSIMCCMNC"]==22288:
+			har_stats["Ops"]="Wind (IT)"
+		if har_stats["IMSIMCCMNC"]==21403:
+			har_stats["Ops"]="Orange (ES)"
+
+		if har_stats["IMSIMCCMNC"]==24001:
+			har_stats["Country"]="SE"
+		if har_stats["IMSIMCCMNC"]==24201:
+			har_stats["Country"]="NO"
+		if har_stats["IMSIMCCMNC"]==24008:
+			har_stats["Country"]="SE"
+		if har_stats["IMSIMCCMNC"]==24002:
+			har_stats["Country"]="SE"
+		if har_stats["IMSIMCCMNC"]==22201:
+			har_stats["Country"]="IT"
+		if har_stats["IMSIMCCMNC"]==21404:
+			har_stats["Country"]="ES"
+
+		if har_stats["IMSIMCCMNC"]==22210:
+			har_stats["Country"]="IT"
+		if har_stats["IMSIMCCMNC"]==24202:
+			har_stats["Country"]="NO"
+
+		if har_stats["IMSIMCCMNC"]==24214:
+			har_stats["Country"]="NO"
+		if har_stats["IMSIMCCMNC"]==22288:
+			har_stats["Country"]="IT"
+		if har_stats["IMSIMCCMNC"]==21403:
+			har_stats["Country"]="ES"
+
+
+	except Exception:
+		print("IMSIMCCMNC info is not available")
+	try:
+		har_stats["NWMCCMNC"]=meta_info["NWMCCMNC"]
+	except Exception:
+		print("NWMCCMNC info is not available")
 	har_stats["SequenceNumber"]= count
-	har_stats["InterfaceName"]= ifname
 
     	# Flatten the output
     	problematic_keys = get_recursively(har_stats, flatten_delimiter)
@@ -395,10 +481,35 @@ def check_if(ifname):
 		netifaces.AF_INET in netifaces.ifaddresses(ifname))
 
 
+def check_meta(info, graceperiod, expconfig):
+	"""Check if we have recieved required information within graceperiod."""
+	return (expconfig["modeminterfacename"] in info and
+		"Operator" in info and
+		"Timestamp" in info and
+		time.time() - info["Timestamp"] < graceperiod)
 
 
-def create_exp_process(ifname,expconfig,url,count):
-	process = Process(target=run_exp, args=(ifname,expconfig,url,count))
+def add_manual_metadata_information(info, ifname, expconfig):
+	"""Only used for local interfaces that do not have any metadata information.
+
+	Normally eth0 and wlan0.
+	"""
+	info[expconfig["modeminterfacename"]] = ifname
+	info["Operator"] = "local"
+	info["Timestamp"] = time.time()
+	info["ipaddress"] ="172.17.0.2"
+
+
+def create_meta_process(ifname, expconfig):
+	meta_info = Manager().dict()
+	process = Process(target=metadata,
+		args=(meta_info, ifname, expconfig, ))
+	process.daemon = True
+	return (meta_info, process)
+
+
+def create_exp_process(meta_info, expconfig,url,count):
+	process = Process(target=run_exp, args=(meta_info, expconfig,url,count))
 	process.daemon = True
 	return process
 
@@ -482,7 +593,48 @@ if __name__ == '__main__':
 			continue
 
 
+		# Create a process for getting the metadata
+		# (could have used a thread as well but this is true multiprocessing)
+		meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
+		meta_process.start()
 
+		if EXPCONFIG['verbosity'] > 1:
+			print "Starting Experiment Run on if : {}".format(ifname)
+
+
+
+		# On these Interfaces we do net get modem information so we hack
+		# in the required values by hand whcih will immeditaly terminate
+		# metadata loop below
+		if (check_if(ifname) and ifname in if_without_metadata):
+			add_manual_metadata_information(meta_info, ifname,EXPCONFIG)
+		#
+		# Try to get metadadata
+		# if the metadata process dies we retry until the IF_META_GRACE is up
+		start_time_metacheck = time.time()
+		while (time.time() - start_time_metacheck < meta_grace and
+				not check_meta(meta_info, meta_grace, EXPCONFIG)):
+			if not meta_process.is_alive():
+				# This is serious as we will not receive updates
+				# The meta_info dict may have been corrupt so recreate that one
+				meta_info, meta_process = create_meta_process(ifname,
+				EXPCONFIG)
+				meta_process.start()
+			if EXPCONFIG['verbosity'] > 1:
+				print "Trying to get metadata. Waited {:0.1f}/{} seconds.".format(time.time() - start_time_metacheck, meta_grace)
+			time.sleep(ifup_interval_check)
+
+		# Ok we did not get any information within the grace period
+		# we give up on that interface
+		if not check_meta(meta_info, meta_grace, EXPCONFIG):
+			if EXPCONFIG['verbosity'] > 1:
+				print "No Metadata continuing"
+			continue
+
+		# Ok we have some information lets start the experiment script
+
+
+		#output_interface=None
 		#if not DEBUG:
 
 			# set the source route
@@ -534,21 +686,37 @@ if __name__ == '__main__':
 					browser_kind=browser
 					if browser == "firefox" and protocol == "quic":
 						continue
-
+                                        #elif browser == "chrome" and protocol == "quic" and (url not in quic_urls and url !="www.youtube.com/watch?v=544vEgMiMG0"):
+                                         #       continue
+                                        #elif protocol != "quic" and browser == "firefox" and url in quic_urls:
+                                         #   continue
 					for run in range(start_count, iterations):
 						# Create a experiment process and start it
 						print "Browsing {} with {} browser and {} protocol".format(url,browser,protocol)
 						start_time_exp = time.time()
-						exp_process = exp_process = create_exp_process(ifname, EXPCONFIG, url,run+1)
+						exp_process = exp_process = create_exp_process(meta_info, EXPCONFIG, url,run+1)
 						exp_process.start()
 
 						while (time.time() - start_time_exp < exp_grace and
 							exp_process.is_alive()):
+							# Here we could add code to handle interfaces going up or down
+							# Similar to what exist in the ping experiment
+							# However, for now we just abort if we loose the interface
 
-#
-							if not (check_if(ifname) ):#and check_meta(meta_info,
-#								meta_grace,
-#								EXPCONFIG)):
+							# No modem information hack to add required information
+							if (check_if(ifname) and ifname in if_without_metadata):
+								add_manual_metadata_information(meta_info, ifname, EXPCONFIG)
+
+							if not meta_process.is_alive():
+								print "meta_process is not alive - restarting"
+								meta_info, meta_process = create_meta_process(ifname, EXPCONFIG)
+								meta_process.start()
+								time.sleep(3*ifup_interval_check)
+
+
+							if not (check_if(ifname) and check_meta(meta_info,
+								meta_grace,
+								EXPCONFIG)):
 								if EXPCONFIG['verbosity'] > 0:
 									print "Interface went down during a experiment"
 								break
@@ -567,8 +735,8 @@ if __name__ == '__main__':
 							print "Finished {} after {}".format(ifname, elapsed)
 						time.sleep(time_between_experiments)
 					first_run=0
-	#	if meta_process.is_alive():
-	#		meta_process.terminate()
+		if meta_process.is_alive():
+			meta_process.terminate()
 		if EXPCONFIG['verbosity'] > 1:
 			print ("Interfaces {} "
 				"done, exiting").format(ifname)
