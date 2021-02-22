@@ -29,6 +29,7 @@ import random
 import psutil
 import netifaces as ni
 from subprocess import check_output, CalledProcessError
+from subprocess32 import TimeoutExpired, run, CalledProcessError, PIPE
 from multiprocessing import Process, Manager
 from flatten_json import flatten
 
@@ -73,7 +74,7 @@ EXPCONFIG = {
 	"zmqport": "tcp://172.17.0.1:5556",
 	"modem_metadata_topic": "MONROE.META.DEVICE.MODEM",
 	"dataversion": 1,
-	"dataid": "MONROE.EXP.HEADLESS.BROWSERTIME",
+	"dataid": "MONROE.EXP.HEADLESS.BROWSERTIME.21",
 	"nodeid": "fake.nodeid",
 	"meta_grace": 120,  # Grace period to wait for interface metadata
 	"exp_grace": 120,  # Grace period before killing experiment
@@ -139,6 +140,47 @@ def check_system():
     print response
 
 def set_source(ifname):
+    del_gw = ["route", "del", "default"]
+    add_gw = ["route", "add", "default", "gw" ]
+    gw_ip = [g[0] for g in ni.gateways().get(ni.AF_INET, []) if g[1] == ifname]
+
+    # Check so we actually got a gw for that interface
+    if not gw_ip:
+        print ("No gw set for {}".format(ifname))
+        print ("Gws : {}".format(ni.gateways()))
+        return False
+
+    add_gw.extend([gw_ip[0], ifname])
+    try:
+        # We do not check delete as it might be that no default gw is set
+        # We do set a timeout for 10 seconds as a indicationm that
+        # something went bad though
+        if verbosity > 2:
+            print (del_gw)
+        run(del_gw, timeout=10)
+        if verbosity > 2:
+            print (add_gw)
+        #We check so this went OK
+        run(add_gw, timeout=10, check=True)
+        gws = ni.gateways()['default'].get(ni.AF_INET)
+
+        if not gws:
+            print ("Default gw could no be set")
+            return False
+
+        if gws[1] == ifname:
+            print ("Source interface is set to {}".format(ifname))
+        else:
+            print ("Source interface {} is different from {}".format(gws[1],
+                                                                     ifname))
+            return False
+    except (CalledProcessError, TimeoutExpired) as e:
+        print ("Error in set default gw : {}".format(e))
+        return False
+
+    return True
+
+def set_source_2(ifname):
 	cmd1=["route",
 	"del",
 	"default"]
@@ -173,6 +215,16 @@ def set_source(ifname):
 			print "Time limit exceeded"
 			return 0
 	return 1
+
+def used_dns():
+    cmd=["dig", "www.google.com","+noquestion", "+nocomments", "+noanswer"]
+    try:
+        out=run(cmd, timeout=10, check=True, stdout=PIPE).stdout
+        start=out.find('SERVER: ') + 8
+        end=out[start:].find('(')
+        return out[start:start+end]
+    except:
+        return ""
 
 def check_dns(dns_list):
 	cmd=["dig",
@@ -576,18 +628,26 @@ if __name__ == '__main__':
 
 
 		#output_interface=None
-		if not DEBUG:
+		#if not DEBUG:
 
 			# set the source route
-			if not set_source(ifname):
-				continue
+		if not set_source(ifname):
+		    continue
 
-			print "Creating operator specific dns.."
-			dns_list=""
-			dns_list=add_dns(str(ifname))
+		print "Creating operator specific dns.."
+		dns_list=""
+		dns_list=add_dns(str(ifname))
 
-			print "Checking the dns setting..."
-			check_dns(dns_list)
+                if not dns_list:
+                    print ("No Operator dns is configured")
+                    print ("Using dns : {}".format(used_dns()))
+                elif check_dns(dns_list):
+                    print ("Operator dns is set properly")
+                else:
+                    print ("Operator dns could not be set")
+
+		#	print "Checking the dns setting..."
+		#	check_dns()
 
 
 		if EXPCONFIG['verbosity'] > 1:
